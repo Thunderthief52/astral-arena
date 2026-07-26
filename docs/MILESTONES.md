@@ -38,6 +38,9 @@
 - Full resource reset between games
 - Equipment budget and banned-item validation
 - Disconnect, forfeit, and host-migration safeguards
+- Deterministic post-match reward queue with an audited vanilla item catalog
+- Automatic utility bundle plus a controller-friendly one-of-six equipment choice
+- Split-screen recipient confirmation and duplicate-delivery recovery
 
 ## M3 — AI training tournament
 
@@ -66,6 +69,7 @@
 - Keep one player-created party and make class, spell, feat, and multiclass choices through BG3's native level-up flow
 - Fight a player-authored party snapshot from the same level, with developer fixtures only as empty-pool fallbacks
 - Lives/trophies structure inspired by asynchronous auto-battlers
+- Reward every completed bout with level-banded arena loot, including losses, before native level-up
 - Exchange validated snapshots through a Windows companion and the Eddard coordinator
 - Reuse the match engine without coupling this mode to the live PvP bracket
 

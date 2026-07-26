@@ -52,13 +52,17 @@ Planned work:
 - configurable preparation time and hard-control guardrails;
 - same-level developer AI parties for solo engine testing;
 - seedable encounter selection using the existing match controller;
-- ruleset fingerprints included in every result.
+- ruleset fingerprints included in every result;
+- deterministic reward offers backed by an audited vanilla item catalog;
+- one automatic level-banded utility bundle and one choice from six after qualifying matches;
+- server-authoritative, claim-once delivery with an explicit split-screen recipient.
 
 Exit criteria:
 
 - a solo tester can run an eight-team AI bracket at levels 5, 8, and 10;
 - live and AI matches share victory, cleanup, and validation code;
-- illegal levels/items/mod fingerprints fail before arena mutation.
+- illegal levels/items/mod fingerprints fail before arena mutation;
+- no story/debug/summoned item can enter an offer, and interrupted delivery has a tested recovery path.
 
 ## 0.4 — live eight-entrant bracket
 

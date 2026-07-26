@@ -15,6 +15,7 @@ Astral Arena is an experimental Baldur's Gate 3 party-versus-party tournament mo
 - Manual forfeit and emergency abort commands.
 - Three-second start countdown and automatic team rescan for rematches.
 - A deterministic eight-entrant tournament simulator and a tested 1–12 asynchronous run model.
+- A tested deterministic reward engine for level-banded automatic bundles and one-of-six equipment offers.
 
 The custom arena map, graphical bracket UI, automatic leveling, AI ghost parties, Eddard matchmaking coordinator, and public rankings are **not** in this alpha.
 
@@ -146,6 +147,7 @@ The generated playtest archive is written under `dist/`.
 - [Milestones](docs/MILESTONES.md)
 - [Release-sized next steps](docs/NEXT_STEPS.md)
 - [Player-authored level-pool mode](docs/LEVEL_POOL_VARIANT.md)
+- [Arena rewards and item-safety boundary](docs/REWARDS.md)
 - [Eddard coordinator boundary](docs/EDDARD_COORDINATOR.md)
 - [Contributing](CONTRIBUTING.md)
 

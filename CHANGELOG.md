@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Added deterministic, level-banded post-match reward offers with six unique choices.
+- Added separate automatic-bundle and rare-choice state with claim-once validation.
+- Added tournament, level-pool, and reward-free campaign-sparring policies.
+- Added unsafe-item, ownership, recent-offer, rarity, category, template, and uniqueness filters.
+- Documented the audited catalog, BG3 delivery, crash-recovery, and split-screen recipient boundaries.
+
 ## 0.1.1-alpha.1 — 2026-07-26
 
 - Added automatic 1v1 split-screen fallback using exactly two party `UserAvatar` components.

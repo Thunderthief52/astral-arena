@@ -11,6 +11,7 @@ require("tests.match_spec")
 require("tests.level_pool_run_spec")
 require("tests.roster_spec")
 require("tests.sparring_spec")
+require("tests.rewards_spec")
 
 if not Helper.run() then
     os.exit(1)

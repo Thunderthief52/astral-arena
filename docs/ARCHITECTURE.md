@@ -13,7 +13,7 @@ Server Controller ---- Persistence (ModVars)
         +---- BG3 Adapter ---- Sparring Orchestrator
         |                           |
         v                           v
-Tournament + Match + Roster domain modules
+Tournament + Match + Roster + Rewards domain modules
 ```
 
 The domain modules contain no `Ext` or `Osi` calls. They accept plain Lua tables and return plain Lua tables that Script Extender can serialize into a savegame.
@@ -34,6 +34,8 @@ Ordinary online teams use `GetReservedUserID`. If fewer than two ownership group
 6. Leave combat, clear individual relations against opposing factions, remove immortality, resurrect if required, and restore health/resources.
 
 The active sparring match is intentionally session-only. Saving during a match is unsupported; this avoids persisting temporary relationships or incomplete cleanup state.
+
+Sparring rewards are disabled by default. The current campaign-space mode exists to validate combat and cleanup and must not modify a real save's inventory as a side effect of an engine test.
 
 ## Tournament model
 
@@ -60,6 +62,14 @@ The mod owns in-session state and rules. A later coordinator can exchange signed
 ## Persistence
 
 `TournamentState` is registered as a persistent, server-owned ModVar and synchronized read-only to clients. Changes reassign the complete table so Script Extender marks it dirty. The serialized structure deliberately contains no functions, userdata, metatables, or cyclic references.
+
+## Reward boundary
+
+`Rewards` is another deterministic domain module. It converts a curated item catalog plus match level, result, recipient, seed, ownership, and recent-offer history into a serializable offer of six unique choices. It never calls `Ext` or `Osi` and never inspects or copies an opponent's inventory.
+
+Automatic utility loot and the selected equipment item are separate delivery records. Engine integration will use Astral Arena-owned treasure tables for the automatic bundle and one root-template addition for the claimed choice. The preferred presentation experiment is BG3's native hidden-booster Reward UI because it already supports generated rewards, optional treasure tables, pick counts, tooltips, and controller interaction. The deterministic offer remains authoritative regardless of presentation.
+
+Runtime stat discovery belongs in a server catalog adapter, not the domain module. Discovery results must pass a vanilla allowlist and story/debug/summon/template/provenance validation before they can enter an offer.
 
 ## Reuse policy
 
