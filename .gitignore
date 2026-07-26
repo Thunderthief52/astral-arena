@@ -1,0 +1,9 @@
+.DS_Store
+*.pak
+build/
+dist/
+coverage/
+*.log
+.idea/
+.vscode/
+

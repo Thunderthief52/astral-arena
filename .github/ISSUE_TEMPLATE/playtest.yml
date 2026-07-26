@@ -1,0 +1,66 @@
+name: Alpha playtest report
+description: Report an Astral Arena installation, combat, or cleanup result.
+title: "[Playtest]: "
+labels:
+  - playtest
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for testing. Use a disposable save and remove personal information from logs.
+  - type: input
+    id: arena-version
+    attributes:
+      label: Astral Arena version
+      description: Copy the value printed by !aa_version.
+    validations:
+      required: true
+  - type: input
+    id: game-version
+    attributes:
+      label: BG3 game version
+    validations:
+      required: true
+  - type: input
+    id: se-version
+    attributes:
+      label: Script Extender API version
+    validations:
+      required: true
+  - type: textarea
+    id: load-order
+    attributes:
+      label: Active mod load order
+      description: Include versions for party-limit, PvP, AI, initiative, class, spell, or item mods.
+    validations:
+      required: true
+  - type: dropdown
+    id: team-size
+    attributes:
+      label: Team size
+      options:
+        - 1v1
+        - 2v2
+        - 3v3
+        - 4v4
+        - Uneven teams
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: What happened?
+      description: Include the exact commands, expected result, actual result, and whether !aa_abort or reloading restored the game.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Astral Arena log lines
+      render: text
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety confirmation
+      options:
+        - label: I used a disposable/manual save and removed personal information from this report.
+          required: true

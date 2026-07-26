@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test-and-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lua and zip
+        run: sudo apt-get update && sudo apt-get install -y lua5.4 zip
+      - name: Run deterministic tests
+        run: lua tests/run.lua
+      - name: Run tournament simulation
+        run: lua scripts/simulate.lua
+      - name: Build playtest archive
+        run: bash scripts/build-release.sh ci
+      - name: Upload playtest archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: AstralArena-ci
+          path: dist/AstralArena-ci.zip
+
+  powershell-syntax:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse PowerShell scripts
+        shell: pwsh
+        run: |
+          $Failed = $false
+          Get-ChildItem scripts -Filter *.ps1 | ForEach-Object {
+            $Tokens = $null
+            $Errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$Tokens, [ref]$Errors)
+            if ($Errors.Count -gt 0) {
+              $Errors | ForEach-Object { Write-Error "$($_.Extent.File): $($_.Message)" }
+              $Failed = $true
+            }
+          }
+          if ($Failed) { exit 1 }
