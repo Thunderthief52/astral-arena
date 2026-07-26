@@ -3,6 +3,9 @@ local Constants = Ext.Require("AstralArena/Shared/Constants.lua")
 local Persistence = Ext.Require("AstralArena/Server/Persistence.lua")
 local Bg3Adapter = Ext.Require("AstralArena/Server/Bg3Adapter.lua")
 local Sparring = Ext.Require("AstralArena/Server/Sparring.lua")
+local SoloArena = Ext.Require("AstralArena/Server/SoloArena.lua")
+local AIFixtures = Ext.Require("AstralArena/Shared/AIFixtures.lua")
+local RewardCatalog = Ext.Require("AstralArena/Shared/RewardCatalog.lua")
 
 local Controller = { API = {} }
 local registered = false
@@ -16,7 +19,9 @@ local function printState(state)
 end
 
 local sparring = Sparring.new(Bg3Adapter, printLine)
+local soloArena = SoloArena.new(Bg3Adapter, printLine, AIFixtures, RewardCatalog)
 Controller.Sparring = sparring
+Controller.SoloArena = soloArena
 
 function Controller.API.GetState()
     return Persistence.LoadOrCreate()
@@ -104,6 +109,14 @@ function Controller.Register()
         printLine("  !aa_spar_status             show the current or previous sparring result")
         printLine("  !aa_forfeit left|right      concede for the selected side")
         printLine("  !aa_abort                   stop the match and restore both teams")
+        printLine("AI progression playtest:")
+        printLine("  !aa_ai_doctor               validate party, AI templates, and reward templates")
+        printLine("  !aa_ai_start                start the L5 -> L8 -> L10 -> L12 AI run")
+        printLine("  !aa_ai_pick <1-6> <member>  deliver two random rolls and one selected item")
+        printLine("  !aa_ai_continue             continue after every character finishes level-up")
+        printLine("  !aa_ai_status               show run, reward, or level-up state")
+        printLine("  !aa_ai_abort                restore players and delete active AI enemies")
+        printLine("  !aa_ai_reset                reset session state; does not undo XP or loot")
         printLine("Tournament simulation: !aa_demo, !aa_state, !aa_win <match> <entrant>, !aa_reset")
     end)
 
@@ -136,12 +149,18 @@ function Controller.Register()
 
     Ext.RegisterConsoleCommand("aa_spar", function()
         safely(function()
+            if soloArena.active then
+                error("an AI arena match is active; use !aa_ai_abort first")
+            end
             sparring:startAuto()
         end)
     end)
 
     Ext.RegisterConsoleCommand("aa_rematch", function()
         safely(function()
+            if soloArena.active then
+                error("an AI arena match is active; use !aa_ai_abort first")
+            end
             sparring:rematch()
         end)
     end)
@@ -164,6 +183,58 @@ function Controller.Register()
     Ext.RegisterConsoleCommand("aa_abort", function()
         safely(function()
             sparring:abort("manual-abort")
+        end)
+    end)
+
+    Ext.RegisterConsoleCommand("aa_ai_doctor", function()
+        safely(function()
+            soloArena:doctor()
+            printLine("AI doctor complete. No game state was changed.")
+        end)
+    end)
+
+    Ext.RegisterConsoleCommand("aa_ai_start", function()
+        safely(function()
+            if sparring.active then
+                error("a PvP sparring match is active; use !aa_abort first")
+            end
+            soloArena:start()
+        end)
+    end)
+
+    Ext.RegisterConsoleCommand("aa_ai_pick", function(_, choiceIndex, recipientIndex)
+        safely(function()
+            if not choiceIndex then
+                error("usage: !aa_ai_pick <choice 1-6> <recipient number>")
+            end
+            soloArena:pick(choiceIndex, recipientIndex)
+        end)
+    end)
+
+    Ext.RegisterConsoleCommand("aa_ai_continue", function()
+        safely(function()
+            if sparring.active then
+                error("a PvP sparring match is active; use !aa_abort first")
+            end
+            soloArena:continue()
+        end)
+    end)
+
+    Ext.RegisterConsoleCommand("aa_ai_status", function()
+        safely(function()
+            printLine(soloArena:status())
+        end)
+    end)
+
+    Ext.RegisterConsoleCommand("aa_ai_abort", function()
+        safely(function()
+            soloArena:abort("manual-abort")
+        end)
+    end)
+
+    Ext.RegisterConsoleCommand("aa_ai_reset", function()
+        safely(function()
+            soloArena:reset()
         end)
     end)
 

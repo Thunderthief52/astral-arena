@@ -180,6 +180,35 @@ function Roster.resolveTeams(members, maximumPartySize)
     ), 2)
 end
 
+function Roster.playerParty(members, maximumPartySize)
+    maximumPartySize = maximumPartySize or 4
+    if type(members) ~= "table" or #members < 1 or #members > maximumPartySize then
+        error(string.format(
+            "AI arena requires between 1 and %d active party members; found %d",
+            maximumPartySize,
+            type(members) == "table" and #members or 0
+        ), 2)
+    end
+
+    local values = copyAndSort(members)
+    local expectedLevel = values[1].level
+    if type(expectedLevel) ~= "number" then
+        error("party member level is missing", 2)
+    end
+    for _, member in ipairs(values) do
+        Util.assertNonEmptyString(member.guid, "party member GUID")
+        validateMember(member, expectedLevel)
+    end
+
+    return {
+        userId = values[1].userId,
+        entrantId = "player-party",
+        label = "Player Party",
+        members = values,
+        level = expectedLevel,
+    }
+end
+
 function Roster.guids(group)
     local values = {}
     for _, member in ipairs(group.members) do

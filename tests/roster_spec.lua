@@ -98,3 +98,25 @@ H.test("split-screen fallback keeps same-level safety validation", function()
         Roster.resolveTeams({ left, right }, 4)
     end, "same level")
 end)
+
+H.test("AI arena treats online or couch-controlled characters as one party", function()
+    local left = member("left", 0, 5)
+    left.isAvatar = true
+    local right = member("right", 1, 5)
+    right.isAvatar = true
+    local party = Roster.playerParty({ left, right }, 4)
+    H.equal(party.level, 5)
+    H.equal(#party.members, 2)
+    H.equal(party.entrantId, "player-party")
+end)
+
+H.test("AI arena rejects oversized and mixed-level parties", function()
+    H.raises(function()
+        Roster.playerParty({ member("a", 0, 5), member("b", 0, 6) }, 4)
+    end, "same level")
+    H.raises(function()
+        Roster.playerParty({
+            member("a", 0), member("b", 0), member("c", 0), member("d", 0), member("e", 0),
+        }, 4)
+    end, "between 1 and 4")
+end)

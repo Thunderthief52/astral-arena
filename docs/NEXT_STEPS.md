@@ -45,21 +45,23 @@ Exit criteria:
 
 Goal: make matches repeatable enough to evaluate builds rather than setup accidents.
 
+The `0.2.0-alpha.1` engine candidate now supplies one fixed AI party at levels 5, 8, and 10, deterministic console-selected rewards, and native XP progression. It must pass the dedicated AI playtest before expansion.
+
 Planned work:
 
 - standardized resource restore and equipment-budget validation;
 - no-surprise start and deterministic initiative policy experiments;
 - configurable preparation time and hard-control guardrails;
-- same-level developer AI parties for solo engine testing;
+- expand each existing level-5, level-8, and level-10 fixture into a seedable opponent pool;
 - seedable encounter selection using the existing match controller;
 - ruleset fingerprints included in every result;
-- deterministic reward offers backed by an audited vanilla item catalog;
-- one automatic level-banded utility bundle and one choice from six after qualifying matches;
-- server-authoritative, claim-once delivery with an explicit split-screen recipient.
+- expand the initial audited `+2` weapon catalog to armor, jewelry, and class-aware choices;
+- replace `RewardMedium` with Astral Arena-owned level-banded utility tables;
+- add crash-safe reward-delivery recovery without duplicating items.
 
 Exit criteria:
 
-- a solo tester can run an eight-team AI bracket at levels 5, 8, and 10;
+- a solo or cooperative party can complete ten consecutive 5 → 8 → 10 → 12 AI runs without cleanup or progression leakage;
 - live and AI matches share victory, cleanup, and validation code;
 - illegal levels/items/mod fingerprints fail before arena mutation;
 - no story/debug/summoned item can enter an offer, and interrupted delivery has a tested recovery path.

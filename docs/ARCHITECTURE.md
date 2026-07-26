@@ -10,10 +10,10 @@ BG3 / Script Extender
         v
 Server Controller ---- Persistence (ModVars)
         |
-        +---- BG3 Adapter ---- Sparring Orchestrator
+        +---- BG3 Adapter ---- Sparring + Solo Arena orchestrators
         |                           |
         v                           v
-Tournament + Match + Roster + Rewards domain modules
+Tournament + Match + Roster + Solo Run + Rewards domain modules
 ```
 
 The domain modules contain no `Ext` or `Osi` calls. They accept plain Lua tables and return plain Lua tables that Script Extender can serialize into a savegame.
@@ -36,6 +36,16 @@ Ordinary online teams use `GetReservedUserID`. If fewer than two ownership group
 The active sparring match is intentionally session-only. Saving during a match is unsupported; this avoids persisting temporary relationships or incomplete cleanup state.
 
 Sparring rewards are disabled by default. The current campaign-space mode exists to validate combat and cleanup and must not modify a real save's inventory as a side effect of an engine test.
+
+## AI progression runtime
+
+`SoloRun` models a three-bout progression independently of BG3: fight at level 5, claim a level-8 reward, fight at level 8, claim a level-10 reward, fight at level 10, and claim a level-12 reward. Confirming that the entire party completed its final native level-up crowns the champion. A level-12 exhibition fight is deliberately outside this first ruleset.
+
+`SoloArena` connects that model to the engine. It treats the active one-to-four-character player party as one cooperative team, so the same flow supports solo, online co-op, and local split-screen. For each tier it validates and creates four anonymous vanilla character templates as temporary, non-lootable NPCs, sets their faction and level, and passes both sides through the same nonlethal `Match` lifecycle used by sparring. Cleanup restores the players and permanently deletes the temporary opponents.
+
+After a victory, the runtime generates a deterministic six-choice offer at the next tier. The chosen recipient receives two native `RewardMedium` treasure rolls and one selected item; then every player-party member receives the vanilla experience delta for the next target level. BG3's ordinary level-up screen remains authoritative for all class, subclass, spell, feat, and multiclass decisions. The next bout cannot begin until all active party members report the expected level.
+
+The AI run and recent-offer history are session-only in this candidate. Delivered items and experience are real save mutations, so a clean reset requires reloading the pre-playtest save.
 
 ## Tournament model
 
@@ -67,7 +77,7 @@ The mod owns in-session state and rules. A later coordinator can exchange signed
 
 `Rewards` is another deterministic domain module. It converts a curated item catalog plus match level, result, recipient, seed, ownership, and recent-offer history into a serializable offer of six unique choices. It never calls `Ext` or `Osi` and never inspects or copies an opponent's inventory.
 
-Automatic utility loot and the selected equipment item are separate delivery records. Engine integration will use Astral Arena-owned treasure tables for the automatic bundle and one root-template addition for the claimed choice. The preferred presentation experiment is BG3's native hidden-booster Reward UI because it already supports generated rewards, optional treasure tables, pick counts, tooltips, and controller interaction. The deterministic offer remains authoritative regardless of presentation.
+Automatic utility loot and the selected equipment item are separate delivery records. The AI candidate currently uses two native `RewardMedium` rolls for the automatic bundle and one root-template addition for the claimed choice. A later balance pass will replace the shared table with Astral Arena-owned treasure tables. The preferred presentation experiment is BG3's native hidden-booster Reward UI because it already supports generated rewards, optional treasure tables, pick counts, tooltips, and controller interaction. The deterministic offer remains authoritative regardless of presentation.
 
 Runtime stat discovery belongs in a server catalog adapter, not the domain module. Discovery results must pass a vanilla allowlist and story/debug/summon/template/provenance validation before they can enter an offer.
 

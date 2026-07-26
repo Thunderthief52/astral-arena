@@ -44,7 +44,8 @@
 
 ## M3 — AI training tournament
 
-- Curated AI parties at levels 3, 6, and 9
+- Initial vertical slice: one fixed four-enemy team at levels 5, 8, and 10 with 5 → 8 → 10 → 12 rewards/progression
+- Additional curated AI-party variants at levels 5, 8, and 10
 - Arena-aware positioning profiles
 - Same match controller and PvP rules used by multiplayer
 - Eight-team solo bracket with repeatable seeds

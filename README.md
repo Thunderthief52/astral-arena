@@ -1,6 +1,6 @@
 # Astral Arena
 
-Astral Arena is an experimental Baldur's Gate 3 party-versus-party tournament mod for Windows. The current alpha provides a console-driven online or split-screen sparring match that can be played in any clear campaign area. Its longer-term goal is an eight-entrant 5 → 8 → 10 → 12 bracket plus a separate asynchronous level-pool mode built from player-authored parties.
+Astral Arena is an experimental Baldur's Gate 3 arena mod for Windows. The current alpha provides console-driven online or split-screen PvP sparring plus an AI progression run. Its longer-term goal is an eight-entrant 5 → 8 → 10 → 12 live bracket plus a separate asynchronous level-pool mode built from player-authored parties.
 
 > **Alpha safety note:** use a separate manual save, remove story NPCs from the area, and do not save during an active match. The mod restores combat relationships and characters after a bout, but this is the first engine playtest build.
 
@@ -16,20 +16,22 @@ Astral Arena is an experimental Baldur's Gate 3 party-versus-party tournament mo
 - Three-second start countdown and automatic team rescan for rematches.
 - A deterministic eight-entrant tournament simulator and a tested 1–12 asynchronous run model.
 - A tested deterministic reward engine for level-banded automatic bundles and one-of-six equipment offers.
+- An experimental player-party-versus-AI run with fights at levels 5, 8, and 10, native progression to 8, 10, and 12, and post-win loot.
 
-The custom arena map, graphical bracket UI, automatic leveling, AI ghost parties, Eddard matchmaking coordinator, and public rankings are **not** in this alpha.
+The custom arena map, graphical bracket/reward UI, player-authored AI ghosts, Eddard matchmaking coordinator, and public rankings are **not** in this alpha.
 
 ## Requirements
 
 - Baldur's Gate 3 on Windows.
 - [Norbyte's BG3 Script Extender](https://github.com/Norbyte/bg3se), API version 30 or newer.
 - [BG3 Mod Manager](https://github.com/LaughingLeader/BG3ModManager) for activating the unpacked project.
-- Two online players or two local split-screen players for the current sparring mode.
+- A level-5 party of one to four characters for the AI progression mode.
+- Two online players or two local split-screen players for PvP sparring.
 - Online co-op only: the same Astral Arena build and compatible mod load order on both PCs.
 
 ## Install a release
 
-1. Download and extract `AstralArena-0.1.1-alpha.1.zip` from the [alpha release page](https://github.com/Thunderthief52/astral-arena/releases/tag/v0.1.1-alpha.1).
+1. Download and extract `AstralArena-0.2.0-alpha.1.zip` from the latest [release page](https://github.com/Thunderthief52/astral-arena/releases).
 2. Open PowerShell in the extracted folder.
 3. If PowerShell blocks local scripts, allow them for only this window:
 
@@ -101,7 +103,13 @@ The installer backs up an existing Astral Arena copy under `%LOCALAPPDATA%\Astra
 
 If BG3 exposes the two controllers as normal distinct users, the doctor may instead print `READY via multiplayer assignments`; that route is also valid. Astral Arena never guesses companion ownership in fallback mode, so the fallback is deliberately 1v1 for this alpha.
 
-For the full test matrix, expected results, logs, and bug-report checklist, read [PLAYTEST.md](PLAYTEST.md).
+For the PvP test matrix, expected results, logs, and bug-report checklist, read [PLAYTEST.md](PLAYTEST.md).
+
+## Run the AI progression playtest
+
+Use a disposable level-5 save. Enter `!aa_ai_doctor`, then `!aa_ai_start`. After each victory, use `!aa_ai_pick <choice 1-6> <party-member number>`, finish every native level-up, and enter `!aa_ai_continue`.
+
+This mode awards real loot and XP. Read [docs/AI_PLAYTEST.md](docs/AI_PLAYTEST.md) before starting; `!aa_ai_reset` does not undo inventory or experience changes.
 
 ## Console commands
 
@@ -119,6 +127,13 @@ For the full test matrix, expected results, logs, and bug-report checklist, read
 | `!aa_abort` | End an active match and restore both teams. |
 | `!aa_demo` | Run the deterministic eight-entrant bracket setup. |
 | `!aa_state` | Print the simulated bracket state. |
+| `!aa_ai_doctor` | Validate the active party, AI fixtures, and reward templates without mutation. |
+| `!aa_ai_start` | Start the level 5 AI progression run. |
+| `!aa_ai_pick 1 1` | Take reward choice 1 on party member 1 and award next-tier XP. |
+| `!aa_ai_continue` | Start the next tier after every party member completes native level-up. |
+| `!aa_ai_status` | Show AI run state. |
+| `!aa_ai_abort` | Abort combat, restore players, and delete temporary AI enemies. |
+| `!aa_ai_reset` | Reset session state without removing awarded loot or XP. |
 
 ## Build and test from source
 
@@ -127,14 +142,14 @@ The deterministic Lua code runs outside BG3 with LuaJIT or Lua 5.1+:
 ```sh
 luajit tests/run.lua
 luajit scripts/simulate.lua
-./scripts/build-release.sh 0.1.1-alpha.1
+./scripts/build-release.sh 0.2.0-alpha.1
 ```
 
 Windows equivalents:
 
 ```powershell
 lua tests\run.lua
-.\scripts\Build-Release.ps1 -Version 0.1.1-alpha.1
+.\scripts\Build-Release.ps1 -Version 0.2.0-alpha.1
 ```
 
 The generated playtest archive is written under `dist/`.
@@ -142,6 +157,7 @@ The generated playtest archive is written under `dist/`.
 ## Project documentation
 
 - [Playtest protocol](PLAYTEST.md)
+- [AI progression playtest](docs/AI_PLAYTEST.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Milestones](docs/MILESTONES.md)
