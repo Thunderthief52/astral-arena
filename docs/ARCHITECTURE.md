@@ -20,15 +20,18 @@ The domain modules contain no `Ext` or `Osi` calls. They accept plain Lua tables
 
 ## Alpha sparring runtime
 
-The first engine playtest uses BG3's existing campaign space rather than a custom level. `Roster` groups current `DB_PartyMembers` rows by `GetReservedUserID`. Exactly two multiplayer users are required, with one to four same-level characters assigned to each.
+The first engine playtest uses BG3's existing campaign space rather than a custom level. `Roster` first groups current `DB_PartyMembers` rows by `GetReservedUserID`. Two ordinary multiplayer users can each contribute one to four same-level characters.
+
+Ordinary online teams use `GetReservedUserID`. If fewer than two ownership groups exist, roster resolution checks the `UserAvatar` component exposed by Script Extender. Exactly two party avatars become Couch Player 1 and Couch Player 2; other party members are omitted. This fallback never bypasses level, death, or existing-combat validation and refuses any avatar count other than two.
 
 `Sparring` owns the runtime lifecycle and delegates engine mutations to `Bg3Adapter`:
 
 1. Fully restore fighters, enable combat, and make them temporarily immortal.
-2. Apply temporary hostility across every opposing pair and enter combat.
-3. Poll hit points every 250 ms. One HP is considered nonlethal defeat.
-4. Remove defeated fighters from combat and resolve the match when a side has none left.
-5. Leave combat, clear individual relations against opposing factions, remove immortality, resurrect if required, and restore health/resources.
+2. Run a three-second notification countdown.
+3. Apply temporary hostility across every opposing pair and enter combat.
+4. Poll hit points every 250 ms. One HP is considered nonlethal defeat.
+5. Remove defeated fighters from combat and resolve the match when a side has none left.
+6. Leave combat, clear individual relations against opposing factions, remove immortality, resurrect if required, and restore health/resources.
 
 The active sparring match is intentionally session-only. Saving during a match is unsupported; this avoids persisting temporary relationships or incomplete cleanup state.
 
@@ -52,7 +55,7 @@ The quarterfinal is fought at level 5. Its winners advance at level 8, semifinal
 
 Each bracket match is intended to run in its own normal BG3 multiplayer lobby with two human peers. Each peer controls up to four registered characters. This avoids requiring all eight entrants and all tournament characters to coexist in one game session. The alpha validates this two-user match boundary before tournament coordination is connected.
 
-The `.pak` will own in-session state and rules. A later coordinator can exchange signed roster/result documents between separate lobbies. Script Extender has no external networking API, so automatic internet matchmaking must be a separate optional service or launcher.
+The mod owns in-session state and rules. A later coordinator can exchange signed roster/result documents between separate lobbies. Script Extender has no external networking API, so automatic internet matchmaking must be a separate optional service or launcher.
 
 ## Persistence
 

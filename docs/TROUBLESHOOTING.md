@@ -27,7 +27,13 @@ Then enter `!aa_version` and attach the console output to a report.
 
 ## `!aa_doctor` finds only one user
 
-The game has not assigned a party character to the guest. Open Escape → Multiplayer/Session and drag at least one character to the second player. Run `!aa_doctor` again.
+For online play, the game may not have assigned a party character to the guest. Open Escape → Multiplayer/Session and drag at least one character to the second player, then run `!aa_doctor` again.
+
+For split-screen, one ordinary ownership group is acceptable when the doctor also detects exactly two `UserAvatar` components. It should print `READY via split-screen fallback`. If it finds fewer or more than two player avatars, confirm both controllers joined before loading the save and start with exactly two custom/origin player avatars.
+
+## Split-screen fallback ignores companions
+
+This is intentional in `0.1.1-alpha.1`. When BG3 collapses ordinary ownership, the mod can reliably identify the two controller avatars but cannot safely infer which companions belong to each controller. The fallback therefore creates a 1v1 and reports all non-avatar party members as spectators.
 
 ## `!aa_doctor` reports mixed levels
 

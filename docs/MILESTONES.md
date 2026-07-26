@@ -16,6 +16,8 @@
 - Use temporary immortality and one HP as nonlethal defeat
 - Detect victory/draw and restore relationships, combat state, health, and resources
 - Provide scan, doctor, status, forfeit, and abort commands
+- Resolve collapsed split-screen ownership through exactly two player-avatar components
+- Provide a start countdown and ownership-rescanning rematch
 - Package guarded Windows installer and detailed playtest protocol
 
 ## M1b — dedicated playable 4v4 arena
@@ -25,6 +27,7 @@
 - Begin combat after both players confirm readiness
 - Add graphical readiness and result prompts
 - Validate teardown against disconnects, summons, transformations, and environmental deaths
+- Add explicit split-screen companion assignment for couch 2v2 and 4v4
 
 ## M2 — fair PvP ruleset
 

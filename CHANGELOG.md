@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.1-alpha.1 — 2026-07-26
+
+- Added automatic 1v1 split-screen fallback using exactly two party `UserAvatar` components.
+- Added avatar/reserved-user diagnostics and safe refusal for ambiguous couch rosters.
+- Added a three-second pre-fight countdown.
+- Added `!aa_rematch` with fresh team discovery before every replay.
+- Added split-screen playtest, installation, and troubleshooting instructions.
+
 ## 0.1.0-alpha.1 — 2026-07-26
 
 - Added console-driven two-user sparring for one to four same-level characters per user.

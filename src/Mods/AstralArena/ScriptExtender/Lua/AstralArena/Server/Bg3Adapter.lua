@@ -26,6 +26,8 @@ function Adapter.partyMembers()
     for _, row in pairs(Osi.DB_PartyMembers:Get(nil)) do
         local guid = row[1]
         if guid and guid ~= "" then
+            local entity = Ext.Entity.Get(guid)
+            local avatar = entity and entity.UserAvatar or nil
             table.insert(members, {
                 guid = guid,
                 name = translatedName(guid),
@@ -34,6 +36,8 @@ function Adapter.partyMembers()
                 faction = Osi.GetFaction(guid),
                 isDead = Osi.IsDead(guid) == 1,
                 inCombat = Osi.IsInCombat(guid) == 1,
+                isAvatar = avatar ~= nil,
+                avatarUserId = avatar and avatar.UserID or nil,
             })
         end
     end

@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$Version = "0.1.0-alpha.1"
+    [string]$Version = "0.1.1-alpha.1"
 )
 
 $ErrorActionPreference = "Stop"
@@ -24,7 +24,10 @@ Copy-Item (Join-Path $PSScriptRoot "Uninstall-Playtest.ps1") $BuildRoot
 Copy-Item (Join-Path $PSScriptRoot "Enable-SE-Console.ps1") $BuildRoot
 Copy-Item (Join-Path $RepositoryRoot "PLAYTEST.md") $BuildRoot
 Copy-Item (Join-Path $RepositoryRoot "README.md") $BuildRoot
+Copy-Item (Join-Path $RepositoryRoot "CHANGELOG.md") $BuildRoot
+Copy-Item (Join-Path $RepositoryRoot "CONTRIBUTING.md") $BuildRoot
 Copy-Item (Join-Path $RepositoryRoot "LICENSE") $BuildRoot
+Copy-Item (Join-Path $RepositoryRoot "docs") (Join-Path $BuildRoot "docs") -Recurse
 
 if (Test-Path $Archive) {
     Remove-Item $Archive -Force

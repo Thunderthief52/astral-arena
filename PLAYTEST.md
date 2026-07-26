@@ -2,13 +2,13 @@
 
 ## Purpose of this build
 
-Version `0.1.0-alpha.1` answers one question: can two connected players use their currently assigned BG3 characters as opposing teams, finish a nonlethal fight, and return safely to the campaign state?
+Version `0.1.1-alpha.1` tests whether two online users or two local split-screen player avatars can become opposing teams, finish a nonlethal fight, and return safely to the campaign state.
 
 This build is ready for that focused test. It is not yet the full eight-player tournament.
 
 ## Before launching
 
-Record the following for both PCs:
+Record the following for both PCs in online play, or for the one PC in split-screen:
 
 - BG3 game version shown on the main menu.
 - Astral Arena version from `!aa_version`.
@@ -17,7 +17,7 @@ Record the following for both PCs:
 - Complete active load order.
 - Whether DirectX 11 or Vulkan is used.
 
-Both players should have matching BG3 versions, Astral Arena files, and load orders. Disable unrelated gameplay mods for the first run.
+Online players should have matching BG3 versions, Astral Arena files, and load orders. Split-screen needs only one installation. Disable unrelated gameplay mods for the first run.
 
 ## Safety setup
 
@@ -45,16 +45,30 @@ The mod makes fighters immortal for the bout, treats 1 HP as defeat, then disabl
 Expected:
 
 - No red Script Extender error appears.
-- The doctor finds exactly two assigned user IDs.
-- Every intended fighter appears under the correct user.
+- Online: the doctor resolves exactly two assigned user IDs.
+- Split-screen: the doctor either resolves two assigned users or prints `READY via split-screen fallback` with exactly two player avatars.
+- Every intended fighter or fallback avatar appears on the correct side.
 - Every listed fighter has the same level.
 
-If it finds one user, reassign a character to the guest using the game's Multiplayer/Session panel. If it finds more than two, move extra characters to one of the two fighting users or remove them from the party.
+If online play finds one user and fewer than two avatars, reassign a character to the guest using the game's Multiplayer/Session panel. If it finds more than two users, move extra characters to one of the two fighting users or remove them from the party.
+
+## Test A2 — split-screen discovery
+
+1. Connect two controllers and start split-screen before loading the disposable test save.
+2. Use one same-level player avatar for each controller.
+3. Enter `!aa_doctor` in the Script Extender console.
+
+Expected:
+
+- Either ordinary ownership resolves two users, or the doctor prints `READY via split-screen fallback`.
+- Fallback mode names exactly the two controller avatars as Couch Player 1 and Couch Player 2.
+- Non-avatar companions are explicitly reported as spectators.
+- If the avatar count is not exactly two, the doctor refuses to guess and no state changes occur.
 
 ## Test B — minimal 1v1
 
 1. Assign exactly one character to each player.
-2. Enter `!aa_scan` and note which user is left and right. The lower numeric user ID is left.
+2. Enter `!aa_scan` and note which user or couch player is left and right.
 3. Enter `!aa_spar`.
 4. Have each player take at least one movement action and one attack.
 5. Reduce one fighter to 1 HP.
@@ -96,6 +110,15 @@ Expected: no winner is recorded, combat ends, hostility clears, immortality is r
 Only run this after 1v1 succeeds. Assign two same-level characters to each user and repeat Tests B, D, and E. A 4v4 test requires a compatible party-limit solution and eight controllable party members; record that dependency and its version in the report.
 
 Summons are not roster members in this alpha. They may inherit combat relationships unpredictably, so do not use them in the first expanded-team test.
+
+## Test G — rematch and countdown
+
+1. Complete a 1v1 match.
+2. Enter `!aa_rematch` without changing ownership.
+3. Confirm the console prints a three-second countdown before hostility/combat begins.
+4. After cleanup, change character assignment in an online lobby and enter `!aa_rematch` again.
+
+Expected: every rematch rescans current team ownership rather than reusing stale character data. In split-screen fallback mode, it rescans the two current player avatars.
 
 ## What to report
 
