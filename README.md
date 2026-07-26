@@ -26,7 +26,7 @@ The custom arena map, graphical bracket UI, automatic leveling, AI ghost parties
 
 ## Install a release
 
-1. Download and extract `AstralArena-0.1.0-alpha.1.zip` from the [latest GitHub release](https://github.com/Thunderthief52/astral-arena/releases/latest).
+1. Download and extract `AstralArena-0.1.0-alpha.1.zip` from the [alpha release page](https://github.com/Thunderthief52/astral-arena/releases/tag/v0.1.0-alpha.1).
 2. Open PowerShell in the extracted folder.
 3. If PowerShell blocks local scripts, allow them for only this window:
 
