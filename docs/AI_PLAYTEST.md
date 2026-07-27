@@ -2,7 +2,7 @@
 
 ## What this candidate tests
 
-Version `0.2.0-alpha.1` adds one continuous solo/co-op progression run:
+Version `0.2.1-alpha.1` adds a level-1 bootstrap to the continuous solo/co-op progression run:
 
 ```text
 fight at L5 -> loot for L8 -> native level-up
@@ -38,7 +38,7 @@ Enter:
 
 Expected:
 
-- Astral Arena reports `0.2.0-alpha.1`.
+- Astral Arena reports `0.2.1-alpha.1`.
 - The doctor finds one to four active same-level party members.
 - All twelve anonymous vanilla AI character templates validate.
 - All ten initial reward item templates validate.
@@ -47,6 +47,12 @@ Expected:
 Stop and report the complete console output if any template is missing. Do not attempt `!aa_ai_start` after a failed doctor check.
 
 ## Run the progression
+
+### Optional fresh-character bootstrap
+
+To begin with newly created level-1 characters, enter `!aa_ai_bootstrap`. Complete every normal BG3 level-up through level 5, then continue with `!aa_ai_start` below. The bootstrap grants XP rather than calling `SetLevel`, so every player remains responsible for their own subclass, spell, feat, and multiclass decisions.
+
+This bridge does not yet move the party into a private map. Read [NEW_GAME_ARENA.md](NEW_GAME_ARENA.md) for the dedicated Adventure-module plan.
 
 ### Level 5
 

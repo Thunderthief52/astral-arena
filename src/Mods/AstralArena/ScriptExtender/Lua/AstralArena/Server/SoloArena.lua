@@ -1,6 +1,7 @@
 local Match = Ext.Require("AstralArena/Core/Match.lua")
 local Roster = Ext.Require("AstralArena/Core/Roster.lua")
 local SoloRun = Ext.Require("AstralArena/Core/SoloRun.lua")
+local ArenaBootstrap = Ext.Require("AstralArena/Core/ArenaBootstrap.lua")
 
 local SoloArena = {}
 SoloArena.__index = SoloArena
@@ -24,18 +25,44 @@ local function countdown(value)
     return math.max(0, math.min(10, math.floor(value)))
 end
 
-function SoloArena.new(adapter, output, fixtures, rewardCatalog)
+function SoloArena.new(adapter, output, fixtures, rewardCatalog, arenaLayouts)
     return setmetatable({
         adapter = adapter,
         output = output,
         fixtures = fixtures,
         rewardCatalog = rewardCatalog,
+        arenaLayouts = arenaLayouts,
         run = nil,
+        bootstrapState = nil,
         active = nil,
         generation = 0,
         recentOfferItemIds = {},
         rewardRecipients = nil,
     }, SoloArena)
+end
+
+function SoloArena:bootstrapParty()
+    if self.active or (self.run and self.run.phase ~= "completed") then
+        error("an AI arena run is already in progress", 2)
+    end
+    if self.bootstrapState and self.bootstrapState.phase ~= "completed" then
+        error("arena bootstrap has already started; finish leveling or use !aa_ai_reset", 2)
+    end
+    local party = self:_party()
+    self.generation = self.generation + 1
+    local state = ArenaBootstrap.new({
+        id = "arena-bootstrap-" .. tostring(self.generation),
+        targetLevel = 5,
+    })
+    local targetLevel = ArenaBootstrap.begin(state, party.level, #party.members)
+    self.bootstrapState = state
+    self.adapter.awardPartyToLevel(party.members, targetLevel)
+    ArenaBootstrap.markExperienceAwarded(state)
+    self.output(string.format(
+        "Arena bootstrap awarded the level-5 XP threshold to %d character(s). Complete every native level-up, then use !aa_ai_start.",
+        #party.members
+    ))
+    return state
 end
 
 function SoloArena:_party()
@@ -95,6 +122,15 @@ function SoloArena:start(options)
     if party.level ~= 5 then
         error("a new AI arena run requires a level 5 party", 2)
     end
+    if self.bootstrapState and self.bootstrapState.phase ~= "completed" then
+        if self.bootstrapState.phase == "awaiting_level_up" then
+            ArenaBootstrap.confirmPartyLevel(self.bootstrapState, party.level, #party.members)
+        end
+        if self.bootstrapState.phase ~= "ready" then
+            error("arena bootstrap is incomplete; use !aa_ai_status or !aa_ai_reset", 2)
+        end
+        ArenaBootstrap.activate(self.bootstrapState)
+    end
     self.generation = self.generation + 1
     self.run = SoloRun.new({
         id = "ai-run-" .. tostring(self.generation),
@@ -113,7 +149,10 @@ function SoloArena:_startBout(party, options)
     end
     SoloRun.assignOpponent(self.run, fixture)
 
-    local spawned = self.adapter.spawnFixtureTeam(fixture, party.members[1].guid)
+    local layout = self.arenaLayouts and self.arenaLayouts.select(
+        self.run.id .. "-bout-" .. tostring(self.run.battleIndex)
+    ) or nil
+    local spawned = self.adapter.spawnFixtureTeam(fixture, party.members[1].guid, layout)
     local teams = {
         level = self.run.level,
         left = party,
@@ -142,6 +181,7 @@ function SoloArena:_startBout(party, options)
         match = match,
         defeated = {},
         countdownRemaining = countdown(options.countdownSeconds),
+        layout = layout,
     }
     local ok, err = pcall(function()
         preparePlayers(self.adapter, party)
@@ -156,10 +196,11 @@ function SoloArena:_startBout(party, options)
     end
 
     self.output(string.format(
-        "Prepared AI bout %d/3 at L%d: Player Party versus %s.",
+        "Prepared AI bout %d/3 at L%d: Player Party versus %s%s.",
         self.run.battleIndex,
         self.run.level,
-        fixture.displayName
+        fixture.displayName,
+        layout and (" using " .. layout.displayName .. " formation") or ""
     ))
     if self.active.countdownRemaining == 0 then
         self:_beginCombat(self.generation)
@@ -362,6 +403,7 @@ function SoloArena:reset()
         self:abort("run-reset")
     end
     self.run = nil
+    self.bootstrapState = nil
     self.rewardRecipients = nil
     self.recentOfferItemIds = {}
     self.output("AI arena session state reset. Awarded XP and items are not removed; reload the pre-test save for a clean reset.")
@@ -369,6 +411,9 @@ end
 
 function SoloArena:status()
     if not self.run then
+        if self.bootstrapState then
+            return ArenaBootstrap.status(self.bootstrapState)
+        end
         return "No AI arena run exists."
     end
     return SoloRun.status(self.run)

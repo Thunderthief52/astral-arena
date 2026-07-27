@@ -47,6 +47,12 @@ After a victory, the runtime generates a deterministic six-choice offer at the n
 
 The AI run and recent-offer history are session-only in this candidate. Delivered items and experience are real save mutations, so a clean reset requires reloading the pre-playtest save.
 
+`ArenaBootstrap` adds the pre-tournament gate. It accepts only a one-to-four-character level-1 party, records its size, awards the vanilla level-5 experience target through the adapter, and then waits for every character to complete BG3's native level-up flow. It never selects classes, subclasses, spells, feats, or multiclasses. The first bout cannot start if the final level or active party size differs from the recorded bootstrap.
+
+`ArenaLayouts` contains twelve deterministic four-enemy formations. The runtime selects a formation from the run and bout IDs, so an identical run cannot reroll positioning by reissuing a command. These relative layouts are the portable fallback; the dedicated Adventure level will bind the same identities to twelve authored combat sites.
+
+The eventual new-game experience is a separate Adventure module with `AA_Arena_Main` as its startup level. BG3's `CharacterCreationFinished` transition will create the arena-only save and place all player avatars in a neutral staging zone. Keeping this separate from the add-on prevents normal campaign saves from being redirected and avoids inheriting the NPCs, quests, crimes, and triggers of a reused vanilla region.
+
 ## Tournament model
 
 The initial bracket always has eight entrants and seven matches:

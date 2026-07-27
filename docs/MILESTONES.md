@@ -45,6 +45,8 @@
 ## M3 — AI training tournament
 
 - Initial vertical slice: one fixed four-enemy team at levels 5, 8, and 10 with 5 → 8 → 10 → 12 rewards/progression
+- Fresh-character bridge: native level-1 → 5 bootstrap plus twelve deterministic encounter formations
+- Dedicated Adventure startup level with staging area and twelve isolated combat sites
 - Additional curated AI-party variants at levels 5, 8, and 10
 - Arena-aware positioning profiles
 - Same match controller and PvP rules used by multiplayer

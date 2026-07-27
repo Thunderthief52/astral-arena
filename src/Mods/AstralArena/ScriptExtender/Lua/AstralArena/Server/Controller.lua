@@ -6,6 +6,7 @@ local Sparring = Ext.Require("AstralArena/Server/Sparring.lua")
 local SoloArena = Ext.Require("AstralArena/Server/SoloArena.lua")
 local AIFixtures = Ext.Require("AstralArena/Shared/AIFixtures.lua")
 local RewardCatalog = Ext.Require("AstralArena/Shared/RewardCatalog.lua")
+local ArenaLayouts = Ext.Require("AstralArena/Shared/ArenaLayouts.lua")
 
 local Controller = { API = {} }
 local registered = false
@@ -19,7 +20,7 @@ local function printState(state)
 end
 
 local sparring = Sparring.new(Bg3Adapter, printLine)
-local soloArena = SoloArena.new(Bg3Adapter, printLine, AIFixtures, RewardCatalog)
+local soloArena = SoloArena.new(Bg3Adapter, printLine, AIFixtures, RewardCatalog, ArenaLayouts)
 Controller.Sparring = sparring
 Controller.SoloArena = soloArena
 
@@ -110,6 +111,7 @@ function Controller.Register()
         printLine("  !aa_forfeit left|right      concede for the selected side")
         printLine("  !aa_abort                   stop the match and restore both teams")
         printLine("AI progression playtest:")
+        printLine("  !aa_ai_bootstrap            award L1 characters XP for native level-ups to L5")
         printLine("  !aa_ai_doctor               validate party, AI templates, and reward templates")
         printLine("  !aa_ai_start                start the L5 -> L8 -> L10 -> L12 AI run")
         printLine("  !aa_ai_pick <1-6> <member>  deliver two random rolls and one selected item")
@@ -190,6 +192,15 @@ function Controller.Register()
         safely(function()
             soloArena:doctor()
             printLine("AI doctor complete. No game state was changed.")
+        end)
+    end)
+
+    Ext.RegisterConsoleCommand("aa_ai_bootstrap", function()
+        safely(function()
+            if sparring.active then
+                error("a PvP sparring match is active; use !aa_abort first")
+            end
+            soloArena:bootstrapParty()
         end)
     end)
 

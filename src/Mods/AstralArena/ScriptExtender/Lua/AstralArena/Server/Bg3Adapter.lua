@@ -157,12 +157,12 @@ function Adapter.validateItemTemplate(templateId)
     return true
 end
 
-function Adapter.spawnFixtureTeam(fixture, anchorGuid)
+function Adapter.spawnFixtureTeam(fixture, anchorGuid, layout)
     local anchorX, anchorY, anchorZ = Osi.GetPosition(anchorGuid)
     if type(anchorX) ~= "number" then
         error("could not read the player party position", 2)
     end
-    local offsets = {
+    local offsets = layout and layout.enemyOffsets or {
         { 8, -3 },
         { 10, -1 },
         { 10, 1 },
@@ -176,6 +176,9 @@ function Adapter.spawnFixtureTeam(fixture, anchorGuid)
                 error(string.format("%s: %s", definition.id, reason))
             end
             local offset = offsets[index]
+            if type(offset) ~= "table" or type(offset[1]) ~= "number" or type(offset[2]) ~= "number" then
+                error("arena layout is missing enemy offset " .. tostring(index))
+            end
             local guid = Osi.CreateAt(
                 definition.templateId,
                 anchorX + offset[1],

@@ -47,6 +47,8 @@ Goal: make matches repeatable enough to evaluate builds rather than setup accide
 
 The `0.2.0-alpha.1` engine candidate now supplies one fixed AI party at levels 5, 8, and 10, deterministic console-selected rewards, and native XP progression. It must pass the dedicated AI playtest before expansion.
 
+The `0.2.1-alpha.1` candidate adds an opt-in level-1 → 5 native bootstrap and twelve deterministic encounter formations. A Windows Toolkit pass is still required to create `AA_Arena_Main`, bind those formations to isolated sites, and turn the bridge into the complete New Game Adventure flow.
+
 Planned work:
 
 - standardized resource restore and equipment-budget validation;

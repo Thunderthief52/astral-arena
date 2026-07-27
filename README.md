@@ -17,6 +17,8 @@ Astral Arena is an experimental Baldur's Gate 3 arena mod for Windows. The curre
 - A deterministic eight-entrant tournament simulator and a tested 1–12 asynchronous run model.
 - A tested deterministic reward engine for level-banded automatic bundles and one-of-six equipment offers.
 - An experimental player-party-versus-AI run with fights at levels 5, 8, and 10, native progression to 8, 10, and 12, and post-win loot.
+- A level-1 bootstrap command that grants the vanilla level-5 XP threshold while preserving every native player-authored level-up decision.
+- Twelve deterministic-random enemy formations ready to bind to the planned dedicated arena sites.
 
 The custom arena map, graphical bracket/reward UI, player-authored AI ghosts, Eddard matchmaking coordinator, and public rankings are **not** in this alpha.
 
@@ -31,7 +33,7 @@ The custom arena map, graphical bracket/reward UI, player-authored AI ghosts, Ed
 
 ## Install a release
 
-1. Download and extract `AstralArena-0.2.0-alpha.1.zip` from the latest [release page](https://github.com/Thunderthief52/astral-arena/releases).
+1. Download and extract `AstralArena-0.2.1-alpha.1.zip` from the latest [release page](https://github.com/Thunderthief52/astral-arena/releases).
 2. Open PowerShell in the extracted folder.
 3. If PowerShell blocks local scripts, allow them for only this window:
 
@@ -107,7 +109,7 @@ For the PvP test matrix, expected results, logs, and bug-report checklist, read 
 
 ## Run the AI progression playtest
 
-Use a disposable level-5 save. Enter `!aa_ai_doctor`, then `!aa_ai_start`. After each victory, use `!aa_ai_pick <choice 1-6> <party-member number>`, finish every native level-up, and enter `!aa_ai_continue`.
+Use a disposable level-5 save. Enter `!aa_ai_doctor`, then `!aa_ai_start`. To test from a fresh level-1 party instead, enter `!aa_ai_bootstrap`, finish every native level-up to 5, then enter `!aa_ai_start`. After each victory, use `!aa_ai_pick <choice 1-6> <party-member number>`, finish every native level-up, and enter `!aa_ai_continue`.
 
 This mode awards real loot and XP. Read [docs/AI_PLAYTEST.md](docs/AI_PLAYTEST.md) before starting; `!aa_ai_reset` does not undo inventory or experience changes.
 
@@ -128,6 +130,7 @@ This mode awards real loot and XP. Read [docs/AI_PLAYTEST.md](docs/AI_PLAYTEST.m
 | `!aa_demo` | Run the deterministic eight-entrant bracket setup. |
 | `!aa_state` | Print the simulated bracket state. |
 | `!aa_ai_doctor` | Validate the active party, AI fixtures, and reward templates without mutation. |
+| `!aa_ai_bootstrap` | Give a fresh level-1 party enough vanilla XP to make its own level-up choices through level 5. |
 | `!aa_ai_start` | Start the level 5 AI progression run. |
 | `!aa_ai_pick 1 1` | Take reward choice 1 on party member 1 and award next-tier XP. |
 | `!aa_ai_continue` | Start the next tier after every party member completes native level-up. |
@@ -142,14 +145,14 @@ The deterministic Lua code runs outside BG3 with LuaJIT or Lua 5.1+:
 ```sh
 luajit tests/run.lua
 luajit scripts/simulate.lua
-./scripts/build-release.sh 0.2.0-alpha.1
+./scripts/build-release.sh 0.2.1-alpha.1
 ```
 
 Windows equivalents:
 
 ```powershell
 lua tests\run.lua
-.\scripts\Build-Release.ps1 -Version 0.2.0-alpha.1
+.\scripts\Build-Release.ps1 -Version 0.2.1-alpha.1
 ```
 
 The generated playtest archive is written under `dist/`.
@@ -158,6 +161,7 @@ The generated playtest archive is written under `dist/`.
 
 - [Playtest protocol](PLAYTEST.md)
 - [AI progression playtest](docs/AI_PLAYTEST.md)
+- [Dedicated new-game arena design](docs/NEW_GAME_ARENA.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Milestones](docs/MILESTONES.md)

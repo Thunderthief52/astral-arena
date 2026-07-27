@@ -9,11 +9,12 @@ _G.Ext = {
 local SoloArena = require("AstralArena.Server.SoloArena")
 local Fixtures = require("AstralArena.Shared.AIFixtures")
 local Catalog = require("AstralArena.Shared.RewardCatalog")
+local Layouts = require("AstralArena.Shared.ArenaLayouts")
 _G.Ext = previousExt
 
 local function fakeAdapter()
     local adapter = {
-        alive = {}, queue = {}, restored = {}, deleted = {}, delivered = {}, experienceTargets = {},
+        alive = {}, queue = {}, restored = {}, deleted = {}, delivered = {}, experienceTargets = {}, layouts = {},
     }
     function adapter.partyMembers()
         return {
@@ -23,7 +24,8 @@ local function fakeAdapter()
     end
     function adapter.validateCharacterTemplate() return true end
     function adapter.validateItemTemplate() return true end
-    function adapter.spawnFixtureTeam(fixture)
+    function adapter.spawnFixtureTeam(fixture, _, layout)
+        table.insert(adapter.layouts, layout)
         local values = {}
         for index, member in ipairs(fixture.members) do
             local guid = "enemy-" .. index
@@ -50,8 +52,26 @@ local function fakeAdapter()
 end
 
 local function arena(adapter)
-    return SoloArena.new(adapter, function() end, Fixtures, Catalog)
+    return SoloArena.new(adapter, function() end, Fixtures, Catalog, Layouts)
 end
+
+H.test("AI bootstrap awards level-five XP while preserving native choices", function()
+    local adapter = fakeAdapter()
+    adapter.partyLevel = 1
+    local subject = arena(adapter)
+    subject:bootstrapParty()
+    H.equal(adapter.experienceTargets[1], 5)
+    H.equal(subject.bootstrapState.phase, "awaiting_level_up")
+    adapter.partyLevel = 5
+    subject:start({ countdownSeconds = 0 })
+    H.equal(subject.bootstrapState.phase, "completed")
+end)
+
+H.test("AI bootstrap refuses an already leveled party", function()
+    local adapter = fakeAdapter()
+    local subject = arena(adapter)
+    H.raises(function() subject:bootstrapParty() end, "level 1")
+end)
 
 H.test("AI arena spawns a four-member level-five fixture", function()
     local adapter = fakeAdapter()
@@ -60,6 +80,7 @@ H.test("AI arena spawns a four-member level-five fixture", function()
     H.equal(match.phase, "combat")
     H.equal(match.level, 5)
     H.equal(#subject.active.teams.right.members, 4)
+    H.truthy(adapter.layouts[1] ~= nil)
 end)
 
 H.test("AI victory deletes enemies and opens the six-choice reward", function()

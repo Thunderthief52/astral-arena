@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.1-alpha.1 — 2026-07-26
+
+- Added an opt-in level-1 bootstrap that awards the vanilla level-5 XP threshold and preserves native character-build choices.
+- Added party-size and completed-level gates between bootstrap and the first AI fight.
+- Added twelve deterministic-random enemy formations for the three progression bouts.
+- Added the dedicated new-game Adventure-module and twelve-site Toolkit specification.
+
 ## 0.2.0-alpha.1 — 2026-07-26
 
 - Added deterministic, level-banded post-match reward offers with six unique choices.
