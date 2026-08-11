@@ -13,25 +13,23 @@ The finished mode is an opt-in Adventure module, separate from the ordinary camp
 
 The game itself still owns save creation. A mod should not silently open or overwrite a save from the main menu. The Adventure module instead becomes the selected campaign when the players deliberately press **New Game**.
 
-## Current add-on bridge
+## Current playable foundation
 
-Until the custom level is packaged, a fresh campaign save can exercise the character-build bootstrap:
+Version `0.3.0-alpha.1` includes a checked-in BG3 Toolkit Adventure project and an installable PAK. Both `StartupLevelName` and `CharacterCreationLevelName` point to the custom `AA_Arena_Main` level under Adventure UUID `29c48c80-8777-f7b5-6bb8-376c1c5d8db6`; no vanilla campaign level is referenced.
+
+The level currently provides a neutral greybox staging area, valid terrain and AI-grid data, player-start data for up to four players, and three coordinate-separated combat sites. The runtime records the staging origin, moves the party to Astral Flats, Crescent Ruin, or Echelon Steps for each bout, and returns the party after victory, abort, or setup rollback.
+
+Fresh level-1 characters still begin progression through the guarded console command:
 
 ```text
 !aa_ai_bootstrap
 ```
 
-The command requires one to four active, living, out-of-combat level-1 characters. It awards only the XP needed for the vanilla level-5 threshold. Complete every native level-up, then enter:
-
-```text
-!aa_ai_start
-```
-
-The bootstrap records the initial party size and refuses to begin the tournament if active membership changed during level-up. `!aa_ai_reset` clears its session state but does not remove XP.
+It awards the vanilla level-5 XP threshold without choosing any build decisions. Complete every native level-up, validate with `!aa_ai_doctor`, then enter `!aa_ai_start`. The bootstrap records the initial party size and refuses to begin if membership changes. `!aa_ai_reset` clears session state but does not remove XP.
 
 ## Level plan
 
-`AA_Arena_Main` will be one private level containing a neutral staging platform and twelve isolated combat sites. One level avoids carrying Act 1 quests, story NPCs, waypoints, crimes, or encounter scripts into an arena-only save.
+`AA_Arena_Main` is now a private custom level containing the staging foundation and the first three combat sites. The target remains twelve authored sites in one level. This avoids carrying Act 1 quests, story NPCs, waypoints, crimes, or encounter scripts into an arena-only save.
 
 | Site | Geometry and tactical identity |
 | --- | --- |
@@ -52,14 +50,14 @@ The first balance pass must keep both teams on valid AI grid, provide at least 8
 
 ## Toolkit boundary
 
-The Script Extender code owns progression, deterministic selection, combat, rewards, and cleanup. The Windows BG3 Toolkit must author and export:
+The Script Extender code owns progression, deterministic selection, combat, rewards, and cleanup. The checked-in Windows BG3 Toolkit project now exports:
 
-- the `AA_Arena_Main` level;
-- staging and spectator regions;
-- twelve player-start and twelve enemy-start anchors;
-- AI-grid/navmesh coverage;
-- symmetric cover/elevation props;
-- safe camera bounds, lighting, and minimap data;
-- the Adventure module's character-creation and startup-level metadata.
+- the `AA_Arena_Main` level and its Adventure startup/character-creation metadata;
+- custom terrain and AI-grid data without a vanilla campaign location dependency;
+- a neutral staging foundation and up-to-four-player start data;
+- three runtime combat-site identities and safe return-to-staging behavior;
+- project metadata and a 16:9 Adventure thumbnail.
+
+The next Toolkit art pass must add final cover/elevation props, explicit named anchors, spectator boundaries, camera bounds, lighting, minimap data, and the remaining nine combat sites.
 
 No vanilla campaign location will be used as the permanent arena. Teleporting a new party directly into `WLD_Main_A` would also load campaign quests, NPCs, triggers, and level state, defeating the isolation this mode needs.

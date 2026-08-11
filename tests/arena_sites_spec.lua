@@ -1,0 +1,18 @@
+local H = require("tests.test_helper")
+local Sites = require("AstralArena.Shared.ArenaSites")
+
+H.test("arena defines a safe staging area and three combat sites", function()
+    H.truthy(Sites.staging().safe)
+    local sites = Sites.allCombat()
+    H.equal(#sites, 3)
+    H.equal(sites[1].id, "astral-flats")
+    H.equal(sites[2].id, "crescent-ruin")
+    H.equal(sites[3].id, "echelon-steps")
+end)
+
+H.test("arena site progression is deterministic and wraps", function()
+    H.equal(Sites.forBout(1).id, "astral-flats")
+    H.equal(Sites.forBout(2).id, "crescent-ruin")
+    H.equal(Sites.forBout(3).id, "echelon-steps")
+    H.equal(Sites.forBout(4).id, "astral-flats")
+end)

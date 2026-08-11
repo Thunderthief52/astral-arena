@@ -10,11 +10,12 @@ local SoloArena = require("AstralArena.Server.SoloArena")
 local Fixtures = require("AstralArena.Shared.AIFixtures")
 local Catalog = require("AstralArena.Shared.RewardCatalog")
 local Layouts = require("AstralArena.Shared.ArenaLayouts")
+local Sites = require("AstralArena.Shared.ArenaSites")
 _G.Ext = previousExt
 
 local function fakeAdapter()
     local adapter = {
-        alive = {}, queue = {}, restored = {}, deleted = {}, delivered = {}, experienceTargets = {}, layouts = {},
+        alive = {}, queue = {}, restored = {}, deleted = {}, delivered = {}, experienceTargets = {}, layouts = {}, sites = {}, stagingReturns = 0,
     }
     function adapter.partyMembers()
         return {
@@ -37,6 +38,8 @@ local function fakeAdapter()
         return values
     end
     function adapter.prepareCharacter() end
+    function adapter.prepareArenaSite(_, site) table.insert(adapter.sites, site) end
+    function adapter.returnPartyToStaging() adapter.stagingReturns = adapter.stagingReturns + 1 end
     function adapter.makeHostile() end
     function adapter.enterCombat() end
     function adapter.isAlive(guid) return adapter.alive[guid] end
@@ -52,7 +55,7 @@ local function fakeAdapter()
 end
 
 local function arena(adapter)
-    return SoloArena.new(adapter, function() end, Fixtures, Catalog, Layouts)
+    return SoloArena.new(adapter, function() end, Fixtures, Catalog, Layouts, Sites)
 end
 
 H.test("AI bootstrap awards level-five XP while preserving native choices", function()
@@ -81,6 +84,17 @@ H.test("AI arena spawns a four-member level-five fixture", function()
     H.equal(match.level, 5)
     H.equal(#subject.active.teams.right.members, 4)
     H.truthy(adapter.layouts[1] ~= nil)
+    H.equal(adapter.sites[1].id, "astral-flats")
+end)
+
+H.test("AI arena returns the party to staging when fixture setup fails", function()
+    local adapter = fakeAdapter()
+    adapter.spawnFixtureTeam = function() error("fixture failure") end
+    local subject = arena(adapter)
+    H.raises(function() subject:start({ countdownSeconds = 0 }) end, "rolled back")
+    H.equal(subject.active, nil)
+    H.equal(adapter.stagingReturns, 1)
+    H.equal(subject.run.phase, "seeking_opponent")
 end)
 
 H.test("AI victory deletes enemies and opens the six-choice reward", function()
@@ -91,6 +105,7 @@ H.test("AI victory deletes enemies and opens the six-choice reward", function()
     table.remove(adapter.queue, 1)()
     H.equal(subject.active, nil)
     H.equal(#adapter.deleted, 4)
+    H.equal(adapter.stagingReturns, 1)
     H.equal(subject.run.phase, "awaiting_reward")
     H.equal(#subject.run.pendingReward.offer.choices, 6)
 end)
@@ -119,6 +134,7 @@ H.test("continue refuses until every party member reaches the expected level", f
     adapter.partyLevel = 8
     local match = subject:continue()
     H.equal(match.level, 8)
+    H.equal(adapter.sites[2].id, "crescent-ruin")
 end)
 
 H.test("AI arena abort restores players and deletes temporary enemies", function()

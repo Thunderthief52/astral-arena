@@ -2,7 +2,7 @@
 
 ## What this candidate tests
 
-Version `0.2.1-alpha.1` adds a level-1 bootstrap to the continuous solo/co-op progression run:
+Version `0.3.0-alpha.1` adds a level-1 bootstrap to the continuous solo/co-op progression run:
 
 ```text
 fight at L5 -> loot for L8 -> native level-up
@@ -22,7 +22,7 @@ This mode really awards inventory items and experience. `!aa_ai_reset` resets on
 2. Create a named manual save such as `BEFORE ASTRAL AI TEST`.
 3. Do not save or reload during the three-fight run. AI run state is session-only in this candidate.
 4. Use vanilla experience progression. Disable level-curve, level-cap, automatic-level, and randomized-loot mods for the first test.
-5. Move to a wide, flat area without neutral, allied, or story NPCs. Dismiss summons and temporary followers.
+5. Confirm the new game loaded `AA_Arena_Main`, then dismiss summons and temporary followers before starting.
 6. Reload `BEFORE ASTRAL AI TEST` to undo the entire experiment.
 
 The temporary enemies are made non-lootable, stop at one HP, and are deleted during cleanup. Never loot their bodies. All intended rewards come from the arena reward step.
@@ -38,7 +38,7 @@ Enter:
 
 Expected:
 
-- Astral Arena reports `0.2.1-alpha.1`.
+- Astral Arena reports `0.3.0-alpha.1`.
 - The doctor finds one to four active same-level party members.
 - All twelve anonymous vanilla AI character templates validate.
 - All ten initial reward item templates validate.
@@ -52,20 +52,20 @@ Stop and report the complete console output if any template is missing. Do not a
 
 To begin with newly created level-1 characters, enter `!aa_ai_bootstrap`. Complete every normal BG3 level-up through level 5, then continue with `!aa_ai_start` below. The bootstrap grants XP rather than calling `SetLevel`, so every player remains responsible for their own subclass, spell, feat, and multiclass decisions.
 
-This bridge does not yet move the party into a private map. Read [NEW_GAME_ARENA.md](NEW_GAME_ARENA.md) for the dedicated Adventure-module plan.
+The Adventure PAK starts in the private `AA_Arena_Main` level. Read [ADVENTURE_PLAYTEST.md](ADVENTURE_PLAYTEST.md) for installation and startup checks.
 
 ### Level 5
 
 1. Confirm every active party member is level 5 and not already in combat.
 2. Enter `!aa_ai_start`.
 3. Return to the game during the three-second countdown.
-4. Fight the four-member Astral Vanguard normally.
+4. Confirm the party moves from staging to Astral Flats, then fight the four-member Astral Vanguard normally.
 
 Expected after victory:
 
 - defeated enemies stop at one HP;
 - all temporary enemies disappear;
-- the player party leaves combat and is fully restored;
+- the player party leaves combat, returns to staging, and is fully restored;
 - the console prints six deterministic `+2` weapon choices and numbered reward recipients.
 
 Choose one item and its recipient. For example, to give option 3 and the automatic bundle to party member 2:
@@ -87,7 +87,7 @@ The whole party then receives enough vanilla experience to reach level 8. Comple
 
 ### Levels 8 and 10
 
-Repeat the same loop against Astral Bastion at level 8 and Astral Judicators at level 10. Rewards are generated at the next tier: level 10 after the second fight and level 12 after the final fight.
+Repeat the same loop against Astral Bastion at level 8 in Crescent Ruin and Astral Judicators at level 10 on Echelon Steps. Rewards are generated at the next tier: level 10 after the second fight and level 12 after the final fight. Every cleanup should return the party to staging.
 
 After the final reward, finish every native level-up to 12 and enter `!aa_ai_continue` one last time. Expected:
 
@@ -113,7 +113,7 @@ If combat cleanup, inventory, or progression looks wrong, stop immediately and r
 - The automatic bundle uses two calls to the vanilla `RewardMedium` table. It will become an Astral Arena-owned treasure table after the first balance reports.
 - No run persistence across save/reload, crash, or game restart.
 - No automatic equipment-budget enforcement yet.
-- No dedicated arena map; nearby NPCs and campaign geometry can still interfere.
+- The dedicated map is a sparse greybox foundation: site identity currently comes from safe coordinate separation, not final cover/elevation art.
 - Vanilla cumulative XP thresholds are required.
 
 ## What to report

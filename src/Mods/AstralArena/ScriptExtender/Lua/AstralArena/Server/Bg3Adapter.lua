@@ -52,6 +52,56 @@ function Adapter.partyMembers()
     return members
 end
 
+local stagingOrigin = nil
+
+local function requirePosition(guid)
+    local x, y, z = Osi.GetPosition(guid)
+    if type(x) ~= "number" or type(y) ~= "number" or type(z) ~= "number" then
+        error("could not read arena position for " .. tostring(guid), 3)
+    end
+    return { x, y, z }
+end
+
+local function teleportParty(members, origin, site)
+    local siteOffset = site.offset or { 0, 0, 0 }
+    local partyOffsets = site.partyOffsets or {}
+    for index, member in ipairs(members) do
+        local offset = partyOffsets[index] or { 0, 0 }
+        local targetX = origin[1] + (siteOffset[1] or 0) + (offset[1] or 0)
+        local targetY = origin[2] + (siteOffset[2] or 0)
+        local targetZ = origin[3] + (siteOffset[3] or 0) + (offset[2] or 0)
+        Osi.TeleportToPosition(member.guid, targetX, targetY, targetZ, "", 0, 0, 0, 0, 1)
+    end
+end
+
+function Adapter.prepareArenaSite(members, site)
+    if type(members) ~= "table" or not members[1] then
+        error("arena site preparation requires a player party", 2)
+    end
+    if type(site) ~= "table" or type(site.offset) ~= "table" then
+        error("arena site definition is invalid", 2)
+    end
+    if not stagingOrigin then
+        stagingOrigin = requirePosition(members[1].guid)
+    end
+    teleportParty(members, stagingOrigin, site)
+end
+
+function Adapter.returnPartyToStaging(members)
+    if not stagingOrigin or type(members) ~= "table" then
+        return
+    end
+    teleportParty(members, stagingOrigin, {
+        offset = { 0, 0, 0 },
+        partyOffsets = {
+            { 0, 0 },
+            { -2, -2 },
+            { -2, 2 },
+            { -4, 0 },
+        },
+    })
+end
+
 function Adapter.prepareCharacter(guid)
     Osi.SetCanFight(guid, 1)
     Osi.SetCanJoinCombat(guid, 1)

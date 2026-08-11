@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0-alpha.1 — 2026-08-10
+
+- Added the Toolkit-authored `AA_Arena_Main` Adventure level with custom terrain, AI-grid data, player-start data, and no vanilla campaign level dependency.
+- Wired Adventure startup and character-creation metadata to the canonical module UUID `29c48c80-8777-f7b5-6bb8-376c1c5d8db6`.
+- Added Astral Staging plus runtime site routing for Astral Flats, Crescent Ruin, and Echelon Steps.
+- Added safe party teleport and common return-to-staging cleanup while preserving the existing combat, split-screen, XP, and reward systems.
+- Added Toolkit synchronization/validation, PAK installation, exact Adventure playtest instructions, and the generated project thumbnail.
+
 ## 0.2.1-alpha.1 — 2026-07-26
 
 - Added an opt-in level-1 bootstrap that awards the vanilla level-5 XP threshold and preserves native character-build choices.

@@ -1,6 +1,6 @@
 # Astral Arena
 
-Astral Arena is an experimental Baldur's Gate 3 arena mod for Windows. The current alpha provides console-driven online or split-screen PvP sparring plus an AI progression run. Its longer-term goal is an eight-entrant 5 → 8 → 10 → 12 live bracket plus a separate asynchronous level-pool mode built from player-authored parties.
+Astral Arena is an experimental Baldur's Gate 3 arena Adventure for Windows. Version `0.3.0-alpha.1` adds the first custom new-game level to the existing console-driven PvP sparring and cooperative AI progression systems. Its longer-term goal is an eight-entrant 5 → 8 → 10 → 12 live bracket plus a separate asynchronous level-pool mode built from player-authored parties.
 
 > **Alpha safety note:** use a separate manual save, remove story NPCs from the area, and do not save during an active match. The mod restores combat relationships and characters after a bout, but this is the first engine playtest build.
 
@@ -18,52 +18,45 @@ Astral Arena is an experimental Baldur's Gate 3 arena mod for Windows. The curre
 - A tested deterministic reward engine for level-banded automatic bundles and one-of-six equipment offers.
 - An experimental player-party-versus-AI run with fights at levels 5, 8, and 10, native progression to 8, 10, and 12, and post-win loot.
 - A level-1 bootstrap command that grants the vanilla level-5 XP threshold while preserving every native player-authored level-up decision.
-- Twelve deterministic-random enemy formations ready to bind to the planned dedicated arena sites.
+- A Toolkit-authored Adventure module that starts in the isolated `AA_Arena_Main` level rather than a vanilla campaign location.
+- A neutral staging area plus three runtime-selected combat sites: Astral Flats, Crescent Ruin, and Echelon Steps.
+- Twelve deterministic-random enemy formations, with the first three bouts bound to those sites and cleanup returning the party to staging.
 
-The custom arena map, graphical bracket/reward UI, player-authored AI ghosts, Eddard matchmaking coordinator, and public rankings are **not** in this alpha.
+The level is a playable greybox foundation. Distinct final geometry, graphical bracket/reward UI, player-authored AI ghosts, Eddard matchmaking coordinator, and public rankings are **not** in this alpha.
 
 ## Requirements
 
 - Baldur's Gate 3 on Windows.
 - [Norbyte's BG3 Script Extender](https://github.com/Norbyte/bg3se), API version 30 or newer.
-- [BG3 Mod Manager](https://github.com/LaughingLeader/BG3ModManager) for activating the unpacked project.
-- A level-5 party of one to four characters for the AI progression mode.
+- BG3's in-game Mod Manager, or [BG3 Mod Manager](https://github.com/LaughingLeader/BG3ModManager), to activate the PAK.
+- One to four fresh player-created characters for the Adventure progression test.
 - Two online players or two local split-screen players for PvP sparring.
 - Online co-op only: the same Astral Arena build and compatible mod load order on both PCs.
 
-## Install a release
+## Install the Adventure PAK
 
-1. Download and extract `AstralArena-0.2.1-alpha.1.zip` from the latest [release page](https://github.com/Thunderthief52/astral-arena/releases).
-2. Open PowerShell in the extracted folder.
-3. If PowerShell blocks local scripts, allow them for only this window:
+The Toolkit build is `dist\AstralArena-0.3.0-alpha.1.pak`.
 
-   ```powershell
-   Set-ExecutionPolicy -Scope Process Bypass
-   ```
-
-4. Install the mod. The common Steam path is detected automatically:
+1. Close Baldur's Gate 3.
+2. Install Norbyte's Script Extender if it is not already present.
+3. From the repository root, install the PAK:
 
    ```powershell
-   .\Install-Playtest.ps1
+   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.0-alpha.1.pak"
    ```
 
-   For another Steam library or GOG installation, pass the BG3 `Data` folder:
+   Manual alternative: copy the PAK to:
 
-   ```powershell
-   .\Install-Playtest.ps1 -Bg3DataPath "D:\SteamLibrary\steamapps\common\Baldurs Gate 3\Data"
+   ```text
+   %LOCALAPPDATA%\Larian Studios\Baldur's Gate 3\Mods\AstralArenaAdventure_29c48c80-8777-f7b5-6bb8-376c1c5d8db6.pak
    ```
 
-5. Open BG3 Mod Manager and refresh. Move **Astral Arena** to the active/left list, save the order, and export it to the game.
-6. Install Script Extender through BG3 Mod Manager's **Tools → Download & Extract the Script Extender** command if it is not already installed.
-7. Enable the development console without discarding existing Script Extender settings:
+4. Launch BG3 and open **Mod Manager**.
+5. Enable **Astral Arena Adventure**. Disable older Astral Arena development copies so only one module with UUID `29c48c80-8777-f7b5-6bb8-376c1c5d8db6` is active.
+6. Choose **New Game**, select **Astral Arena Adventure** if BG3 displays an Adventure choice, and create the player characters.
+7. For ordinary online co-op, install the identical PAK and Script Extender version on every PC. Split-screen needs one installation.
 
-   ```powershell
-   .\Enable-SE-Console.ps1 -Bg3DataPath "D:\SteamLibrary\steamapps\common\Baldurs Gate 3\Data"
-   ```
-
-8. For online co-op, repeat installation and load-order activation on the second PC. Split-screen requires only the one installation.
-
-The installer backs up an existing Astral Arena copy under `%LOCALAPPDATA%\AstralArena\Backups` before replacing it.
+The installer backs up a previous canonical Adventure PAK under `%LOCALAPPDATA%\AstralArena\PakBackups`. Follow the exact new-game, solo, co-op, and split-screen checklist in [docs/ADVENTURE_PLAYTEST.md](docs/ADVENTURE_PLAYTEST.md).
 
 ## Run the first match
 
@@ -109,7 +102,7 @@ For the PvP test matrix, expected results, logs, and bug-report checklist, read 
 
 ## Run the AI progression playtest
 
-Use a disposable level-5 save. Enter `!aa_ai_doctor`, then `!aa_ai_start`. To test from a fresh level-1 party instead, enter `!aa_ai_bootstrap`, finish every native level-up to 5, then enter `!aa_ai_start`. After each victory, use `!aa_ai_pick <choice 1-6> <party-member number>`, finish every native level-up, and enter `!aa_ai_continue`.
+Start a disposable Astral Arena Adventure new game with one to four player-created characters. Enter `!aa_ai_bootstrap`, finish every native level-up to 5, run `!aa_ai_doctor`, then enter `!aa_ai_start`. After each victory, use `!aa_ai_pick <choice 1-6> <party-member number>`, finish every native level-up, and enter `!aa_ai_continue`. The three bouts use Astral Flats, Crescent Ruin, and Echelon Steps, returning the party to staging after cleanup.
 
 This mode awards real loot and XP. Read [docs/AI_PLAYTEST.md](docs/AI_PLAYTEST.md) before starting; `!aa_ai_reset` does not undo inventory or experience changes.
 
@@ -145,21 +138,22 @@ The deterministic Lua code runs outside BG3 with LuaJIT or Lua 5.1+:
 ```sh
 luajit tests/run.lua
 luajit scripts/simulate.lua
-./scripts/build-release.sh 0.2.1-alpha.1
+./scripts/build-release.sh 0.3.0-alpha.1
 ```
 
 Windows equivalents:
 
 ```powershell
 lua tests\run.lua
-.\scripts\Build-Release.ps1 -Version 0.2.1-alpha.1
+.\scripts\Build-Release.ps1 -Version 0.3.0-alpha.1
 ```
 
 The generated playtest archive is written under `dist/`.
 
 ## Project documentation
 
-- [Playtest protocol](PLAYTEST.md)
+- [Adventure installation and playtest](docs/ADVENTURE_PLAYTEST.md)
+- [Legacy PvP playtest protocol](PLAYTEST.md)
 - [AI progression playtest](docs/AI_PLAYTEST.md)
 - [Dedicated new-game arena design](docs/NEW_GAME_ARENA.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)

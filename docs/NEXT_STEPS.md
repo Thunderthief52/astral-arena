@@ -45,12 +45,15 @@ Exit criteria:
 
 Goal: make matches repeatable enough to evaluate builds rather than setup accidents.
 
-The `0.2.0-alpha.1` engine candidate now supplies one fixed AI party at levels 5, 8, and 10, deterministic console-selected rewards, and native XP progression. It must pass the dedicated AI playtest before expansion.
+The `0.3.0-alpha.1` candidate combines the existing level-5, level-8, and level-10 AI fixtures, deterministic rewards, native XP progression, and level-1 bootstrap with the first Toolkit-authored Adventure level.
 
-The `0.2.1-alpha.1` candidate adds an opt-in level-1 → 5 native bootstrap and twelve deterministic encounter formations. A Windows Toolkit pass is still required to create `AA_Arena_Main`, bind those formations to isolated sites, and turn the bridge into the complete New Game Adventure flow.
+`AA_Arena_Main` now starts independently of vanilla campaign locations and provides staging plus Astral Flats, Crescent Ruin, and Echelon Steps. The runtime moves the cooperative party between these sites and returns it through common cleanup. This is a playable greybox foundation that must pass new-game, solo, ordinary co-op, and split-screen engine playtests before the map expands.
 
 Planned work:
 
+- complete final geometry, cover, elevation, named anchors, spectator boundaries, camera bounds, lighting, and minimap data for the first three sites;
+- add and validate the remaining nine combat sites;
+- replace console-only startup/reward actions with controller-safe in-game UI;
 - standardized resource restore and equipment-budget validation;
 - no-surprise start and deterministic initiative policy experiments;
 - configurable preparation time and hard-control guardrails;

@@ -49,9 +49,9 @@ The AI run and recent-offer history are session-only in this candidate. Delivere
 
 `ArenaBootstrap` adds the pre-tournament gate. It accepts only a one-to-four-character level-1 party, records its size, awards the vanilla level-5 experience target through the adapter, and then waits for every character to complete BG3's native level-up flow. It never selects classes, subclasses, spells, feats, or multiclasses. The first bout cannot start if the final level or active party size differs from the recorded bootstrap.
 
-`ArenaLayouts` contains twelve deterministic four-enemy formations. The runtime selects a formation from the run and bout IDs, so an identical run cannot reroll positioning by reissuing a command. These relative layouts are the portable fallback; the dedicated Adventure level will bind the same identities to twelve authored combat sites.
+`ArenaLayouts` contains twelve deterministic four-enemy formations. The runtime selects a formation from the run and bout IDs, so an identical run cannot reroll positioning by reissuing a command. `ArenaSites` currently maps the three progression bouts to Astral Flats, Crescent Ruin, and Echelon Steps. `Bg3Adapter` records the initial staging origin, teleports each party member with explicit offsets and AI-grid ground snapping, and returns the party during common cleanup.
 
-The eventual new-game experience is a separate Adventure module with `AA_Arena_Main` as its startup level. BG3's `CharacterCreationFinished` transition will create the arena-only save and place all player avatars in a neutral staging zone. Keeping this separate from the add-on prevents normal campaign saves from being redirected and avoids inheriting the NPCs, quests, crimes, and triggers of a reused vanilla region.
+The new-game experience is a separate Toolkit-authored Adventure module with `AA_Arena_Main` as both startup and character-creation level. Its canonical UUID is `29c48c80-8777-f7b5-6bb8-376c1c5d8db6`. Keeping this separate from the add-on prevents normal campaign saves from being redirected and avoids inheriting the NPCs, quests, crimes, and triggers of a reused vanilla region. The checked-in level is a first greybox slice; final cover, elevation, anchors, spectator boundaries, camera work, and nine additional sites remain Toolkit work.
 
 ## Tournament model
 

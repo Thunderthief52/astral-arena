@@ -16,6 +16,7 @@ require("tests.solo_run_spec")
 require("tests.solo_arena_spec")
 require("tests.arena_bootstrap_spec")
 require("tests.arena_layouts_spec")
+require("tests.arena_sites_spec")
 
 if not Helper.run() then
     os.exit(1)

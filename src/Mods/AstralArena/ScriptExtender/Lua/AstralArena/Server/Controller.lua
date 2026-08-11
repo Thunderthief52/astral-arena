@@ -7,6 +7,7 @@ local SoloArena = Ext.Require("AstralArena/Server/SoloArena.lua")
 local AIFixtures = Ext.Require("AstralArena/Shared/AIFixtures.lua")
 local RewardCatalog = Ext.Require("AstralArena/Shared/RewardCatalog.lua")
 local ArenaLayouts = Ext.Require("AstralArena/Shared/ArenaLayouts.lua")
+local ArenaSites = Ext.Require("AstralArena/Shared/ArenaSites.lua")
 
 local Controller = { API = {} }
 local registered = false
@@ -20,7 +21,7 @@ local function printState(state)
 end
 
 local sparring = Sparring.new(Bg3Adapter, printLine)
-local soloArena = SoloArena.new(Bg3Adapter, printLine, AIFixtures, RewardCatalog, ArenaLayouts)
+local soloArena = SoloArena.new(Bg3Adapter, printLine, AIFixtures, RewardCatalog, ArenaLayouts, ArenaSites)
 Controller.Sparring = sparring
 Controller.SoloArena = soloArena
 

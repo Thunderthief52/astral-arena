@@ -25,13 +25,14 @@ local function countdown(value)
     return math.max(0, math.min(10, math.floor(value)))
 end
 
-function SoloArena.new(adapter, output, fixtures, rewardCatalog, arenaLayouts)
+function SoloArena.new(adapter, output, fixtures, rewardCatalog, arenaLayouts, arenaSites)
     return setmetatable({
         adapter = adapter,
         output = output,
         fixtures = fixtures,
         rewardCatalog = rewardCatalog,
         arenaLayouts = arenaLayouts,
+        arenaSites = arenaSites,
         run = nil,
         bootstrapState = nil,
         active = nil,
@@ -152,7 +153,22 @@ function SoloArena:_startBout(party, options)
     local layout = self.arenaLayouts and self.arenaLayouts.select(
         self.run.id .. "-bout-" .. tostring(self.run.battleIndex)
     ) or nil
-    local spawned = self.adapter.spawnFixtureTeam(fixture, party.members[1].guid, layout)
+    local site = self.arenaSites and self.arenaSites.forBout(self.run.battleIndex) or nil
+    local spawned = nil
+    local setupOk, setupError = pcall(function()
+        if site and self.adapter.prepareArenaSite then
+            self.adapter.prepareArenaSite(party.members, site)
+        end
+        spawned = self.adapter.spawnFixtureTeam(fixture, party.members[1].guid, layout)
+    end)
+    if not setupOk then
+        if self.adapter.returnPartyToStaging then
+            self.adapter.returnPartyToStaging(party.members)
+        end
+        self.run.phase = "seeking_opponent"
+        self.run.opponent = nil
+        error("AI arena site setup failed and was rolled back: " .. tostring(setupError), 2)
+    end
     local teams = {
         level = self.run.level,
         left = party,
@@ -182,6 +198,7 @@ function SoloArena:_startBout(party, options)
         defeated = {},
         countdownRemaining = countdown(options.countdownSeconds),
         layout = layout,
+        site = site,
     }
     local ok, err = pcall(function()
         preparePlayers(self.adapter, party)
@@ -196,9 +213,10 @@ function SoloArena:_startBout(party, options)
     end
 
     self.output(string.format(
-        "Prepared AI bout %d/3 at L%d: Player Party versus %s%s.",
+        "Prepared AI bout %d/3 at L%d in %s: Player Party versus %s%s.",
         self.run.battleIndex,
         self.run.level,
+        site and site.displayName or "the active arena",
         fixture.displayName,
         layout and (" using " .. layout.displayName .. " formation") or ""
     ))
@@ -290,6 +308,10 @@ function SoloArena:_cleanup(active)
     end
     for _, member in ipairs(active.teams.right.members) do
         self.adapter.deleteTemporary(member)
+    end
+
+    if self.adapter.returnPartyToStaging then
+        self.adapter.returnPartyToStaging(active.teams.left.members)
     end
 end
 
