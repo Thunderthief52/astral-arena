@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.1-alpha.2 — 2026-08-13
+
+- Fixed the new-game blocker that left the player controlling a character-creation dummy in `AA_Arena_Main`.
+- Restored BG3's supported inherited system character creator instead of misclassifying the arena as a character-creation level.
+- Added the required `DB_CharacterCreationTransitionInfo` row so finished custom avatars transfer into `AA_Arena_Main` without entering a vanilla campaign level.
+- Re-armed automatic XP and first-bout onboarding when arena gameplay becomes ready.
+
+## 0.3.1-alpha.1 — 2026-08-11
+
+- Added automatic new-game onboarding after BG3 character creation completes.
+- Added per-party `AA_Arena_Main` region checks before automatic XP or encounter mutations.
+- Moved AI fixture and reward validation into guarded bootstrap/start paths.
+- Added automatic first-bout launch and automatic continuation after party-wide level-ups.
+- Retained bootstrap, doctor, start, and continue console commands as diagnostics and recovery tools.
+
 ## 0.3.0-alpha.1 — 2026-08-10
 
 - Added the Toolkit-authored `AA_Arena_Main` Adventure level with custom terrain, AI-grid data, player-start data, and no vanilla campaign level dependency.

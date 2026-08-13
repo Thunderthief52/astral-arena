@@ -15,17 +15,11 @@ The game itself still owns save creation. A mod should not silently open or over
 
 ## Current playable foundation
 
-Version `0.3.0-alpha.1` includes a checked-in BG3 Toolkit Adventure project and an installable PAK. Both `StartupLevelName` and `CharacterCreationLevelName` point to the custom `AA_Arena_Main` level under Adventure UUID `29c48c80-8777-f7b5-6bb8-376c1c5d8db6`; no vanilla campaign level is referenced.
+Version `0.3.1-alpha.2` includes a checked-in BG3 Toolkit Adventure project, automatic onboarding, and an installable PAK. `StartupLevelName` points to the custom `AA_Arena_Main` gameplay level under Adventure UUID `29c48c80-8777-f7b5-6bb8-376c1c5d8db6`. Character creation is intentionally inherited from the `GustavX` dependency so BG3 uses its supported system character creator; the runtime adds the required transition database row for `AA_Arena_Main`. No vanilla campaign gameplay level is referenced.
 
 The level currently provides a neutral greybox staging area, valid terrain and AI-grid data, player-start data for up to four players, and three coordinate-separated combat sites. The runtime records the staging origin, moves the party to Astral Flats, Crescent Ruin, or Echelon Steps for each bout, and returns the party after victory, abort, or setup rollback.
 
-Fresh level-1 characters still begin progression through the guarded console command:
-
-```text
-!aa_ai_bootstrap
-```
-
-It awards the vanilla level-5 XP threshold without choosing any build decisions. Complete every native level-up, validate with `!aa_ai_doctor`, then enter `!aa_ai_start`. The bootstrap records the initial party size and refuses to begin if membership changes. `!aa_ai_reset` clears session state but does not remove XP.
+Fresh level-1 characters begin progression automatically after BG3 reports that character creation is finished. The runtime first confirms every party member is in `AA_Arena_Main`, validates enemy and reward templates internally, awards the vanilla level-5 XP threshold without choosing build decisions, and waits for the whole recorded party to finish native level-ups. It then moves the party to Astral Flats and starts the first bout. The same watcher starts later bouts after party-wide level-up completion; console start commands remain recovery-only.
 
 ## Level plan
 
@@ -52,7 +46,7 @@ The first balance pass must keep both teams on valid AI grid, provide at least 8
 
 The Script Extender code owns progression, deterministic selection, combat, rewards, and cleanup. The checked-in Windows BG3 Toolkit project now exports:
 
-- the `AA_Arena_Main` level and its Adventure startup/character-creation metadata;
+- the `AA_Arena_Main` level, inherited system character creation, and explicit post-creation transition;
 - custom terrain and AI-grid data without a vanilla campaign location dependency;
 - a neutral staging foundation and up-to-four-player start data;
 - three runtime combat-site identities and safe return-to-staging behavior;

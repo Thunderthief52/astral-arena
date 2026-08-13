@@ -50,6 +50,8 @@ function SoloArena:bootstrapParty()
         error("arena bootstrap has already started; finish leveling or use !aa_ai_reset", 2)
     end
     local party = self:_party()
+    self:_requireArenaParty(party)
+    self:_validateParty(party, false)
     self.generation = self.generation + 1
     local state = ArenaBootstrap.new({
         id = "arena-bootstrap-" .. tostring(self.generation),
@@ -60,9 +62,12 @@ function SoloArena:bootstrapParty()
     self.adapter.awardPartyToLevel(party.members, targetLevel)
     ArenaBootstrap.markExperienceAwarded(state)
     self.output(string.format(
-        "Arena bootstrap awarded the level-5 XP threshold to %d character(s). Complete every native level-up, then use !aa_ai_start.",
+        "Arena bootstrap awarded the level-5 XP threshold to %d character(s). Complete every native level-up; the first bout will begin automatically.",
         #party.members
     ))
+    for _, member in ipairs(party.members) do
+        self.adapter.notify(member.guid, "Astral Arena: finish leveling to 5. The first bout will begin automatically.")
+    end
     return state
 end
 
@@ -70,11 +75,18 @@ function SoloArena:_party()
     return Roster.playerParty(self.adapter.partyMembers(), 4)
 end
 
-function SoloArena:doctor()
-    local party = self:_party()
-    self.output(string.format("AI arena party: %d character(s) at level %d.", #party.members, party.level))
-    for index, member in ipairs(party.members) do
-        self.output(string.format("  Recipient %d: %s [%s]", index, member.name or member.guid, member.guid))
+function SoloArena:_requireArenaParty(party)
+    if self.adapter.isPartyInArena and not self.adapter.isPartyInArena(party.members) then
+        error("automatic arena progression is only available inside AA_Arena_Main", 2)
+    end
+end
+
+function SoloArena:_validateParty(party, verbose)
+    if verbose then
+        self.output(string.format("AI arena party: %d character(s) at level %d.", #party.members, party.level))
+        for index, member in ipairs(party.members) do
+            self.output(string.format("  Recipient %d: %s [%s]", index, member.name or member.guid, member.guid))
+        end
     end
     for _, level in ipairs(self.fixtures.levels()) do
         local fixture = self.fixtures.get(level)
@@ -84,7 +96,9 @@ function SoloArena:doctor()
                 error(string.format("L%d fixture %s is invalid: %s", level, member.id, reason), 2)
             end
         end
-        self.output(string.format("  L%d fixture validated: %s", level, fixture.displayName))
+        if verbose then
+            self.output(string.format("  L%d fixture validated: %s", level, fixture.displayName))
+        end
     end
     for _, item in ipairs(self.rewardCatalog) do
         local valid, reason = self.adapter.validateItemTemplate(item.templateId)
@@ -92,8 +106,14 @@ function SoloArena:doctor()
             error(string.format("reward %s is invalid: %s", item.id, reason), 2)
         end
     end
-    self.output(string.format("  Reward catalog validated: %d items.", #self.rewardCatalog))
+    if verbose then
+        self.output(string.format("  Reward catalog validated: %d items.", #self.rewardCatalog))
+    end
     return party
+end
+
+function SoloArena:doctor()
+    return self:_validateParty(self:_party(), true)
 end
 
 local function preparePlayers(adapter, party)
@@ -123,6 +143,7 @@ function SoloArena:start(options)
     if party.level ~= 5 then
         error("a new AI arena run requires a level 5 party", 2)
     end
+    self:_requireArenaParty(party)
     if self.bootstrapState and self.bootstrapState.phase ~= "completed" then
         if self.bootstrapState.phase == "awaiting_level_up" then
             ArenaBootstrap.confirmPartyLevel(self.bootstrapState, party.level, #party.members)
@@ -132,6 +153,7 @@ function SoloArena:start(options)
         end
         ArenaBootstrap.activate(self.bootstrapState)
     end
+    self:_validateParty(party, false)
     self.generation = self.generation + 1
     self.run = SoloRun.new({
         id = "ai-run-" .. tostring(self.generation),
@@ -377,7 +399,7 @@ function SoloArena:pick(choiceIndex, recipientIndex)
     end
     self.adapter.awardPartyToLevel(self.rewardRecipients.members, targetLevel)
     self.output(string.format(
-        "%s received %s and the automatic bundle. Complete native level-ups to L%d, then use !aa_ai_continue.",
+        "%s received %s and the automatic bundle. Complete native level-ups to L%d; the next bout will begin automatically.",
         recipient.name or recipient.guid,
         selected.displayName,
         targetLevel
@@ -405,6 +427,53 @@ function SoloArena:continue()
         return self.run
     end
     return self:_startBout(party)
+end
+
+function SoloArena:autoAdvance()
+    if self.active then
+        return "combat"
+    end
+
+    local ok, party = pcall(function()
+        return self:_party()
+    end)
+    if not ok then
+        -- Co-op players may finish level-up screens at different times. Mixed
+        -- levels are a normal waiting state for automatic progression.
+        return "waiting"
+    end
+    if self.adapter.isPartyInArena and not self.adapter.isPartyInArena(party.members) then
+        return "outside"
+    end
+
+    if self.run then
+        if self.run.phase == "completed" then
+            return "completed"
+        end
+        if self.run.phase == "awaiting_level_up" and party.level == self.run.level then
+            self:continue()
+            return self.run.phase == "completed" and "completed" or "started"
+        end
+        return "waiting"
+    end
+
+    if not self.bootstrapState then
+        if party.level == 1 then
+            self:bootstrapParty()
+            return "bootstrapped"
+        elseif party.level == 5 then
+            self:start()
+            return "started"
+        end
+        return "waiting"
+    end
+
+    if (self.bootstrapState.phase == "awaiting_level_up" or self.bootstrapState.phase == "completed")
+        and party.level == self.bootstrapState.targetLevel then
+        self:start()
+        return "started"
+    end
+    return "waiting"
 end
 
 function SoloArena:abort(reason)

@@ -2,7 +2,7 @@
 
 ## What this candidate tests
 
-Version `0.3.0-alpha.1` adds a level-1 bootstrap to the continuous solo/co-op progression run:
+Version `0.3.1-alpha.2` adds a repaired character-creation handoff and automatic new-game onboarding to the continuous solo/co-op progression run:
 
 ```text
 fight at L5 -> loot for L8 -> native level-up
@@ -27,39 +27,31 @@ This mode really awards inventory items and experience. `!aa_ai_reset` resets on
 
 The temporary enemies are made non-lootable, stop at one HP, and are deleted during cleanup. Never loot their bodies. All intended rewards come from the arena reward step.
 
-## Validate without changing the game
+## Automatic onboarding and optional diagnostics
 
-Enter:
+Normal Adventure play requires no bootstrap, doctor, start, or continue command. After character creation, Astral Arena:
 
-```text
-!aa_version
-!aa_ai_doctor
-```
+1. confirms the whole party is inside `AA_Arena_Main`;
+2. validates every AI and reward template before mutating the run;
+3. grants the vanilla level-5 XP threshold to fresh level-1 characters;
+4. waits for every player to finish their own native level-up choices; and
+5. starts the next bout when the complete party reaches the required level.
 
-Expected:
-
-- Astral Arena reports `0.3.0-alpha.1`.
-- The doctor finds one to four active same-level party members.
-- All twelve anonymous vanilla AI character templates validate.
-- All ten initial reward item templates validate.
-- The doctor prints `No game state was changed`.
-
-Stop and report the complete console output if any template is missing. Do not attempt `!aa_ai_start` after a failed doctor check.
+For troubleshooting only, `!aa_version`, `!aa_ai_status`, and `!aa_ai_doctor` remain available. Stop and report the console output if automatic onboarding pauses or a template is missing.
 
 ## Run the progression
 
-### Optional fresh-character bootstrap
+### Fresh-character onboarding
 
-To begin with newly created level-1 characters, enter `!aa_ai_bootstrap`. Complete every normal BG3 level-up through level 5, then continue with `!aa_ai_start` below. The bootstrap grants XP rather than calling `SetLevel`, so every player remains responsible for their own subclass, spell, feat, and multiclass decisions.
+Create the characters and finish every normal BG3 level-up through level 5 when prompted. The automatic bootstrap grants XP rather than calling `SetLevel`, so every player remains responsible for their own class, subclass, spell, feat, and multiclass decisions.
 
 The Adventure PAK starts in the private `AA_Arena_Main` level. Read [ADVENTURE_PLAYTEST.md](ADVENTURE_PLAYTEST.md) for installation and startup checks.
 
 ### Level 5
 
-1. Confirm every active party member is level 5 and not already in combat.
-2. Enter `!aa_ai_start`.
-3. Return to the game during the three-second countdown.
-4. Confirm the party moves from staging to Astral Flats, then fight the four-member Astral Vanguard normally.
+1. Confirm every active party member finishes leveling to 5 and is not already in combat.
+2. Confirm automatic validation moves the whole party from staging to Astral Flats and starts the three-second countdown.
+3. Fight the four-member Astral Vanguard normally.
 
 Expected after victory:
 
@@ -79,17 +71,13 @@ The selected character receives:
 - two level-8 rolls from BG3's native `RewardMedium` treasure table;
 - exactly one selected weapon from the six-choice offer.
 
-The whole party then receives enough vanilla experience to reach level 8. Complete every normal BG3 level-up screen, including all class, subclass, feat, spell, and multiclass choices. When every active party member displays level 8, enter:
-
-```text
-!aa_ai_continue
-```
+The whole party then receives enough vanilla experience to reach level 8. Complete every normal BG3 level-up screen, including all class, subclass, feat, spell, and multiclass choices. The next bout starts automatically when every active party member reaches level 8.
 
 ### Levels 8 and 10
 
 Repeat the same loop against Astral Bastion at level 8 in Crescent Ruin and Astral Judicators at level 10 on Echelon Steps. Rewards are generated at the next tier: level 10 after the second fight and level 12 after the final fight. Every cleanup should return the party to staging.
 
-After the final reward, finish every native level-up to 12 and enter `!aa_ai_continue` one last time. Expected:
+After the final reward, finish every native level-up to 12. Completion is automatic. Expected:
 
 ```text
 Astral Arena champion complete at level 12.
@@ -100,7 +88,7 @@ Astral Arena champion complete at level 12.
 | Command | Effect |
 | --- | --- |
 | `!aa_ai_status` | Show current tier and whether combat, reward selection, or level-up is pending. |
-| `!aa_ai_abort` | Stop an active fight, restore players, and delete temporary enemies. The tier can be replayed with `!aa_ai_continue`. |
+| `!aa_ai_abort` | Stop an active fight, restore players, and delete temporary enemies. Use `!aa_ai_continue` only to replay the ready tier manually. |
 | `!aa_ai_reset` | Forget the current session run. Does not remove items or XP. |
 
 If combat cleanup, inventory, or progression looks wrong, stop immediately and reload the pre-test save.

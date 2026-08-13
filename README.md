@@ -1,6 +1,6 @@
 # Astral Arena
 
-Astral Arena is an experimental Baldur's Gate 3 arena Adventure for Windows. Version `0.3.0-alpha.1` adds the first custom new-game level to the existing console-driven PvP sparring and cooperative AI progression systems. Its longer-term goal is an eight-entrant 5 → 8 → 10 → 12 live bracket plus a separate asynchronous level-pool mode built from player-authored parties.
+Astral Arena is an experimental Baldur's Gate 3 arena Adventure for Windows. Version `0.3.1-alpha.2` repairs the complete new-game handoff from BG3's system character creator into the first custom level and adds automatic cooperative AI progression. Its longer-term goal is an eight-entrant 5 → 8 → 10 → 12 live bracket plus a separate asynchronous level-pool mode built from player-authored parties.
 
 > **Alpha safety note:** use a separate manual save, remove story NPCs from the area, and do not save during an active match. The mod restores combat relationships and characters after a bout, but this is the first engine playtest build.
 
@@ -17,7 +17,7 @@ Astral Arena is an experimental Baldur's Gate 3 arena Adventure for Windows. Ver
 - A deterministic eight-entrant tournament simulator and a tested 1–12 asynchronous run model.
 - A tested deterministic reward engine for level-banded automatic bundles and one-of-six equipment offers.
 - An experimental player-party-versus-AI run with fights at levels 5, 8, and 10, native progression to 8, 10, and 12, and post-win loot.
-- A level-1 bootstrap command that grants the vanilla level-5 XP threshold while preserving every native player-authored level-up decision.
+- Automatic post-character-creation onboarding that grants the vanilla level-5 XP threshold, waits for every player-authored level-up choice, validates fixtures and rewards internally, and starts each ready bout.
 - A Toolkit-authored Adventure module that starts in the isolated `AA_Arena_Main` level rather than a vanilla campaign location.
 - A neutral staging area plus three runtime-selected combat sites: Astral Flats, Crescent Ruin, and Echelon Steps.
 - Twelve deterministic-random enemy formations, with the first three bouts bound to those sites and cleanup returning the party to staging.
@@ -35,14 +35,14 @@ The level is a playable greybox foundation. Distinct final geometry, graphical b
 
 ## Install the Adventure PAK
 
-The Toolkit build is `dist\AstralArena-0.3.0-alpha.1.pak`.
+The Toolkit build is `dist\AstralArena-0.3.1-alpha.2.pak`.
 
 1. Close Baldur's Gate 3.
 2. Install Norbyte's Script Extender if it is not already present.
 3. From the repository root, install the PAK:
 
    ```powershell
-   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.0-alpha.1.pak"
+   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.1-alpha.2.pak"
    ```
 
    Manual alternative: copy the PAK to:
@@ -102,7 +102,7 @@ For the PvP test matrix, expected results, logs, and bug-report checklist, read 
 
 ## Run the AI progression playtest
 
-Start a disposable Astral Arena Adventure new game with one to four player-created characters. Enter `!aa_ai_bootstrap`, finish every native level-up to 5, run `!aa_ai_doctor`, then enter `!aa_ai_start`. After each victory, use `!aa_ai_pick <choice 1-6> <party-member number>`, finish every native level-up, and enter `!aa_ai_continue`. The three bouts use Astral Flats, Crescent Ruin, and Echelon Steps, returning the party to staging after cleanup.
+Start a disposable Astral Arena Adventure new game with one to four player-created characters. The Adventure automatically grants the level-5 XP threshold after character creation, waits until everyone finishes native level-up choices, validates the encounter, and moves the party to Astral Flats. After each victory, use `!aa_ai_pick <choice 1-6> <party-member number>` for this alpha's reward choice; later bouts start automatically once everyone finishes leveling. The three bouts use Astral Flats, Crescent Ruin, and Echelon Steps, returning the party to staging after cleanup.
 
 This mode awards real loot and XP. Read [docs/AI_PLAYTEST.md](docs/AI_PLAYTEST.md) before starting; `!aa_ai_reset` does not undo inventory or experience changes.
 
@@ -122,11 +122,11 @@ This mode awards real loot and XP. Read [docs/AI_PLAYTEST.md](docs/AI_PLAYTEST.m
 | `!aa_abort` | End an active match and restore both teams. |
 | `!aa_demo` | Run the deterministic eight-entrant bracket setup. |
 | `!aa_state` | Print the simulated bracket state. |
-| `!aa_ai_doctor` | Validate the active party, AI fixtures, and reward templates without mutation. |
-| `!aa_ai_bootstrap` | Give a fresh level-1 party enough vanilla XP to make its own level-up choices through level 5. |
-| `!aa_ai_start` | Start the level 5 AI progression run. |
+| `!aa_ai_doctor` | Optional diagnostic: validate the active party, AI fixtures, and reward templates without mutation. |
+| `!aa_ai_bootstrap` | Recovery command: manually trigger the otherwise automatic level-1 bootstrap. |
+| `!aa_ai_start` | Recovery command: manually start the level-5 run if automatic onboarding pauses. |
 | `!aa_ai_pick 1 1` | Take reward choice 1 on party member 1 and award next-tier XP. |
-| `!aa_ai_continue` | Start the next tier after every party member completes native level-up. |
+| `!aa_ai_continue` | Recovery command: manually start a ready next tier. |
 | `!aa_ai_status` | Show AI run state. |
 | `!aa_ai_abort` | Abort combat, restore players, and delete temporary AI enemies. |
 | `!aa_ai_reset` | Reset session state without removing awarded loot or XP. |
@@ -138,14 +138,14 @@ The deterministic Lua code runs outside BG3 with LuaJIT or Lua 5.1+:
 ```sh
 luajit tests/run.lua
 luajit scripts/simulate.lua
-./scripts/build-release.sh 0.3.0-alpha.1
+./scripts/build-release.sh 0.3.1-alpha.2
 ```
 
 Windows equivalents:
 
 ```powershell
 lua tests\run.lua
-.\scripts\Build-Release.ps1 -Version 0.3.0-alpha.1
+.\scripts\Build-Release.ps1 -Version 0.3.1-alpha.2
 ```
 
 The generated playtest archive is written under `dist/`.

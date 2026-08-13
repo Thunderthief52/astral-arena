@@ -25,6 +25,7 @@ local function fakeAdapter()
     end
     function adapter.validateCharacterTemplate() return true end
     function adapter.validateItemTemplate() return true end
+    function adapter.isPartyInArena() return adapter.inArena ~= false end
     function adapter.spawnFixtureTeam(fixture, _, layout)
         table.insert(adapter.layouts, layout)
         local values = {}
@@ -146,4 +147,54 @@ H.test("AI arena abort restores players and deletes temporary enemies", function
     H.equal(#adapter.restored, 2)
     H.equal(#adapter.deleted, 4)
     H.equal(subject.run.phase, "seeking_opponent")
+end)
+
+H.test("automatic onboarding bootstraps a fresh party without console commands", function()
+    local adapter = fakeAdapter()
+    adapter.partyLevel = 1
+    local subject = arena(adapter)
+    H.equal(subject:autoAdvance(), "bootstrapped")
+    H.equal(adapter.experienceTargets[1], 5)
+    H.equal(subject.bootstrapState.phase, "awaiting_level_up")
+end)
+
+H.test("automatic onboarding never mutates a party outside AA_Arena_Main", function()
+    local adapter = fakeAdapter()
+    adapter.partyLevel = 1
+    adapter.inArena = false
+    local subject = arena(adapter)
+    H.equal(subject:autoAdvance(), "outside")
+    H.equal(#adapter.experienceTargets, 0)
+    H.equal(subject.bootstrapState, nil)
+end)
+
+H.test("automatic onboarding validates and starts when every player reaches level five", function()
+    local adapter = fakeAdapter()
+    adapter.partyLevel = 1
+    local subject = arena(adapter)
+    subject:autoAdvance()
+    adapter.partyLevel = 5
+    H.equal(subject:autoAdvance(), "started")
+    H.equal(subject.bootstrapState.phase, "completed")
+    H.equal(subject.active.match.level, 5)
+end)
+
+H.test("automatic progression starts the next bout after reward level-up", function()
+    local adapter = fakeAdapter()
+    local subject = arena(adapter)
+    subject:start({ countdownSeconds = 0 })
+    for index = 1, 4 do adapter.alive["enemy-" .. index] = false end
+    table.remove(adapter.queue, 1)()
+    subject:pick(1, 1)
+    adapter.partyLevel = 8
+    H.equal(subject:autoAdvance(), "started")
+    H.equal(subject.active.match.level, 8)
+end)
+
+H.test("manual bootstrap also rejects a party outside AA_Arena_Main", function()
+    local adapter = fakeAdapter()
+    adapter.partyLevel = 1
+    adapter.inArena = false
+    local subject = arena(adapter)
+    H.raises(function() subject:bootstrapParty() end, "AA_Arena_Main")
 end)

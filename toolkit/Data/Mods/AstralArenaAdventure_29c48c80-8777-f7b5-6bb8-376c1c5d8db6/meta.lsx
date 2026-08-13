@@ -19,7 +19,7 @@
                 </node>
                 <node id="ModuleInfo">
                     <attribute id="Author" type="LSString" value="Astral Arena Team"/>
-                    <attribute id="CharacterCreationLevelName" type="FixedString" value="AA_Arena_Main"/>
+                    <attribute id="CharacterCreationLevelName" type="FixedString" value=""/>
                     <attribute id="Description" type="LSString" value="A new-game arena Adventure for solo, co-op, and split-screen parties with levels 1-5 training and tournament tiers 5, 8, 10, and 12."/>
                     <attribute id="FileSize" type="uint64" value="0"/>
                     <attribute id="Folder" type="LSString" value="AstralArenaAdventure_29c48c80-8777-f7b5-6bb8-376c1c5d8db6"/>

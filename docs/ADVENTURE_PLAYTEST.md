@@ -2,10 +2,10 @@
 
 ## Build under test
 
-- Version: `0.3.0-alpha.1`
+- Version: `0.3.1-alpha.2`
 - Adventure UUID: `29c48c80-8777-f7b5-6bb8-376c1c5d8db6`
-- Startup and character-creation level: `AA_Arena_Main`
-- PAK: `dist\AstralArena-0.3.0-alpha.1.pak`
+- Character flow: BG3 system character creator → `AA_Arena_Main`
+- PAK: `dist\AstralArena-0.3.1-alpha.2.pak`
 
 This is the first playable greybox level. It validates isolated new-game startup, one-to-four-player character entry, arena-site routing, combat cleanup, progression, and loot. Final cover/elevation art, spectator boundaries, camera work, minimap data, and the remaining nine sites are not part of this candidate.
 
@@ -17,7 +17,7 @@ This is the first playable greybox level. It validates isolated new-game startup
 
    ```powershell
    Set-ExecutionPolicy -Scope Process Bypass
-   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.0-alpha.1.pak"
+   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.1-alpha.2.pak"
    ```
 
 4. Confirm this file exists:
@@ -34,25 +34,14 @@ This is the first playable greybox level. It validates isolated new-game startup
 
 1. Choose **New Game**. If BG3 presents an Adventure selector, choose **Astral Arena Adventure**.
 2. Create one character for solo, join the ordinary online lobby before finalizing characters for co-op, or connect the second controller before completing split-screen character creation.
-3. Do not use Honour Mode for this alpha.
-4. Confirm the party arrives in `AA_Arena_Main`, not a Nautiloid or Act 1 campaign location.
-5. Make a named manual save such as `AA 0.3 BEFORE BOOTSTRAP`.
-6. In the host Script Extender console, enter:
+3. Finish the supported BG3 system character creator normally. This system scene is expected; it is not a campaign location. Do not use Honour Mode for this alpha.
+4. Confirm the finished custom party transfers into `AA_Arena_Main`, not a Nautiloid or Act 1 campaign location. A naked character-creation dummy must not remain active.
+5. Make a named manual save such as `AA 0.3.1 BEFORE AUTO START`.
+6. After character creation completes, confirm Astral Arena automatically awards the vanilla level-5 XP threshold and displays a notification. No console command is required.
+7. Complete every ordinary BG3 level-up through level 5. In co-op or split-screen, each player completes their own choices.
+8. Confirm the runtime silently validates the party, enemy fixtures, and reward catalog, then moves the whole party to Astral Flats and begins the three-second countdown.
 
-   ```text
-   !aa_version
-   !aa_ai_status
-   !aa_ai_bootstrap
-   ```
-
-7. Confirm version `0.3.0-alpha.1`, complete every ordinary BG3 level-up through level 5, then run:
-
-   ```text
-   !aa_ai_doctor
-   !aa_ai_start
-   ```
-
-The doctor must find one to four active, living, same-level party members and validate all AI and reward templates before combat begins.
+If automatic onboarding pauses, `!aa_ai_status` and `!aa_ai_doctor` remain available as diagnostics. `!aa_ai_bootstrap`, `!aa_ai_start`, and `!aa_ai_continue` are recovery commands, not normal play steps.
 
 ## Verify the three bouts
 
@@ -75,13 +64,13 @@ For each bout:
    ```
 
 6. Confirm the recipient receives the chosen item plus the automatic `RewardMedium` bundle.
-7. Complete native level-ups to the next target, then enter `!aa_ai_continue`.
+7. Complete native level-ups to the next target; the next bout starts automatically when every player is ready.
 
-After the third reward, finish leveling to 12 and enter `!aa_ai_continue` once more. Expected: `Astral Arena champion complete at level 12.`
+After the third reward, finish leveling to 12. The runtime automatically completes the run; expected console output is `Astral Arena champion complete at level 12.`
 
 ## Mode-specific checks
 
-- **Solo:** one player-created avatar can bootstrap and complete all three bouts.
+- **Solo:** one player-created avatar can complete automatic onboarding and all three bouts.
 - **Ordinary co-op:** every connected player's avatar moves to each site, remains controllable by its owner, receives party XP, and can be selected as a reward recipient.
 - **Split-screen:** both local avatars move together, remain controllable by their controllers, and return to staging after cleanup. Test with one avatar per controller before adding companions.
 - **Party size:** test one character first, then two to four. The runtime rejects more than four active party members.

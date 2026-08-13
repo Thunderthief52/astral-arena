@@ -25,6 +25,64 @@ local soloArena = SoloArena.new(Bg3Adapter, printLine, AIFixtures, RewardCatalog
 Controller.Sparring = sparring
 Controller.SoloArena = soloArena
 
+local autoGeneration = 0
+
+local function configureAdventureTransition()
+    local ok, err = pcall(function()
+        Osi.DB_CharacterCreationTransitionInfo(Constants.ArenaLevel, "")
+    end)
+    if not ok then
+        printLine("ERROR: Could not configure the post-character-creation arena transition: " .. tostring(err))
+        return false
+    end
+    return true
+end
+
+local function scheduleAutomaticProgression(generation)
+    Bg3Adapter.schedule(1000, function()
+        if generation ~= autoGeneration then
+            return
+        end
+        local ok, action = pcall(function()
+            return soloArena:autoAdvance()
+        end)
+        if not ok then
+            printLine("Automatic arena onboarding paused: " .. tostring(action))
+            return
+        end
+        if action == "outside" then
+            printLine("Automatic arena onboarding ignored outside " .. Constants.ArenaLevel .. ".")
+            return
+        elseif action == "completed" then
+            return
+        elseif action == "bootstrapped" then
+            printLine("Automatic onboarding is waiting for every player to finish level-up choices through level 5.")
+        elseif action == "started" then
+            printLine("Automatic progression started the next Astral Arena bout.")
+        end
+        scheduleAutomaticProgression(generation)
+    end)
+end
+
+local function armAutomaticProgression()
+    autoGeneration = autoGeneration + 1
+    local generation = autoGeneration
+    Bg3Adapter.schedule(1500, function()
+        if generation == autoGeneration then
+            local ok, action = pcall(function()
+                return soloArena:autoAdvance()
+            end)
+            if not ok then
+                printLine("Automatic arena onboarding paused: " .. tostring(action))
+                return
+            end
+            if action ~= "outside" and action ~= "completed" then
+                scheduleAutomaticProgression(generation)
+            end
+        end
+    end)
+end
+
 function Controller.API.GetState()
     return Persistence.LoadOrCreate()
 end
@@ -74,8 +132,20 @@ function Controller.Register()
     registered = true
 
     Ext.Events.SessionLoaded:Subscribe(function()
+        configureAdventureTransition()
         local state = Persistence.LoadOrCreate()
         printLine("Loaded tournament state: " .. state.status)
+        armAutomaticProgression()
+    end)
+
+    Ext.Osiris.RegisterListener("CharacterCreationFinished", 0, "after", function()
+        armAutomaticProgression()
+    end)
+
+    Ext.Osiris.RegisterListener("LevelGameplayReady", 2, "after", function(levelName)
+        if levelName == Constants.ArenaLevel then
+            armAutomaticProgression()
+        end
     end)
 
     Ext.RegisterConsoleCommand("aa_demo", function()
@@ -111,7 +181,8 @@ function Controller.Register()
         printLine("  !aa_spar_status             show the current or previous sparring result")
         printLine("  !aa_forfeit left|right      concede for the selected side")
         printLine("  !aa_abort                   stop the match and restore both teams")
-        printLine("AI progression playtest:")
+        printLine("AI progression starts automatically after Adventure character creation.")
+        printLine("AI diagnostics and recovery commands:")
         printLine("  !aa_ai_bootstrap            award L1 characters XP for native level-ups to L5")
         printLine("  !aa_ai_doctor               validate party, AI templates, and reward templates")
         printLine("  !aa_ai_start                start the L5 -> L8 -> L10 -> L12 AI run")

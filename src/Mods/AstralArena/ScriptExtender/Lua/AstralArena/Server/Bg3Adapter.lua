@@ -52,6 +52,19 @@ function Adapter.partyMembers()
     return members
 end
 
+function Adapter.isPartyInArena(members, arenaLevel)
+    arenaLevel = arenaLevel or "AA_Arena_Main"
+    if type(members) ~= "table" or not members[1] then
+        return false
+    end
+    for _, member in ipairs(members) do
+        if Osi.GetRegion(member.guid) ~= arenaLevel then
+            return false
+        end
+    end
+    return true
+end
+
 local stagingOrigin = nil
 
 local function requirePosition(guid)

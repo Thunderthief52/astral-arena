@@ -37,10 +37,19 @@ foreach ($Attribute in $Attributes) {
 if ($Values.UUID -ne $ModuleUuid) { throw "Unexpected module UUID: $($Values.UUID)" }
 if ($Values.Type -ne "Adventure") { throw "Module type must be Adventure." }
 if ($Values.StartupLevelName -ne "AA_Arena_Main") { throw "Startup level is not AA_Arena_Main." }
-if ($Values.CharacterCreationLevelName -ne "AA_Arena_Main") { throw "Character creation is not wired to AA_Arena_Main." }
+if ($Values.CharacterCreationLevelName -ne "") { throw "Character creation must inherit BG3's system character creator." }
 if ($Values.NumPlayers -ne "4") { throw "Adventure must support four players." }
-if ((Get-Content -LiteralPath $MetaPath -Raw) -match 'WLD_|BGO_|CRE_|END_') {
+if ((Get-Content -LiteralPath $MetaPath -Raw) -match 'WLD_|BGO_|CRE_|END_|TUT_') {
     throw "Adventure metadata references a vanilla campaign level."
+}
+
+$ControllerPath = Join-Path $RepositoryRoot "src\Mods\AstralArena\ScriptExtender\Lua\AstralArena\Server\Controller.lua"
+$ControllerText = Get-Content -LiteralPath $ControllerPath -Raw
+if ($ControllerText -notmatch 'DB_CharacterCreationTransitionInfo\(Constants\.ArenaLevel, ""\)') {
+    throw "Adventure runtime does not configure the character-creation transition to AA_Arena_Main."
+}
+if ($ControllerText -notmatch 'RegisterListener\("LevelGameplayReady", 2') {
+    throw "Adventure runtime does not re-arm onboarding when arena gameplay becomes ready."
 }
 
 Add-Type -AssemblyName System.Drawing
@@ -64,6 +73,6 @@ foreach ($Site in @("astral-flats", "crescent-ruin", "echelon-steps")) {
 
 Write-Host "Toolkit project validation passed:" -ForegroundColor Green
 Write-Host "  Adventure UUID: $ModuleUuid"
-Write-Host "  Startup/CC:     AA_Arena_Main"
+Write-Host "  Character flow: inherited system CC -> AA_Arena_Main"
 Write-Host "  Combat sites:   Astral Flats, Crescent Ruin, Echelon Steps"
 Write-Host "  Players:        1-4"
