@@ -2,7 +2,7 @@
 
 ## What this candidate tests
 
-Version `0.3.1-alpha.2` adds a repaired character-creation handoff and automatic new-game onboarding to the continuous solo/co-op progression run:
+Version `0.3.1-alpha.3` adds an unrestricted character-creation handoff, stranded-party recovery, and automatic new-game onboarding to the continuous solo/co-op progression run:
 
 ```text
 fight at L5 -> loot for L8 -> native level-up

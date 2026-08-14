@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1-alpha.3 — 2026-08-13
+
+- Moved `DB_CharacterCreationTransitionInfo` out of Script Extender's restricted `SessionLoaded` callback and into the unrestricted Osiris `CharacterCreationFinished` pre-event.
+- Added a guarded recovery transfer for finished Astral Arena parties stranded in a `SYS_CC_*` character-creation scene.
+- Added Toolkit validation that rejects the restricted registration pattern and requires both the pre-event registration and recovery transfer.
+
 ## 0.3.1-alpha.2 — 2026-08-13
 
 - Fixed the new-game blocker that left the player controlling a character-creation dummy in `AA_Arena_Main`.

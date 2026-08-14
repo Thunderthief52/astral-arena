@@ -15,7 +15,7 @@ The game itself still owns save creation. A mod should not silently open or over
 
 ## Current playable foundation
 
-Version `0.3.1-alpha.2` includes a checked-in BG3 Toolkit Adventure project, automatic onboarding, and an installable PAK. `StartupLevelName` points to the custom `AA_Arena_Main` gameplay level under Adventure UUID `29c48c80-8777-f7b5-6bb8-376c1c5d8db6`. Character creation is intentionally inherited from the `GustavX` dependency so BG3 uses its supported system character creator; the runtime adds the required transition database row for `AA_Arena_Main`. No vanilla campaign gameplay level is referenced.
+Version `0.3.1-alpha.3` includes a checked-in BG3 Toolkit Adventure project, automatic onboarding, and an installable PAK. `StartupLevelName` points to the custom `AA_Arena_Main` gameplay level under Adventure UUID `29c48c80-8777-f7b5-6bb8-376c1c5d8db6`. Character creation is intentionally inherited from the `GustavX` dependency so BG3 uses its supported system character creator; an Osiris pre-event callback adds the required transition row for `AA_Arena_Main`, and a `SYS_CC_*` gameplay-ready fallback transfers any finished party left in the creation scene. No vanilla campaign gameplay level is referenced.
 
 The level currently provides a neutral greybox staging area, valid terrain and AI-grid data, player-start data for up to four players, and three coordinate-separated combat sites. The runtime records the staging origin, moves the party to Astral Flats, Crescent Ruin, or Echelon Steps for each bout, and returns the party after victory, abort, or setup rollback.
 

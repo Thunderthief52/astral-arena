@@ -2,10 +2,10 @@
 
 ## Build under test
 
-- Version: `0.3.1-alpha.2`
+- Version: `0.3.1-alpha.3`
 - Adventure UUID: `29c48c80-8777-f7b5-6bb8-376c1c5d8db6`
 - Character flow: BG3 system character creator → `AA_Arena_Main`
-- PAK: `dist\AstralArena-0.3.1-alpha.2.pak`
+- PAK: `dist\AstralArena-0.3.1-alpha.3.pak`
 
 This is the first playable greybox level. It validates isolated new-game startup, one-to-four-player character entry, arena-site routing, combat cleanup, progression, and loot. Final cover/elevation art, spectator boundaries, camera work, minimap data, and the remaining nine sites are not part of this candidate.
 
@@ -17,7 +17,7 @@ This is the first playable greybox level. It validates isolated new-game startup
 
    ```powershell
    Set-ExecutionPolicy -Scope Process Bypass
-   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.1-alpha.2.pak"
+   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.1-alpha.3.pak"
    ```
 
 4. Confirm this file exists:
@@ -29,6 +29,14 @@ This is the first playable greybox level. It validates isolated new-game startup
 5. Launch BG3, open **Mod Manager**, and enable **Astral Arena Adventure**.
 6. Disable older Astral Arena development copies. Only one mod with the Adventure UUID above may be active.
 7. For online co-op, repeat these steps on every PC with the same BG3, Script Extender, PAK, and load-order versions. Split-screen requires one installation.
+
+## Recover an alpha.2 save stranded in character creation
+
+1. Enable **Astral Arena Adventure** in BG3's **Mod Manager** before loading the save. Disabling the mod cannot repair a saved location.
+2. Load the affected save and accept only the expected Astral Arena version-change warning, if BG3 shows one.
+3. The runtime should detect the `SYS_CC_*` system scene and transfer the finished party to `AA_Arena_Main` automatically. No console command is required.
+4. Confirm each created character is visible and controllable in staging. The Script Extender log should contain `Recovered a finished party stranded in SYS_CC_I; transferring to AA_Arena_Main.` followed by the normal level-5 XP bootstrap message.
+5. Make a new named manual save after arrival. Keep the older save until the party has completed at least one successful bout.
 
 ## Start a clean Adventure
 

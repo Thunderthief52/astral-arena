@@ -27,6 +27,13 @@ Controller.SoloArena = soloArena
 
 local autoGeneration = 0
 
+local function isAstralAdventureActive()
+    local ok, startupLevel = pcall(function()
+        return Osi.GetActiveModStartupLevel()
+    end)
+    return ok and startupLevel == Constants.ArenaLevel
+end
+
 local function configureAdventureTransition()
     local ok, err = pcall(function()
         Osi.DB_CharacterCreationTransitionInfo(Constants.ArenaLevel, "")
@@ -35,6 +42,27 @@ local function configureAdventureTransition()
         printLine("ERROR: Could not configure the post-character-creation arena transition: " .. tostring(err))
         return false
     end
+    return true
+end
+
+local function isSystemCharacterCreationLevel(levelName)
+    return type(levelName) == "string" and levelName:match("^SYS_CC_") ~= nil
+end
+
+local function recoverCharacterCreationHandoff(levelName)
+    if not isSystemCharacterCreationLevel(levelName) or not isAstralAdventureActive() then
+        return false
+    end
+
+    local ok, err = pcall(function()
+        Osi.TeleportPartiesToLevelWithMovie(Constants.ArenaLevel, "", "")
+    end)
+    if not ok then
+        printLine("ERROR: Could not recover the character-creation handoff: " .. tostring(err))
+        return false
+    end
+
+    printLine("Recovered a finished party stranded in " .. levelName .. "; transferring to " .. Constants.ArenaLevel .. ".")
     return true
 end
 
@@ -132,19 +160,31 @@ function Controller.Register()
     registered = true
 
     Ext.Events.SessionLoaded:Subscribe(function()
-        configureAdventureTransition()
         local state = Persistence.LoadOrCreate()
         printLine("Loaded tournament state: " .. state.status)
         armAutomaticProgression()
     end)
 
+    -- SessionLoaded is a restricted Script Extender callback and cannot mutate
+    -- Osiris databases. Register the transition immediately before Osiris
+    -- processes CharacterCreationFinished instead.
+    Ext.Osiris.RegisterListener("CharacterCreationFinished", 0, "before", function()
+        if isAstralAdventureActive() then
+            configureAdventureTransition()
+        end
+    end)
+
     Ext.Osiris.RegisterListener("CharacterCreationFinished", 0, "after", function()
-        armAutomaticProgression()
+        if isAstralAdventureActive() then
+            armAutomaticProgression()
+        end
     end)
 
     Ext.Osiris.RegisterListener("LevelGameplayReady", 2, "after", function(levelName)
         if levelName == Constants.ArenaLevel then
             armAutomaticProgression()
+        else
+            recoverCharacterCreationHandoff(levelName)
         end
     end)
 

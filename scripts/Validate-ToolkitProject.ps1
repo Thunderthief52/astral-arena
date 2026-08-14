@@ -48,6 +48,15 @@ $ControllerText = Get-Content -LiteralPath $ControllerPath -Raw
 if ($ControllerText -notmatch 'DB_CharacterCreationTransitionInfo\(Constants\.ArenaLevel, ""\)') {
     throw "Adventure runtime does not configure the character-creation transition to AA_Arena_Main."
 }
+if ($ControllerText -notmatch 'RegisterListener\("CharacterCreationFinished", 0, "before"') {
+    throw "Adventure runtime must configure the transition from the unrestricted pre-character-creation-finished Osiris callback."
+}
+if ($ControllerText -match 'Ext\.Events\.SessionLoaded:Subscribe\(function\(\)\s*configureAdventureTransition\(\)') {
+    throw "Adventure runtime attempts to mutate Osiris databases from restricted SessionLoaded context."
+}
+if ($ControllerText -notmatch 'TeleportPartiesToLevelWithMovie\(Constants\.ArenaLevel, "", ""\)') {
+    throw "Adventure runtime is missing the SYS_CC recovery transfer to AA_Arena_Main."
+}
 if ($ControllerText -notmatch 'RegisterListener\("LevelGameplayReady", 2') {
     throw "Adventure runtime does not re-arm onboarding when arena gameplay becomes ready."
 }

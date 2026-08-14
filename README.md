@@ -1,6 +1,6 @@
 # Astral Arena
 
-Astral Arena is an experimental Baldur's Gate 3 arena Adventure for Windows. Version `0.3.1-alpha.2` repairs the complete new-game handoff from BG3's system character creator into the first custom level and adds automatic cooperative AI progression. Its longer-term goal is an eight-entrant 5 → 8 → 10 → 12 live bracket plus a separate asynchronous level-pool mode built from player-authored parties.
+Astral Arena is an experimental Baldur's Gate 3 arena Adventure for Windows. Version `0.3.1-alpha.3` registers the character-creation transfer from a permitted Osiris callback, recovers parties stranded in BG3's system creation level, and adds automatic cooperative AI progression. Its longer-term goal is an eight-entrant 5 → 8 → 10 → 12 live bracket plus a separate asynchronous level-pool mode built from player-authored parties.
 
 > **Alpha safety note:** use a separate manual save, remove story NPCs from the area, and do not save during an active match. The mod restores combat relationships and characters after a bout, but this is the first engine playtest build.
 
@@ -35,14 +35,14 @@ The level is a playable greybox foundation. Distinct final geometry, graphical b
 
 ## Install the Adventure PAK
 
-The Toolkit build is `dist\AstralArena-0.3.1-alpha.2.pak`.
+The Toolkit build is `dist\AstralArena-0.3.1-alpha.3.pak`.
 
 1. Close Baldur's Gate 3.
 2. Install Norbyte's Script Extender if it is not already present.
 3. From the repository root, install the PAK:
 
    ```powershell
-   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.1-alpha.2.pak"
+   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.1-alpha.3.pak"
    ```
 
    Manual alternative: copy the PAK to:
@@ -56,7 +56,7 @@ The Toolkit build is `dist\AstralArena-0.3.1-alpha.2.pak`.
 6. Choose **New Game**, select **Astral Arena Adventure** if BG3 displays an Adventure choice, and create the player characters.
 7. For ordinary online co-op, install the identical PAK and Script Extender version on every PC. Split-screen needs one installation.
 
-The installer backs up a previous canonical Adventure PAK under `%LOCALAPPDATA%\AstralArena\PakBackups`. Follow the exact new-game, solo, co-op, and split-screen checklist in [docs/ADVENTURE_PLAYTEST.md](docs/ADVENTURE_PLAYTEST.md).
+The installer backs up a previous canonical Adventure PAK under `%LOCALAPPDATA%\AstralArena\PakBackups`. An `alpha.2` save left in BG3's `SYS_CC_*` character-creation scene can be recovered by enabling `alpha.3` and loading that save; the transfer to `AA_Arena_Main` is automatic. Follow the exact recovery, new-game, solo, co-op, and split-screen checklist in [docs/ADVENTURE_PLAYTEST.md](docs/ADVENTURE_PLAYTEST.md).
 
 ## Run the first match
 
@@ -138,14 +138,14 @@ The deterministic Lua code runs outside BG3 with LuaJIT or Lua 5.1+:
 ```sh
 luajit tests/run.lua
 luajit scripts/simulate.lua
-./scripts/build-release.sh 0.3.1-alpha.2
+./scripts/build-release.sh 0.3.1-alpha.3
 ```
 
 Windows equivalents:
 
 ```powershell
 lua tests\run.lua
-.\scripts\Build-Release.ps1 -Version 0.3.1-alpha.2
+.\scripts\Build-Release.ps1 -Version 0.3.1-alpha.3
 ```
 
 The generated playtest archive is written under `dist/`.

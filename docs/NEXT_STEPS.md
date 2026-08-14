@@ -45,7 +45,7 @@ Exit criteria:
 
 Goal: make matches repeatable enough to evaluate builds rather than setup accidents.
 
-The `0.3.1-alpha.2` candidate combines the existing level-5, level-8, and level-10 AI fixtures, deterministic rewards, native XP progression, repaired system-character-creation transfer, automatic level-1 onboarding, and the first Toolkit-authored Adventure level.
+The `0.3.1-alpha.3` candidate combines the existing level-5, level-8, and level-10 AI fixtures, deterministic rewards, native XP progression, unrestricted system-character-creation transfer with a stranded-party fallback, automatic level-1 onboarding, and the first Toolkit-authored Adventure level.
 
 `AA_Arena_Main` now starts independently of vanilla campaign locations and provides staging plus Astral Flats, Crescent Ruin, and Echelon Steps. The runtime moves the cooperative party between these sites and returns it through common cleanup. This is a playable greybox foundation that must pass new-game, solo, ordinary co-op, and split-screen engine playtests before the map expands.
 
