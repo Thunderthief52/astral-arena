@@ -2,12 +2,12 @@
 
 ## Build under test
 
-- Version: `0.3.1-alpha.3`
+- Version: `0.3.2-alpha.1`
 - Adventure UUID: `29c48c80-8777-f7b5-6bb8-376c1c5d8db6`
 - Character flow: BG3 system character creator → `AA_Arena_Main`
-- PAK: `dist\AstralArena-0.3.1-alpha.3.pak`
+- PAK: `dist\AstralArena-0.3.2-alpha.1.pak`
 
-This is the first playable greybox level. It validates isolated new-game startup, one-to-four-player character entry, arena-site routing, combat cleanup, progression, and loot. Final cover/elevation art, spectator boundaries, camera work, minimap data, and the remaining nine sites are not part of this candidate.
+This candidate adds a first visual and tactical pass using shipped BG3 assets. Astral Staging has a safe stone circle and landmark arches; Astral Flats uses open rocks and broken menhirs; Crescent Ruin uses curved stonework, rubble, and a Selûnite statue; and Echelon Steps uses an inward-shifted staggered high-ground edge. It validates isolated new-game startup, one-to-four-player character entry, arena-site routing, combat cleanup, progression, and loot. Spectator boundaries, final camera/minimap work, and the remaining nine sites are not part of this candidate.
 
 ## Install
 
@@ -17,7 +17,7 @@ This is the first playable greybox level. It validates isolated new-game startup
 
    ```powershell
    Set-ExecutionPolicy -Scope Process Bypass
-   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.1-alpha.3.pak"
+   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.2-alpha.1.pak"
    ```
 
 4. Confirm this file exists:
@@ -44,7 +44,7 @@ This is the first playable greybox level. It validates isolated new-game startup
 2. Create one character for solo, join the ordinary online lobby before finalizing characters for co-op, or connect the second controller before completing split-screen character creation.
 3. Finish the supported BG3 system character creator normally. This system scene is expected; it is not a campaign location. Do not use Honour Mode for this alpha.
 4. Confirm the finished custom party transfers into `AA_Arena_Main`, not a Nautiloid or Act 1 campaign location. A naked character-creation dummy must not remain active.
-5. Make a named manual save such as `AA 0.3.1 BEFORE AUTO START`.
+5. Make a named manual save such as `AA 0.3.2 BEFORE AUTO START`.
 6. After character creation completes, confirm Astral Arena automatically awards the vanilla level-5 XP threshold and displays a notification. No console command is required.
 7. Complete every ordinary BG3 level-up through level 5. In co-op or split-screen, each player completes their own choices.
 8. Confirm the runtime silently validates the party, enemy fixtures, and reward catalog, then moves the whole party to Astral Flats and begins the three-second countdown.
@@ -61,18 +61,19 @@ If automatic onboarding pauses, `!aa_ai_status` and `!aa_ai_doctor` remain avail
 
 For each bout:
 
-1. Confirm the party moves together from staging to the named site during setup.
-2. Confirm four temporary enemies appear ahead of the party and the three-second countdown completes.
-3. Fight normally. Defeated characters should stop at one HP.
-4. After victory, confirm temporary enemies disappear and every player returns to staging with health/resources restored.
-5. Choose one of the six rare candidates and its recipient:
+1. Confirm the party moves together from staging to the named site during setup and every character stands on solid terrain.
+2. Confirm the site's surrounding arches, pillars, rocks, rubble, vegetation, or steps render normally instead of as missing or black placeholder geometry.
+3. Confirm four temporary enemies appear ahead of the party on valid ground and the three-second countdown completes.
+4. Fight normally. Defeated characters should stop at one HP.
+5. After victory, confirm temporary enemies disappear and every player returns to staging with health/resources restored.
+6. Choose one of the six rare candidates and its recipient:
 
    ```text
    !aa_ai_pick <choice 1-6> <party-member 1-4>
    ```
 
-6. Confirm the recipient receives the chosen item plus the automatic `RewardMedium` bundle.
-7. Complete native level-ups to the next target; the next bout starts automatically when every player is ready.
+7. Confirm the recipient receives the chosen item plus the automatic `RewardMedium` bundle.
+8. Complete native level-ups to the next target; the next bout starts automatically when every player is ready.
 
 After the third reward, finish leveling to 12. The runtime automatically completes the run; expected console output is `Astral Arena champion complete at level 12.`
 

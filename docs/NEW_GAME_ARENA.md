@@ -15,9 +15,9 @@ The game itself still owns save creation. A mod should not silently open or over
 
 ## Current playable foundation
 
-Version `0.3.1-alpha.3` includes a checked-in BG3 Toolkit Adventure project, automatic onboarding, and an installable PAK. `StartupLevelName` points to the custom `AA_Arena_Main` gameplay level under Adventure UUID `29c48c80-8777-f7b5-6bb8-376c1c5d8db6`. Character creation is intentionally inherited from the `GustavX` dependency so BG3 uses its supported system character creator; an Osiris pre-event callback adds the required transition row for `AA_Arena_Main`, and a `SYS_CC_*` gameplay-ready fallback transfers any finished party left in the creation scene. No vanilla campaign gameplay level is referenced.
+Version `0.3.2-alpha.1` includes a checked-in BG3 Toolkit Adventure project, automatic onboarding, a first shipped-asset visual pass, and an installable PAK. `StartupLevelName` points to the custom `AA_Arena_Main` gameplay level under Adventure UUID `29c48c80-8777-f7b5-6bb8-376c1c5d8db6`. Character creation is intentionally inherited from the `GustavX` dependency so BG3 uses its supported system character creator; an Osiris pre-event callback adds the required transition row for `AA_Arena_Main`, and a `SYS_CC_*` gameplay-ready fallback transfers any finished party left in the creation scene. No vanilla campaign gameplay level is referenced.
 
-The level currently provides a neutral greybox staging area, valid terrain and AI-grid data, player-start data for up to four players, and three coordinate-separated combat sites. The runtime records the staging origin, moves the party to Astral Flats, Crescent Ruin, or Echelon Steps for each bout, and returns the party after victory, abort, or setup rollback.
+The level currently provides a decorated safe staging circle, valid terrain and AI-grid data, player-start data for up to four players, and three coordinate-separated combat sites. Sixty-six deterministic scenery objects and eight accent lights use only shipped BG3 root templates. Astral Flats retains a broad open lane framed by boulders and broken menhirs; Crescent Ruin has a curved floor, arches, rubble, and a Selûnite landmark; Echelon Steps keeps its spawn lane clear while placing staggered high ground along the safer northern edge. The runtime records the staging origin, moves the party to each site for its bout, and returns the party after victory, abort, or setup rollback.
 
 Fresh level-1 characters begin progression automatically after BG3 reports that character creation is finished. The runtime first confirms every party member is in `AA_Arena_Main`, validates enemy and reward templates internally, awards the vanilla level-5 XP threshold without choosing build decisions, and waits for the whole recorded party to finish native level-ups. It then moves the party to Astral Flats and starts the first bout. The same watcher starts later bouts after party-wide level-up completion; console start commands remain recovery-only.
 
@@ -48,10 +48,10 @@ The Script Extender code owns progression, deterministic selection, combat, rewa
 
 - the `AA_Arena_Main` level, inherited system character creation, and explicit post-creation transition;
 - custom terrain and AI-grid data without a vanilla campaign location dependency;
-- a neutral staging foundation and up-to-four-player start data;
-- three runtime combat-site identities and safe return-to-staging behavior;
+- a decorated staging foundation and up-to-four-player start data;
+- three visually distinct combat sites built from shipped assets and safe return-to-staging behavior;
 - project metadata and a 16:9 Adventure thumbnail.
 
-The next Toolkit art pass must add final cover/elevation props, explicit named anchors, spectator boundaries, camera bounds, lighting, minimap data, and the remaining nine combat sites.
+The deterministic visual manifest lives at `toolkit/scenery/AA_Arena_Main.scenery.json`; `scripts/Build-ArenaScenery.ps1` converts it into Toolkit level resources. Future passes must add explicit named anchors, spectator boundaries, camera bounds, final lighting/minimap data, navmesh regeneration around tactical props, and the remaining nine combat sites.
 
 No vanilla campaign location will be used as the permanent arena. Teleporting a new party directly into `WLD_Main_A` would also load campaign quests, NPCs, triggers, and level state, defeating the isolation this mode needs.

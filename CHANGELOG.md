@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.2-alpha.1 — 2026-08-15
+
+- Added 66 deterministic shipped-asset scenery objects and eight colored accent lights across Astral Staging, Astral Flats, Crescent Ruin, and Echelon Steps.
+- Gave each playable space a distinct landmark and tactical silhouette with stone platforms, arches, pillars, rubble, rocks, vegetation, and stepped high ground.
+- Moved Echelon Steps and its encounter center inward after a Toolkit Game Mode inspection found the eastern props and possible enemy positions too close to the terrain edge.
+- Added a reproducible scenery manifest/generator plus Toolkit validation for duplicate entries, generated-file counts, UUIDs, and missing artifacts.
+
 ## 0.3.1-alpha.3 — 2026-08-13
 
 - Moved `DB_CharacterCreationTransitionInfo` out of Script Extender's restricted `SessionLoaded` callback and into the unrestricted Osiris `CharacterCreationFinished` pre-event.

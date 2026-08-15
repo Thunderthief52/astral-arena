@@ -31,7 +31,7 @@ local COMBAT = {
     {
         id = "echelon-steps",
         displayName = "Echelon Steps",
-        offset = { 88, 0, 28 },
+        offset = { 80, 0, 28 },
         partyOffsets = { { 0, 0 }, { -2, -2 }, { -4, 0 }, { -6, 2 } },
         visualIdentity = "a stepped approach with staggered ranks",
     },

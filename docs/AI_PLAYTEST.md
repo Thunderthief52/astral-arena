@@ -2,7 +2,7 @@
 
 ## What this candidate tests
 
-Version `0.3.1-alpha.3` adds an unrestricted character-creation handoff, stranded-party recovery, and automatic new-game onboarding to the continuous solo/co-op progression run:
+Version `0.3.2-alpha.1` adds a shipped-asset visual pass to the unrestricted character-creation handoff, stranded-party recovery, and automatic new-game onboarding for the continuous solo/co-op progression run:
 
 ```text
 fight at L5 -> loot for L8 -> native level-up
@@ -101,7 +101,7 @@ If combat cleanup, inventory, or progression looks wrong, stop immediately and r
 - The automatic bundle uses two calls to the vanilla `RewardMedium` table. It will become an Astral Arena-owned treasure table after the first balance reports.
 - No run persistence across save/reload, crash, or game restart.
 - No automatic equipment-budget enforcement yet.
-- The dedicated map is a sparse greybox foundation: site identity currently comes from safe coordinate separation, not final cover/elevation art.
+- The dedicated map has a first shipped-asset visual pass, but final terrain materials, navigation around tactical props, spectator boundaries, camera bounds, and minimap data remain unfinished.
 - Vanilla cumulative XP thresholds are required.
 
 ## What to report

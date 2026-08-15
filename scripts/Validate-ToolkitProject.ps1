@@ -10,6 +10,9 @@ $ModuleRoot = Join-Path $DataRoot (Join-Path "Mods" $ModuleFolder)
 $EditorRoot = Join-Path $DataRoot (Join-Path "Editor\Mods" $ModuleFolder)
 $ProjectRoot = Join-Path $DataRoot (Join-Path "Projects" $ModuleFolder)
 $MetaPath = Join-Path $ModuleRoot "meta.lsx"
+$ArenaLevelRoot = Join-Path $ModuleRoot "Levels\AA_Arena_Main"
+$SceneryManifestPath = Join-Path $RepositoryRoot "toolkit\scenery\AA_Arena_Main.scenery.json"
+$GeneratedSceneryIndexPath = Join-Path $RepositoryRoot "toolkit\scenery\AA_Arena_Main.generated-files.json"
 
 $Required = @(
     $MetaPath,
@@ -20,7 +23,9 @@ $Required = @(
     (Join-Path $ProjectRoot "meta.lsx"),
     (Join-Path $ProjectRoot "thumbnail.png"),
     (Join-Path $RepositoryRoot "src\Mods\AstralArena\ScriptExtender\Lua\BootstrapServer.lua"),
-    (Join-Path $RepositoryRoot "src\Mods\AstralArena\ScriptExtender\Lua\AstralArena\Shared\ArenaSites.lua")
+    (Join-Path $RepositoryRoot "src\Mods\AstralArena\ScriptExtender\Lua\AstralArena\Shared\ArenaSites.lua"),
+    $SceneryManifestPath,
+    $GeneratedSceneryIndexPath
 )
 foreach ($Path in $Required) {
     if (-not (Test-Path $Path -PathType Leaf)) {
@@ -80,8 +85,48 @@ foreach ($Site in @("astral-flats", "crescent-ruin", "echelon-steps")) {
     }
 }
 
+$SceneryManifest = Get-Content -LiteralPath $SceneryManifestPath -Raw | ConvertFrom-Json
+$GeneratedSceneryIndex = [string[]](Get-Content -LiteralPath $GeneratedSceneryIndexPath -Raw | ConvertFrom-Json)
+$AllSceneryEntries = @($SceneryManifest.objects) + @($SceneryManifest.lights)
+if (@($AllSceneryEntries | Group-Object id | Where-Object Count -gt 1).Count -gt 0) {
+    throw "Arena scenery manifest contains duplicate ids."
+}
+if (@($AllSceneryEntries | Group-Object name | Where-Object Count -gt 1).Count -gt 0) {
+    throw "Arena scenery manifest contains duplicate object names."
+}
+foreach ($Object in $SceneryManifest.objects) {
+    $TemplateUuid = [guid]::Empty
+    if (-not [guid]::TryParse([string]$Object.template, [ref]$TemplateUuid)) {
+        throw "Arena scenery object '$($Object.id)' has an invalid template UUID."
+    }
+}
+
+$ExpectedSceneryCount = @($SceneryManifest.objects).Count
+$ExpectedLightCount = @($SceneryManifest.lights).Count
+$ActualSceneryFiles = @(Get-ChildItem -LiteralPath (Join-Path $ArenaLevelRoot "Scenery") -Filter *.lsf -File)
+$ActualLightFiles = @(Get-ChildItem -LiteralPath (Join-Path $ArenaLevelRoot "Lights") -Filter *.lsf -File)
+if ($ActualSceneryFiles.Count -ne $ExpectedSceneryCount) {
+    throw "Expected $ExpectedSceneryCount scenery files, found $($ActualSceneryFiles.Count)."
+}
+if ($ActualLightFiles.Count -ne $ExpectedLightCount) {
+    throw "Expected $ExpectedLightCount light files, found $($ActualLightFiles.Count)."
+}
+if ($GeneratedSceneryIndex.Count -ne ($ExpectedSceneryCount + $ExpectedLightCount)) {
+    throw "Generated scenery index does not match the manifest."
+}
+foreach ($RelativePath in $GeneratedSceneryIndex) {
+    $GeneratedPath = Join-Path $RepositoryRoot $RelativePath
+    if (-not (Test-Path -LiteralPath $GeneratedPath -PathType Leaf)) {
+        throw "Indexed generated scenery artifact is missing: $GeneratedPath"
+    }
+    if ((Get-Item -LiteralPath $GeneratedPath).Length -lt 100) {
+        throw "Generated scenery artifact is unexpectedly small: $GeneratedPath"
+    }
+}
+
 Write-Host "Toolkit project validation passed:" -ForegroundColor Green
 Write-Host "  Adventure UUID: $ModuleUuid"
 Write-Host "  Character flow: inherited system CC -> AA_Arena_Main"
 Write-Host "  Combat sites:   Astral Flats, Crescent Ruin, Echelon Steps"
+Write-Host "  Visual pass:    $ExpectedSceneryCount scenery objects, $ExpectedLightCount lights"
 Write-Host "  Players:        1-4"

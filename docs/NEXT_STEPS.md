@@ -45,13 +45,13 @@ Exit criteria:
 
 Goal: make matches repeatable enough to evaluate builds rather than setup accidents.
 
-The `0.3.1-alpha.3` candidate combines the existing level-5, level-8, and level-10 AI fixtures, deterministic rewards, native XP progression, unrestricted system-character-creation transfer with a stranded-party fallback, automatic level-1 onboarding, and the first Toolkit-authored Adventure level.
+The `0.3.2-alpha.1` candidate combines the existing level-5, level-8, and level-10 AI fixtures, deterministic rewards, native XP progression, unrestricted system-character-creation transfer with a stranded-party fallback, automatic level-1 onboarding, and the first Toolkit-authored Adventure level with a shipped-asset visual pass.
 
-`AA_Arena_Main` now starts independently of vanilla campaign locations and provides staging plus Astral Flats, Crescent Ruin, and Echelon Steps. The runtime moves the cooperative party between these sites and returns it through common cleanup. This is a playable greybox foundation that must pass new-game, solo, ordinary co-op, and split-screen engine playtests before the map expands.
+`AA_Arena_Main` now starts independently of vanilla campaign locations and provides a decorated staging area plus Astral Flats, Crescent Ruin, and Echelon Steps. The runtime moves the cooperative party between these sites and returns it through common cleanup. The first visual pass adds 66 shipped-asset objects and eight accent lights; Toolkit Game Mode inspection also moved Echelon inward from the eastern terrain edge. This playable foundation must pass new-game, solo, ordinary co-op, and split-screen engine playtests before the map expands.
 
 Planned work:
 
-- complete final geometry, cover, elevation, named anchors, spectator boundaries, camera bounds, lighting, and minimap data for the first three sites;
+- regenerate and validate AI-grid navigation around the first tactical props, then complete named anchors, spectator boundaries, camera bounds, final lighting, and minimap data for the first three sites;
 - add and validate the remaining nine combat sites;
 - replace the remaining console-only reward choice with controller-safe in-game UI;
 - standardized resource restore and equipment-budget validation;
