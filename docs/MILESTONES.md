@@ -13,7 +13,7 @@
 - Detect two connected peers through assigned party characters
 - Support one to four same-level fighters per side
 - Apply temporary hostility and start combat
-- Use temporary immortality and one HP as nonlethal defeat
+- Use native zero-HP downing and death saves, followed by safe bout cleanup
 - Detect victory/draw and restore relationships, combat state, health, and resources
 - Provide scan, doctor, status, forfeit, and abort commands
 - Resolve collapsed split-screen ownership through exactly two player-avatar components

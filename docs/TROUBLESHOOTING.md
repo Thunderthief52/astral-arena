@@ -43,7 +43,7 @@ Every registered fighter must currently have the same character level. Level the
 
 Enter `!aa_abort`, reload the pre-test save, and retry in a smaller, flatter area with one character per player. Disable AI, party-control, initiative, and PvP mods. Report which characters entered combat and which remained outside it.
 
-## A character remains at 1 HP or cannot fight after cleanup
+## A character remains downed or cannot fight after cleanup
 
 First try `!aa_abort`. If it says no match is active or does not restore the character, reload the manual save made before the match. Do not continue the campaign from the affected state. Attach the relevant runtime log.
 

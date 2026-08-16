@@ -2,12 +2,12 @@
 
 ## Build under test
 
-- Version: `0.3.2-alpha.5`
+- Version: `0.3.2-alpha.6`
 - Adventure UUID: `29c48c80-8777-f7b5-6bb8-376c1c5d8db6`
 - Character flow: BG3 system character creator → `AA_Arena_Main`
-- PAK: `dist\AstralArena-0.3.2-alpha.5.pak`
+- PAK: `dist\AstralArena-0.3.2-alpha.6.pak`
 
-This candidate makes the AI tournament continuous without post-bout menus. It adds visible knockouts, full between-round recovery, automatic generous loot, automatic defeat replays, a level-3 initiation, current-tier save recovery, and a large ruin-arch perimeter.
+This candidate makes the AI tournament continuous without post-bout menus. It adds native death saves, full between-round recovery, automatic generous loot, automatic defeat replays, a level-3 initiation, current-tier save recovery, and a large ruin-arch perimeter.
 
 ## Install
 
@@ -17,7 +17,7 @@ This candidate makes the AI tournament continuous without post-bout menus. It ad
 
    ```powershell
    Set-ExecutionPolicy -Scope Process Bypass
-   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.2-alpha.5.pak"
+   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.2-alpha.6.pak"
    ```
 
 4. Confirm this file exists:
@@ -32,7 +32,7 @@ This candidate makes the AI tournament continuous without post-bout menus. It ad
 
 ## Discard placeholder-party saves
 
-Do not continue a save containing four naked, classless, immobile characters at one HP. Those entities are BG3's temporary system character-creation placeholders, not recoverable player builds. Delete or ignore that playtest save and begin a fresh New Game with `0.3.2-alpha.5` enabled. Saves containing real custom arena characters at levels 5, 8, or 10 can resume at their current tier; mixed-level split-screen parties receive missing XP repair.
+Do not continue a save containing four naked, classless, immobile characters at one HP. Those entities are BG3's temporary system character-creation placeholders, not recoverable player builds. Delete or ignore that playtest save and begin a fresh New Game with `0.3.2-alpha.6` enabled. Saves containing real custom arena characters at levels 5, 8, or 10 can resume at their current tier; mixed-level split-screen parties receive missing XP repair.
 
 ## Start a clean Adventure
 
@@ -40,7 +40,7 @@ Do not continue a save containing four naked, classless, immobile characters at 
 2. Create one character for solo, join the ordinary online lobby before finalizing characters for co-op, or connect the second controller before completing split-screen character creation.
 3. Finish the supported BG3 system character creator normally. This system scene is expected; it is not a campaign location. Do not use Honour Mode for this alpha.
 4. Confirm the finished custom party transfers into `AA_Arena_Main`, not a Nautiloid or Act 1 campaign location. A naked character-creation dummy must not remain active.
-5. Make a named manual save such as `AA 0.3.2-alpha.5 BEFORE AUTO START`.
+5. Make a named manual save such as `AA 0.3.2-alpha.6 BEFORE AUTO START`.
 6. Confirm Astral Arena automatically awards the vanilla level-3 XP threshold and displays a notification. No console command is required.
 7. Complete every ordinary BG3 level-up through level 3. In co-op or split-screen, both players should receive XP and complete their own choices.
 8. Confirm the party moves to Astral Flats and begins the three-second countdown against three Astral Initiates.
@@ -61,7 +61,7 @@ For each bout:
 1. Confirm the party moves together from staging to the named site during setup and every character stands on solid terrain.
 2. Confirm the site's surrounding arches, pillars, rocks, rubble, vegetation, or steps render normally instead of as missing or black placeholder geometry.
 3. Confirm the expected temporary enemies appear ahead of the party on valid ground and the three-second countdown completes.
-4. Fight normally. At one HP, defeated characters should fall into a knocked-out pose, leave initiative, and stop being attacked.
+4. Fight normally. At zero HP, a player or enemy should enter BG3's native downed pose and keep its death-save turn in initiative. While another teammate remains active, confirm the downed actor rolls death saves and can be helped or healed without enemies farming extra failures. A recovered actor should lose arena protection and rejoin normally.
 5. After victory, confirm temporary enemies disappear and every player returns to staging with long-rest resources restored.
 6. Check every party inventory. Each player should receive four level-scaled loot rolls, and the six rare candidates should be distributed round-robin across the party.
 7. Complete native level-ups to the next target; the next bout starts automatically when every player is ready.

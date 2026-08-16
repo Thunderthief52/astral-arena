@@ -526,7 +526,13 @@ function SoloArena:_poll()
             if not alive[member.guid] and not self.active.defeated[member.guid] then
                 self.active.defeated[member.guid] = true
                 self.adapter.markDefeated(member.guid)
-                self.output((member.name or member.guid) .. " is defeated.")
+                self.output((member.name or member.guid) .. " is down and making death saves.")
+            elseif alive[member.guid] and self.active.defeated[member.guid] then
+                self.active.defeated[member.guid] = nil
+                if self.adapter.markRecovered then
+                    self.adapter.markRecovered(member.guid)
+                end
+                self.output((member.name or member.guid) .. " is back in the fight.")
             end
         end
     end

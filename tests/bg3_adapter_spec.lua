@@ -110,25 +110,72 @@ H.test("arena menu opens a native localized yes-no prompt", function()
     H.equal(opened[2], "hmenu")
 end)
 
-H.test("arena defeat knocks the actor down and removes it from combat", function()
+H.test("arena downing preserves native death saves and blocks AI farming", function()
     local previousExt = _G.Ext
     local previousOsi = _G.Osi
     local calls = {}
     _G.Ext = { Utils = { PrintWarning = function() end } }
     _G.Osi = {
         ApplyStatus = function(guid, status) table.insert(calls, "status:" .. guid .. ":" .. status) end,
-        SetCanFight = function(_, value) table.insert(calls, "fight:" .. value) end,
-        SetCanJoinCombat = function(_, value) table.insert(calls, "join:" .. value) end,
-        LeaveCombat = function() table.insert(calls, "leave") end,
     }
     Adapter.markDefeated("fighter")
     _G.Ext = previousExt
     _G.Osi = previousOsi
     H.equal(calls[1], "status:fighter:INVULNERABLE_NOT_SHOWN")
-    H.equal(calls[2], "status:fighter:KNOCKED_OUT")
-    H.equal(calls[3], "fight:0")
-    H.equal(calls[4], "join:0")
-    H.equal(calls[5], "leave")
+    H.equal(#calls, 1)
+end)
+
+H.test("arena preparation enables death saves and allows zero-hit-point downing", function()
+    local previousExt = _G.Ext
+    local previousOsi = _G.Osi
+    local immortal
+    local addedPassive
+    _G.Ext = { Utils = { PrintWarning = function() end } }
+    _G.Osi = {
+        RemoveStatusesWithType = function() end,
+        RemoveStatus = function() end,
+        SetCanFight = function() end,
+        SetCanJoinCombat = function() end,
+        SetImmortal = function(_, value) immortal = value end,
+        IsDead = function() return 0 end,
+        HasPassive = function() return 0 end,
+        AddPassive = function(_, passive) addedPassive = passive end,
+        PROC_CharacterFullRestore = function() end,
+    }
+    Adapter.prepareCharacter("fighter")
+    _G.Ext = previousExt
+    _G.Osi = previousOsi
+    H.equal(immortal, 0)
+    H.equal(addedPassive, "DeathSavingThrows")
+end)
+
+H.test("one hit point still fights but zero hit points is downed", function()
+    local previousOsi = _G.Osi
+    local hitpoints = 1
+    _G.Osi = {
+        IsDead = function() return 0 end,
+        GetHitpoints = function() return hitpoints end,
+    }
+    H.truthy(Adapter.isAlive("fighter"))
+    hitpoints = 0
+    H.equal(Adapter.isAlive("fighter"), false)
+    _G.Osi = previousOsi
+end)
+
+H.test("a recovered death-save combatant loses temporary protection", function()
+    local previousExt = _G.Ext
+    local previousOsi = _G.Osi
+    local removed
+    _G.Ext = { Utils = { PrintWarning = function() end } }
+    _G.Osi = {
+        RemoveStatus = function(guid, status)
+            removed = guid .. ":" .. status
+        end,
+    }
+    Adapter.markRecovered("fighter")
+    _G.Ext = previousExt
+    _G.Osi = previousOsi
+    H.equal(removed, "fighter:INVULNERABLE_NOT_SHOWN")
 end)
 
 H.test("between-round recovery invokes party restore and refreshes every avatar", function()

@@ -28,7 +28,7 @@ Online players should have matching BG3 versions, Astral Arena files, and load o
 5. Dismiss summons and temporary followers. Do not begin while another combat or turn-based mode is active.
 6. Do not save while Astral Arena reports an active match.
 
-The mod makes fighters immortal for the bout, treats 1 HP as defeat, then disables immortality and restores the party. Chasms, scripted deaths, transformations, domination, and modded instant-kill effects remain unsafe in this alpha.
+The mod gives fighters BG3's native death-save passive, treats zero HP as downed, and restores the party after the bout. Chasms, scripted deaths, transformations, domination, and modded instant-kill effects remain unsafe in this alpha.
 
 ## Test A — installation and discovery
 
@@ -71,14 +71,14 @@ Expected:
 2. Enter `!aa_scan` and note which user or couch player is left and right.
 3. Enter `!aa_spar`.
 4. Have each player take at least one movement action and one attack.
-5. Reduce one fighter to 1 HP.
+5. Reduce one fighter to 0 HP.
 
 Expected:
 
 - Both characters enter the same combat.
 - Each player can control only their assigned character as usual.
 - Cross-team attacks are permitted.
-- The 1 HP character is removed from combat rather than permanently dying.
+- The zero-HP character enters the native downed state, remains in initiative for death saves, and can be helped or healed.
 - The other user is announced as winner.
 - Both characters return to full health/resources and can move after cleanup.
 - They cannot target one another as enemies after cleanup.
@@ -87,7 +87,7 @@ Afterward enter `!aa_spar_status`; it should report the winner's user ID.
 
 ## Test C — simultaneous defeat
 
-Use area/environmental damage to bring the final surviving member of both teams to 1 HP between the same 250 ms evaluation ticks, if practical.
+Use area/environmental damage to down the final standing member of both teams between the same 250 ms evaluation ticks, if practical.
 
 Expected: Astral Arena reports a draw and restores both teams. This test is optional because timing it manually is difficult.
 

@@ -45,7 +45,7 @@ Exit criteria:
 
 Goal: make matches repeatable enough to evaluate builds rather than setup accidents.
 
-The `0.3.2-alpha.5` candidate adds a level-3 initiation to the existing level-5, level-8, and level-10 fixtures; visible knockout handling; full between-round restoration; automatic abundant rewards and progression; current-tier save recovery; and a perimeter wall pass.
+The `0.3.2-alpha.6` candidate adds a level-3 initiation to the existing level-5, level-8, and level-10 fixtures; native death saves for player and AI combatants; full between-round restoration; automatic abundant rewards and progression; current-tier save recovery; and a perimeter wall pass.
 
 `AA_Arena_Main` starts independently of vanilla campaign locations and provides a decorated staging area plus Astral Flats, Crescent Ruin, and Echelon Steps. The current pass has 96 shipped-asset objects and eight accent lights, including 30 oversized ruin arches around the active footprint. This playable foundation must pass new-game, solo, ordinary co-op, and split-screen engine playtests before the map expands.
 

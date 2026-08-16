@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.2-alpha.6 — 2026-08-15
+
+- Replaced one-hit-point arena elimination with BG3's native zero-hit-point downed state and `DeathSavingThrows` passive for both player and AI combatants.
+- Kept downed combatants in initiative so they can roll death saves or receive help, while temporary hidden protection prevents AI attacks from farming automatic failures.
+- Removed the protection immediately when healing or a natural recovery returns a combatant to the fight; bout cleanup still resurrects and fully rests everyone safely.
+
 ## 0.3.2-alpha.5 — 2026-08-15
 
 - Replaced the unreliable post-bout prompt dependency with a continuous controller-safe flow: victory loot and progression resolve automatically, while defeats and draws fully restore the party and replay the tier after five seconds.

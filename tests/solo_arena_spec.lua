@@ -15,7 +15,7 @@ _G.Ext = previousExt
 
 local function fakeAdapter()
     local adapter = {
-        alive = {}, queue = {}, restored = {}, deleted = {}, delivered = {}, experienceTargets = {}, layouts = {}, sites = {}, stagingReturns = 0, fullRests = 0, menus = {},
+        alive = {}, queue = {}, restored = {}, recovered = {}, deleted = {}, delivered = {}, experienceTargets = {}, layouts = {}, sites = {}, stagingReturns = 0, fullRests = 0, menus = {},
     }
     function adapter.partyMembers()
         return {
@@ -46,6 +46,7 @@ local function fakeAdapter()
     function adapter.enterCombat() end
     function adapter.isAlive(guid) return adapter.alive[guid] end
     function adapter.markDefeated() end
+    function adapter.markRecovered(guid) table.insert(adapter.recovered, guid) end
     function adapter.restoreCharacter(member) table.insert(adapter.restored, member.guid) end
     function adapter.deleteTemporary(member) table.insert(adapter.deleted, member.guid) end
     function adapter.schedule(_, callback) table.insert(adapter.queue, callback) end
@@ -141,6 +142,19 @@ H.test("defeat fully restores and schedules the same bout automatically", functi
     H.equal(subject.run.phase, "ready")
     H.equal(subject.run.level, 5)
     H.equal(subject.active.match.level, 5)
+end)
+
+H.test("healing a downed combatant removes arena protection", function()
+    local adapter = fakeAdapter()
+    local subject = arena(adapter)
+    subject:start({ countdownSeconds = 0 })
+    adapter.alive["player-a"] = false
+    table.remove(adapter.queue, 1)()
+    H.truthy(subject.active.defeated["player-a"])
+    adapter.alive["player-a"] = true
+    table.remove(adapter.queue, 1)()
+    H.equal(subject.active.defeated["player-a"], nil)
+    H.equal(adapter.recovered[1], "player-a")
 end)
 
 H.test("continue refuses until every party member reaches the expected level", function()

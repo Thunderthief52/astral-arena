@@ -26,12 +26,12 @@ Ordinary online teams use `GetReservedUserID`. If fewer than two ownership group
 
 `Sparring` owns the runtime lifecycle and delegates engine mutations to `Bg3Adapter`:
 
-1. Fully restore fighters, enable combat, and make them temporarily immortal.
+1. Fully restore fighters, enable combat, and ensure every fighter has BG3's native death-save passive.
 2. Run a three-second notification countdown.
 3. Apply temporary hostility across every opposing pair and enter combat.
-4. Poll hit points every 250 ms. One HP is considered nonlethal defeat.
-5. Remove defeated fighters from combat and resolve the match when a side has none left.
-6. Leave combat, clear individual relations against opposing factions, remove immortality, resurrect if required, and restore health/resources.
+4. Poll hit points every 250 ms. Zero HP enters BG3's native downed/death-save flow.
+5. Protect downed fighters from AI farming while leaving them in initiative; healing or a natural recovery removes that protection. Resolve the match when a side has no standing members.
+6. Leave combat, clear individual relations against opposing factions, remove downed/protection states, resurrect if required, and restore health/resources.
 
 The active sparring match is intentionally session-only. Saving during a match is unsupported; this avoids persisting temporary relationships or incomplete cleanup state.
 
@@ -41,7 +41,7 @@ Sparring rewards are disabled by default. The current campaign-space mode exists
 
 `SoloRun` remains a configurable progression model. Fresh Adventure parties use four bouts: a level-3 initiation followed by fights at levels 5, 8, and 10, with reward targets 5, 8, 10, and 12. Parties loaded at level 5, 8, or 10 reconstruct only the remaining suffix. Confirming that the entire party completed its final native level-up crowns the champion; a level-12 exhibition remains outside this ruleset.
 
-`SoloArena` connects that model to the engine. It treats the active one-to-four-character player party as one cooperative team, so the same flow supports solo, online co-op, and local split-screen. The initiation creates three temporary opponents; tournament tiers create four. At one HP, `Bg3Adapter` applies BG3's knocked-out state, disables combat participation, and adds hidden invulnerability so AI stops treating the actor as a valid target. Cleanup removes those states, restores the party, and deletes the temporary opponents.
+`SoloArena` connects that model to the engine. It treats the active one-to-four-character player party as one cooperative team, so the same flow supports solo, online co-op, and local split-screen. The initiation creates three temporary opponents; tournament tiers create four. `Bg3Adapter` ensures every player and temporary opponent has BG3's native `DeathSavingThrows` passive. At zero HP, the actor remains downed in initiative and receives temporary hidden protection against repeated AI hits; healing or a natural recovery removes that protection. Cleanup clears downed/protection states, resurrects when necessary, restores the party, and deletes the temporary opponents.
 
 After a victory, the runtime generates the same deterministic six-candidate offer, but does not block progression on the unreliable native dialog. For this playable alpha, every player receives four native `RewardMedium` rolls and all six rare candidates are distributed round-robin across party inventories. The run claims its deterministic first candidate internally, awards every party member the vanilla experience delta, and waits for native level-up completion. Defeats and draws fully restore the party and automatically rebuild the same tier after five seconds. BG3's ordinary level-up screen remains authoritative for all build decisions.
 

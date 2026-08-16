@@ -2,7 +2,7 @@
 
 ## What this candidate tests
 
-Version `0.3.2-alpha.5` tests a continuous, non-blocking solo/co-op progression run with visible knockouts, full between-round recovery, automatic generous loot, save-tier recovery, and a new level-3 initiation:
+Version `0.3.2-alpha.6` tests a continuous, non-blocking solo/co-op progression run with native death saves, full between-round recovery, automatic generous loot, save-tier recovery, and a new level-3 initiation:
 
 ```text
 fight at L3 -> loot for L5 -> native level-up
@@ -26,7 +26,7 @@ This mode really awards inventory items and experience. `!aa_ai_reset` resets on
 5. Confirm the new game loaded `AA_Arena_Main`, then dismiss summons and temporary followers before starting.
 6. Reload `BEFORE ASTRAL AI TEST` to undo the entire experiment.
 
-The temporary enemies are made non-lootable, stop at one HP, and are deleted during cleanup. Never loot their bodies. All intended rewards come from the arena reward step.
+The temporary enemies are made non-lootable, receive the same native death-save passive as players, and are deleted during cleanup. Never loot their bodies. All intended rewards come from the arena reward step.
 
 ## Automatic onboarding and optional diagnostics
 
@@ -62,7 +62,8 @@ The Adventure PAK starts in the private `AA_Arena_Main` level. Read [ADVENTURE_P
 
 Expected after victory:
 
-- defeated enemies and players fall knocked out at one HP, leave initiative, and are not attacked again;
+- players and enemies enter BG3's native downed state at zero HP, make death saves while teammates remain active, and can recover through healing or a natural 20;
+- downed actors receive temporary protection against AI farming; that protection is removed immediately when they recover;
 - all temporary enemies disappear;
 - the player party leaves combat, returns to staging, and receives a full long-rest-equivalent resource restore;
 - every avatar receives four level-scaled treasure rolls and the six rare candidates are distributed round-robin across party inventories.

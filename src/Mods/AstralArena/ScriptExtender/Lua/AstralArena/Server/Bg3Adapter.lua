@@ -30,6 +30,17 @@ local function safely(action)
     return nil
 end
 
+local function ensureDeathSavingThrows(guid)
+    local hasPassive = safely(function()
+        return Osi.HasPassive(guid, "DeathSavingThrows") == 1
+    end)
+    if not hasPassive then
+        safely(function()
+            Osi.AddPassive(guid, "DeathSavingThrows")
+        end)
+    end
+end
+
 function Adapter.partyMembers()
     local members = {}
     for _, row in pairs(Osi.DB_PartyMembers:Get(nil)) do
@@ -118,6 +129,9 @@ end
 
 function Adapter.prepareCharacter(guid)
     safely(function()
+        Osi.RemoveStatusesWithType(guid, "DOWNED", guid)
+    end)
+    safely(function()
         Osi.RemoveStatus(guid, "KNOCKED_OUT", guid)
     end)
     safely(function()
@@ -125,7 +139,13 @@ function Adapter.prepareCharacter(guid)
     end)
     Osi.SetCanFight(guid, 1)
     Osi.SetCanJoinCombat(guid, 1)
-    Osi.SetImmortal(guid, 1)
+    Osi.SetImmortal(guid, 0)
+    if Osi.IsDead(guid) == 1 then
+        safely(function()
+            Osi.Resurrect(guid)
+        end)
+    end
+    ensureDeathSavingThrows(guid)
     safely(function()
         Osi.PROC_CharacterFullRestore(guid)
     end)
@@ -146,27 +166,21 @@ function Adapter.isAlive(guid)
         return false
     end
     local hitpoints = Osi.GetHitpoints(guid)
-    return type(hitpoints) == "number" and hitpoints > 1
+    return type(hitpoints) == "number" and hitpoints > 0
 end
 
 function Adapter.markDefeated(guid)
-    -- Arena combat is nonlethal. The knockout status supplies the proper prone
-    -- pose and AI state, while the combat flags and hidden invulnerability keep
-    -- enemies from farming a defeated avatar at one hit point.
+    -- Native zero-hit-point handling supplies the downed pose, initiative turn,
+    -- and DeathSavingThrows rolls. Hidden protection prevents the AI from farming
+    -- automatic failures while allies still have a chance to help the actor up.
     safely(function()
         Osi.ApplyStatus(guid, "INVULNERABLE_NOT_SHOWN", -1.0, 1, guid)
     end)
+end
+
+function Adapter.markRecovered(guid)
     safely(function()
-        Osi.ApplyStatus(guid, "KNOCKED_OUT", -1.0, 1, guid)
-    end)
-    safely(function()
-        Osi.SetCanFight(guid, 0)
-    end)
-    safely(function()
-        Osi.SetCanJoinCombat(guid, 0)
-    end)
-    safely(function()
-        Osi.LeaveCombat(guid)
+        Osi.RemoveStatus(guid, "INVULNERABLE_NOT_SHOWN", guid)
     end)
 end
 
@@ -184,6 +198,9 @@ function Adapter.restoreCharacter(member, opposingFactions)
     end)
     safely(function()
         Osi.RemoveStatus(member.guid, "FORCE_KNOCKED_OUT_TEMPORARILY", member.guid)
+    end)
+    safely(function()
+        Osi.RemoveStatusesWithType(member.guid, "DOWNED", member.guid)
     end)
     safely(function()
         Osi.RemoveStatus(member.guid, "INVULNERABLE_NOT_SHOWN", member.guid)
@@ -341,7 +358,8 @@ function Adapter.spawnFixtureTeam(fixture, anchorGuid, layout)
             Osi.SetCharacterLootable(guid, 0)
             Osi.SetCanFight(guid, 1)
             Osi.SetCanJoinCombat(guid, 1)
-            Osi.SetImmortal(guid, 1)
+            Osi.SetImmortal(guid, 0)
+            ensureDeathSavingThrows(guid)
             safely(function()
                 Osi.PROC_CharacterFullRestore(guid)
             end)
