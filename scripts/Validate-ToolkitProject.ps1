@@ -23,6 +23,7 @@ $Required = @(
     (Join-Path $ProjectRoot "meta.lsx"),
     (Join-Path $ProjectRoot "thumbnail.png"),
     (Join-Path $RepositoryRoot "src\Mods\AstralArena\ScriptExtender\Lua\BootstrapServer.lua"),
+    (Join-Path $RepositoryRoot "src\Mods\AstralArena\ScriptExtender\Lua\AstralArena\Shared\AdventureHandoff.lua"),
     (Join-Path $RepositoryRoot "src\Mods\AstralArena\ScriptExtender\Lua\AstralArena\Shared\ArenaSites.lua"),
     $SceneryManifestPath,
     $GeneratedSceneryIndexPath
@@ -62,8 +63,38 @@ if ($ControllerText -match 'Ext\.Events\.SessionLoaded:Subscribe\(function\(\)\s
 if ($ControllerText -notmatch 'TeleportPartiesToLevelWithMovie\(Constants\.ArenaLevel, "", ""\)') {
     throw "Adventure runtime is missing the SYS_CC recovery transfer to AA_Arena_Main."
 }
+if ($ControllerText -notmatch 'markCharacterCreationFinished\(adventureHandoff\)') {
+    throw "Adventure runtime does not gate recovery behind CharacterCreationFinished."
+}
+if ($ControllerText -match 'else\s+recoverCharacterCreationHandoff\(levelName\)') {
+    throw "LevelGameplayReady must not transfer the temporary character-creation dummies."
+}
+if ($ControllerText -notmatch 'schedule\(2500, finishCharacterCreationHandoff\)') {
+    throw "Adventure runtime does not defer its post-completion fallback check."
+}
 if ($ControllerText -notmatch 'RegisterListener\("LevelGameplayReady", 2') {
     throw "Adventure runtime does not re-arm onboarding when arena gameplay becomes ready."
+}
+
+$HandoffPath = Join-Path $RepositoryRoot "src\Mods\AstralArena\ScriptExtender\Lua\AstralArena\Shared\AdventureHandoff.lua"
+$HandoffText = Get-Content -LiteralPath $HandoffPath -Raw
+if ($HandoffText -notmatch 'state\.characterCreationFinished == true') {
+    throw "Character-creation recovery does not require a completed creator session."
+}
+
+$AdapterPath = Join-Path $RepositoryRoot "src\Mods\AstralArena\ScriptExtender\Lua\AstralArena\Server\Bg3Adapter.lua"
+$AdapterText = Get-Content -LiteralPath $AdapterPath -Raw
+if ($AdapterText -notmatch 'AddExplorationExperience\(member\.guid, gain\)') {
+    throw "XP onboarding does not award independently owned split-screen avatars."
+}
+if ($AdapterText -match 'AddExplorationExperience\(members\[1\]\.guid, gain\)') {
+    throw "XP onboarding still assumes the first party member covers every split-screen avatar."
+}
+
+$SoloArenaPath = Join-Path $RepositoryRoot "src\Mods\AstralArena\ScriptExtender\Lua\AstralArena\Server\SoloArena.lua"
+$SoloArenaText = Get-Content -LiteralPath $SoloArenaPath -Raw
+if ($SoloArenaText -notmatch '_repairMixedLevelParty' -or $SoloArenaText -notmatch '"repairing"') {
+    throw "Automatic onboarding cannot recover a mixed-level split-screen party."
 }
 
 Add-Type -AssemblyName System.Drawing

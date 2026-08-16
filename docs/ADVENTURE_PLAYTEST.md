@@ -2,12 +2,12 @@
 
 ## Build under test
 
-- Version: `0.3.2-alpha.1`
+- Version: `0.3.2-alpha.3`
 - Adventure UUID: `29c48c80-8777-f7b5-6bb8-376c1c5d8db6`
 - Character flow: BG3 system character creator → `AA_Arena_Main`
-- PAK: `dist\AstralArena-0.3.2-alpha.1.pak`
+- PAK: `dist\AstralArena-0.3.2-alpha.3.pak`
 
-This candidate adds a first visual and tactical pass using shipped BG3 assets. Astral Staging has a safe stone circle and landmark arches; Astral Flats uses open rocks and broken menhirs; Crescent Ruin uses curved stonework, rubble, and a Selûnite statue; and Echelon Steps uses an inward-shifted staggered high-ground edge. It validates isolated new-game startup, one-to-four-player character entry, arena-site routing, combat cleanup, progression, and loot. Spectator boundaries, final camera/minimap work, and the remaining nine sites are not part of this candidate.
+This candidate fixes split-screen XP delivery so each independently owned local avatar reaches the same target, while retaining the safe fresh New Game handoff and shipped-asset visual pass. It can also repair a real-character split-screen save left at mixed levels by the previous build. Astral Staging has a safe stone circle and landmark arches; Astral Flats uses open rocks and broken menhirs; Crescent Ruin uses curved stonework, rubble, and a Selûnite statue; and Echelon Steps uses an inward-shifted staggered high-ground edge.
 
 ## Install
 
@@ -17,7 +17,7 @@ This candidate adds a first visual and tactical pass using shipped BG3 assets. A
 
    ```powershell
    Set-ExecutionPolicy -Scope Process Bypass
-   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.2-alpha.1.pak"
+   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.2-alpha.3.pak"
    ```
 
 4. Confirm this file exists:
@@ -30,13 +30,9 @@ This candidate adds a first visual and tactical pass using shipped BG3 assets. A
 6. Disable older Astral Arena development copies. Only one mod with the Adventure UUID above may be active.
 7. For online co-op, repeat these steps on every PC with the same BG3, Script Extender, PAK, and load-order versions. Split-screen requires one installation.
 
-## Recover an alpha.2 save stranded in character creation
+## Discard placeholder-party saves
 
-1. Enable **Astral Arena Adventure** in BG3's **Mod Manager** before loading the save. Disabling the mod cannot repair a saved location.
-2. Load the affected save and accept only the expected Astral Arena version-change warning, if BG3 shows one.
-3. The runtime should detect the `SYS_CC_*` system scene and transfer the finished party to `AA_Arena_Main` automatically. No console command is required.
-4. Confirm each created character is visible and controllable in staging. The Script Extender log should contain `Recovered a finished party stranded in SYS_CC_I; transferring to AA_Arena_Main.` followed by the normal level-5 XP bootstrap message.
-5. Make a new named manual save after arrival. Keep the older save until the party has completed at least one successful bout.
+Do not continue a save containing four naked, classless, immobile characters at one HP. Those entities are BG3's temporary system character-creation placeholders, not recoverable player builds. Delete or ignore that playtest save and begin a fresh New Game with `0.3.2-alpha.3` enabled. A save containing your two real custom split-screen characters, one at level 5 and one at level 1, is recoverable: install this build, reload it, and finish the newly offered level-ups on the lower character.
 
 ## Start a clean Adventure
 
@@ -44,9 +40,9 @@ This candidate adds a first visual and tactical pass using shipped BG3 assets. A
 2. Create one character for solo, join the ordinary online lobby before finalizing characters for co-op, or connect the second controller before completing split-screen character creation.
 3. Finish the supported BG3 system character creator normally. This system scene is expected; it is not a campaign location. Do not use Honour Mode for this alpha.
 4. Confirm the finished custom party transfers into `AA_Arena_Main`, not a Nautiloid or Act 1 campaign location. A naked character-creation dummy must not remain active.
-5. Make a named manual save such as `AA 0.3.2 BEFORE AUTO START`.
+5. Make a named manual save such as `AA 0.3.2-alpha.3 BEFORE AUTO START`.
 6. After character creation completes, confirm Astral Arena automatically awards the vanilla level-5 XP threshold and displays a notification. No console command is required.
-7. Complete every ordinary BG3 level-up through level 5. In co-op or split-screen, each player completes their own choices.
+7. Complete every ordinary BG3 level-up through level 5. In co-op or split-screen, both players should receive XP and each player completes their own choices.
 8. Confirm the runtime silently validates the party, enemy fixtures, and reward catalog, then moves the whole party to Astral Flats and begins the three-second countdown.
 
 If automatic onboarding pauses, `!aa_ai_status` and `!aa_ai_doctor` remain available as diagnostics. `!aa_ai_bootstrap`, `!aa_ai_start`, and `!aa_ai_continue` are recovery commands, not normal play steps.

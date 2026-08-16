@@ -19,8 +19,8 @@ local function fakeAdapter()
     }
     function adapter.partyMembers()
         return {
-            { guid = "player-a", name = "Player A", userId = 0, level = adapter.partyLevel or 5, faction = "player" },
-            { guid = "player-b", name = "Player B", userId = 1, level = adapter.partyLevel or 5, faction = "player" },
+            { guid = "player-a", name = "Player A", userId = 0, level = adapter.partyLevels and adapter.partyLevels[1] or adapter.partyLevel or 5, faction = "player" },
+            { guid = "player-b", name = "Player B", userId = 1, level = adapter.partyLevels and adapter.partyLevels[2] or adapter.partyLevel or 5, faction = "player" },
         }
     end
     function adapter.validateCharacterTemplate() return true end
@@ -51,7 +51,10 @@ local function fakeAdapter()
     function adapter.notify() end
     function adapter.deliverAutomaticReward(_, recipient) table.insert(adapter.delivered, "auto:" .. recipient) end
     function adapter.deliverItem(_, recipient) table.insert(adapter.delivered, "item:" .. recipient) end
-    function adapter.awardPartyToLevel(_, target) table.insert(adapter.experienceTargets, target) end
+    function adapter.awardPartyToLevel(_, target)
+        table.insert(adapter.experienceTargets, target)
+        return 1
+    end
     return adapter
 end
 
@@ -176,6 +179,17 @@ H.test("automatic onboarding validates and starts when every player reaches leve
     adapter.partyLevel = 5
     H.equal(subject:autoAdvance(), "started")
     H.equal(subject.bootstrapState.phase, "completed")
+    H.equal(subject.active.match.level, 5)
+end)
+
+H.test("automatic onboarding repairs a split-screen avatar missed by the XP award", function()
+    local adapter = fakeAdapter()
+    adapter.partyLevels = { 5, 1 }
+    local subject = arena(adapter)
+    H.equal(subject:autoAdvance(), "repairing")
+    H.equal(adapter.experienceTargets[1], 5)
+    adapter.partyLevels = { 5, 5 }
+    H.equal(subject:autoAdvance(), "started")
     H.equal(subject.active.match.level, 5)
 end)
 

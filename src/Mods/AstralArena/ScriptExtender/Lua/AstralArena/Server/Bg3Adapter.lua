@@ -320,24 +320,28 @@ function Adapter.awardPartyToLevel(members, targetLevel)
     if not targetExperience then
         error("unsupported arena target level: " .. tostring(targetLevel), 2)
     end
-    local lowestExperience = nil
     for _, member in ipairs(members) do
         local entity = Ext.Entity.Get(member.guid)
         if not entity or not entity.Experience then
             error("experience data is unavailable for " .. (member.name or member.guid), 2)
         end
-        local current = tonumber(entity.Experience.TotalExperience) or 0
-        if current >= targetExperience and Osi.GetLevel(member.guid) < targetLevel then
-            error("experience curve mismatch; vanilla XP thresholds are required", 2)
-        end
-        lowestExperience = math.min(lowestExperience or current, current)
     end
 
-    local gain = targetExperience - (lowestExperience or 0)
-    if gain > 0 then
-        -- AddExplorationExperience is party-wide; one call avoids multiplying XP in co-op.
-        Osi.AddExplorationExperience(members[1].guid, gain)
+    -- In ordinary parties AddExplorationExperience may propagate to everyone,
+    -- while local split-screen avatars can have distinct progression ownership.
+    -- Re-read before each award: a party-wide first call makes later calls no-ops,
+    -- but an independently owned avatar still receives exactly its missing XP.
+    local awardedCount = 0
+    for _, member in ipairs(members) do
+        local entity = Ext.Entity.Get(member.guid)
+        local current = tonumber(entity.Experience.TotalExperience) or 0
+        local gain = targetExperience - current
+        if gain > 0 then
+            Osi.AddExplorationExperience(member.guid, gain)
+            awardedCount = awardedCount + 1
+        end
     end
+    return awardedCount
 end
 
 return Adapter

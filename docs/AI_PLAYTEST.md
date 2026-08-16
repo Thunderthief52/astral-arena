@@ -2,7 +2,7 @@
 
 ## What this candidate tests
 
-Version `0.3.2-alpha.1` adds a shipped-asset visual pass to the unrestricted character-creation handoff, stranded-party recovery, and automatic new-game onboarding for the continuous solo/co-op progression run:
+Version `0.3.2-alpha.3` fixes independently owned split-screen XP delivery and mixed-level recovery while retaining the shipped-asset visual pass, completion-gated character-creation handoff, and automatic new-game onboarding for the continuous solo/co-op progression run:
 
 ```text
 fight at L5 -> loot for L8 -> native level-up
@@ -33,7 +33,7 @@ Normal Adventure play requires no bootstrap, doctor, start, or continue command.
 
 1. confirms the whole party is inside `AA_Arena_Main`;
 2. validates every AI and reward template before mutating the run;
-3. grants the vanilla level-5 XP threshold to fresh level-1 characters;
+3. grants each fresh level-1 avatar the vanilla level-5 XP threshold without multiplying ordinary party-wide XP;
 4. waits for every player to finish their own native level-up choices; and
 5. starts the next bout when the complete party reaches the required level.
 

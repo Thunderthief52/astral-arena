@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.2-alpha.3 — 2026-08-15
+
+- Fixed local split-screen onboarding awarding level-5 XP to only one independently owned avatar.
+- Made XP delivery idempotent for both per-avatar and ordinary party-wide engine behavior, including characters still completing native level-up choices.
+- Added automatic repair for a real-character arena save left at mixed levels, such as one split-screen avatar at level 5 and the other at level 1.
+- Kept the automatic onboarding poll alive after transient runtime errors so a repaired party proceeds to Astral Flats without console commands.
+- Added regressions for split-screen XP, party-wide XP, pending level-up state, and mixed-party recovery.
+
+## 0.3.2-alpha.2 — 2026-08-15
+
+- Fixed fresh New Game startup transferring BG3's four temporary, naked, classless 1-HP character-creation dummies into `AA_Arena_Main` before the character creator opened.
+- Restricted the `SYS_CC_*` fallback to sessions that have actually emitted `CharacterCreationFinished`; `LevelGameplayReady` for character creation can no longer trigger an arena transfer.
+- Added regression tests for pre-creation placeholders, completed-character recovery, Adventure scoping, and level scoping.
+
 ## 0.3.2-alpha.1 — 2026-08-15
 
 - Added 66 deterministic shipped-asset scenery objects and eight colored accent lights across Astral Staging, Astral Flats, Crescent Ruin, and Echelon Steps.

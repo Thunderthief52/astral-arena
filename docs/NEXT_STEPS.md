@@ -45,7 +45,7 @@ Exit criteria:
 
 Goal: make matches repeatable enough to evaluate builds rather than setup accidents.
 
-The `0.3.2-alpha.1` candidate combines the existing level-5, level-8, and level-10 AI fixtures, deterministic rewards, native XP progression, unrestricted system-character-creation transfer with a stranded-party fallback, automatic level-1 onboarding, and the first Toolkit-authored Adventure level with a shipped-asset visual pass.
+The `0.3.2-alpha.3` candidate combines the existing level-5, level-8, and level-10 AI fixtures, deterministic rewards, split-screen-safe native XP progression, a completion-gated system-character-creation transfer, automatic level-1 onboarding, and the first Toolkit-authored Adventure level with a shipped-asset visual pass.
 
 `AA_Arena_Main` now starts independently of vanilla campaign locations and provides a decorated staging area plus Astral Flats, Crescent Ruin, and Echelon Steps. The runtime moves the cooperative party between these sites and returns it through common cleanup. The first visual pass adds 66 shipped-asset objects and eight accent lights; Toolkit Game Mode inspection also moved Echelon inward from the eastern terrain edge. This playable foundation must pass new-game, solo, ordinary co-op, and split-screen engine playtests before the map expands.
 

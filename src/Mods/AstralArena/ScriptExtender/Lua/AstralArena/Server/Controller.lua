@@ -8,6 +8,7 @@ local AIFixtures = Ext.Require("AstralArena/Shared/AIFixtures.lua")
 local RewardCatalog = Ext.Require("AstralArena/Shared/RewardCatalog.lua")
 local ArenaLayouts = Ext.Require("AstralArena/Shared/ArenaLayouts.lua")
 local ArenaSites = Ext.Require("AstralArena/Shared/ArenaSites.lua")
+local AdventureHandoff = Ext.Require("AstralArena/Shared/AdventureHandoff.lua")
 
 local Controller = { API = {} }
 local registered = false
@@ -26,6 +27,8 @@ Controller.Sparring = sparring
 Controller.SoloArena = soloArena
 
 local autoGeneration = 0
+local adventureHandoff = AdventureHandoff.new()
+local armAutomaticProgression
 
 local function isAstralAdventureActive()
     local ok, startupLevel = pcall(function()
@@ -45,12 +48,8 @@ local function configureAdventureTransition()
     return true
 end
 
-local function isSystemCharacterCreationLevel(levelName)
-    return type(levelName) == "string" and levelName:match("^SYS_CC_") ~= nil
-end
-
 local function recoverCharacterCreationHandoff(levelName)
-    if not isSystemCharacterCreationLevel(levelName) or not isAstralAdventureActive() then
+    if not AdventureHandoff.shouldRecover(adventureHandoff, isAstralAdventureActive(), levelName) then
         return false
     end
 
@@ -66,6 +65,36 @@ local function recoverCharacterCreationHandoff(levelName)
     return true
 end
 
+local function currentPartyRegion()
+    local members = Bg3Adapter.partyMembers()
+    if not members[1] then
+        return nil
+    end
+
+    local region = Osi.GetRegion(members[1].guid)
+    for index = 2, #members do
+        if Osi.GetRegion(members[index].guid) ~= region then
+            return nil
+        end
+    end
+    return region
+end
+
+local function finishCharacterCreationHandoff()
+    local ok, levelName = pcall(currentPartyRegion)
+    if not ok then
+        printLine("Character-creation handoff check paused: " .. tostring(levelName))
+        return
+    end
+
+    if levelName == Constants.ArenaLevel then
+        armAutomaticProgression()
+        return
+    end
+
+    recoverCharacterCreationHandoff(levelName)
+end
+
 local function scheduleAutomaticProgression(generation)
     Bg3Adapter.schedule(1000, function()
         if generation ~= autoGeneration then
@@ -76,6 +105,7 @@ local function scheduleAutomaticProgression(generation)
         end)
         if not ok then
             printLine("Automatic arena onboarding paused: " .. tostring(action))
+            scheduleAutomaticProgression(generation)
             return
         end
         if action == "outside" then
@@ -92,7 +122,7 @@ local function scheduleAutomaticProgression(generation)
     end)
 end
 
-local function armAutomaticProgression()
+armAutomaticProgression = function()
     autoGeneration = autoGeneration + 1
     local generation = autoGeneration
     Bg3Adapter.schedule(1500, function()
@@ -102,6 +132,7 @@ local function armAutomaticProgression()
             end)
             if not ok then
                 printLine("Automatic arena onboarding paused: " .. tostring(action))
+                scheduleAutomaticProgression(generation)
                 return
             end
             if action ~= "outside" and action ~= "completed" then
@@ -170,21 +201,23 @@ function Controller.Register()
     -- processes CharacterCreationFinished instead.
     Ext.Osiris.RegisterListener("CharacterCreationFinished", 0, "before", function()
         if isAstralAdventureActive() then
+            AdventureHandoff.markCharacterCreationFinished(adventureHandoff)
             configureAdventureTransition()
         end
     end)
 
     Ext.Osiris.RegisterListener("CharacterCreationFinished", 0, "after", function()
         if isAstralAdventureActive() then
-            armAutomaticProgression()
+            -- LevelGameplayReady fires when the system character-creation scene
+            -- first opens. Waiting until CharacterCreationFinished prevents the
+            -- four temporary 1-HP creator dummies from entering the arena.
+            Bg3Adapter.schedule(2500, finishCharacterCreationHandoff)
         end
     end)
 
     Ext.Osiris.RegisterListener("LevelGameplayReady", 2, "after", function(levelName)
         if levelName == Constants.ArenaLevel then
             armAutomaticProgression()
-        else
-            recoverCharacterCreationHandoff(levelName)
         end
     end)
 

@@ -39,6 +39,7 @@ function SoloArena.new(adapter, output, fixtures, rewardCatalog, arenaLayouts, a
         generation = 0,
         recentOfferItemIds = {},
         rewardRecipients = nil,
+        repairNoticeTarget = nil,
     }, SoloArena)
 end
 
@@ -73,6 +74,50 @@ end
 
 function SoloArena:_party()
     return Roster.playerParty(self.adapter.partyMembers(), 4)
+end
+
+function SoloArena:_repairMixedLevelParty()
+    local members = self.adapter.partyMembers()
+    if type(members) ~= "table" or #members < 1 or #members > 4 then
+        return false
+    end
+    if self.adapter.isPartyInArena and not self.adapter.isPartyInArena(members) then
+        return false
+    end
+
+    local targetLevel = 5
+    if self.run and self.run.phase == "awaiting_level_up" then
+        targetLevel = self.run.level
+    elseif self.bootstrapState then
+        targetLevel = self.bootstrapState.targetLevel
+    end
+
+    local hasLowerLevel = false
+    for _, member in ipairs(members) do
+        if type(member.level) ~= "number" or member.level < 1 or member.level > targetLevel then
+            return false
+        end
+        hasLowerLevel = hasLowerLevel or member.level < targetLevel
+    end
+    if not hasLowerLevel then
+        return false
+    end
+
+    local awardedCount = self.adapter.awardPartyToLevel(members, targetLevel) or 0
+    if awardedCount > 0 and self.repairNoticeTarget ~= targetLevel then
+        self.repairNoticeTarget = targetLevel
+        self.output(string.format(
+            "Recovered split-screen progression: awarded missing XP to %d avatar(s) for level %d.",
+            awardedCount,
+            targetLevel
+        ))
+        for _, member in ipairs(members) do
+            if member.level < targetLevel then
+                self.adapter.notify(member.guid, "Astral Arena: missing XP restored. Finish leveling to " .. tostring(targetLevel) .. ".")
+            end
+        end
+    end
+    return true
 end
 
 function SoloArena:_requireArenaParty(party)
@@ -439,8 +484,9 @@ function SoloArena:autoAdvance()
     end)
     if not ok then
         -- Co-op players may finish level-up screens at different times. Mixed
-        -- levels are a normal waiting state for automatic progression.
-        return "waiting"
+        -- levels are a normal waiting state. Reapply only the missing XP so a
+        -- split-screen avatar with independent progression ownership can catch up.
+        return self:_repairMixedLevelParty() and "repairing" or "waiting"
     end
     if self.adapter.isPartyInArena and not self.adapter.isPartyInArena(party.members) then
         return "outside"
@@ -497,6 +543,7 @@ function SoloArena:reset()
     self.bootstrapState = nil
     self.rewardRecipients = nil
     self.recentOfferItemIds = {}
+    self.repairNoticeTarget = nil
     self.output("AI arena session state reset. Awarded XP and items are not removed; reload the pre-test save for a clean reset.")
 end
 
