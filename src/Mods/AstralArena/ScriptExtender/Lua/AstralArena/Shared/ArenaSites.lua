@@ -54,4 +54,14 @@ function Sites.forBout(battleIndex)
     return COMBAT[((battleIndex - 1) % #COMBAT) + 1]
 end
 
+function Sites.forLevel(level)
+    local byLevel = {
+        [3] = COMBAT[1],
+        [5] = COMBAT[1],
+        [8] = COMBAT[2],
+        [10] = COMBAT[3],
+    }
+    return byLevel[tonumber(level)] or Sites.forBout(1)
+end
+
 return Sites

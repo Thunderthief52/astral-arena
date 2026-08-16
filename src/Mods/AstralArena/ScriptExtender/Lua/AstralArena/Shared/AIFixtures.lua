@@ -1,6 +1,16 @@
 local Fixtures = {}
 
 local BY_LEVEL = {
+    [3] = {
+        id = "astral-initiation",
+        displayName = "Astral Initiates",
+        level = 3,
+        members = {
+            { id = "gish", displayName = "Initiate Spellblade", role = "gish", templateId = "9a8b2d7f-e1a3-456a-8c66-c362cb6d1539" },
+            { id = "raider", displayName = "Initiate Archer", role = "ranged", templateId = "74672dc8-497c-4d9c-92b7-7347ab643e43" },
+            { id = "warrior", displayName = "Initiate Warrior", role = "frontline", templateId = "814b1e10-eafc-4739-9b17-7a8a4e99be9f" },
+        },
+    },
     [5] = {
         id = "astral-vanguard",
         displayName = "Astral Vanguard",
@@ -41,7 +51,7 @@ function Fixtures.get(level)
 end
 
 function Fixtures.levels()
-    return { 5, 8, 10 }
+    return { 3, 5, 8, 10 }
 end
 
 return Fixtures

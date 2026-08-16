@@ -71,7 +71,41 @@
     { "id": "echelon-grass-1", "name": "AA_Echelon_Bluegrass_01", "template": "c255905c-5b6a-4c6f-af5c-bbffbc990c65", "position": [69, 0.02, 17], "yaw": 10, "scale": 1.45, "cover": 0, "walkThrough": true, "decorative": true },
     { "id": "echelon-grass-2", "name": "AA_Echelon_Bluegrass_02", "template": "1afe4a17-0883-4439-be1c-65e5356d4436", "position": [69, 0.02, 39], "yaw": -10, "scale": 1.45, "cover": 0, "walkThrough": true, "decorative": true },
     { "id": "echelon-grass-3", "name": "AA_Echelon_Bluegrass_03", "template": "c255905c-5b6a-4c6f-af5c-bbffbc990c65", "position": [82, 0.02, 15], "yaw": 75, "scale": 1.4, "cover": 0, "walkThrough": true, "decorative": true },
-    { "id": "echelon-grass-4", "name": "AA_Echelon_Bluegrass_04", "template": "1afe4a17-0883-4439-be1c-65e5356d4436", "position": [92, 0.02, 48], "yaw": -75, "scale": 1.4, "cover": 0, "walkThrough": true, "decorative": true }
+    { "id": "echelon-grass-4", "name": "AA_Echelon_Bluegrass_04", "template": "1afe4a17-0883-4439-be1c-65e5356d4436", "position": [92, 0.02, 48], "yaw": -75, "scale": 1.4, "cover": 0, "walkThrough": true, "decorative": true },
+
+    { "id": "wall-south-01", "name": "AA_Perimeter_South_01", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [-12, 0, -22], "yaw": 0, "scale": 1.25, "cover": 1 },
+    { "id": "wall-south-02", "name": "AA_Perimeter_South_02", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [0, 0, -22], "yaw": 0, "scale": 1.25, "cover": 1 },
+    { "id": "wall-south-03", "name": "AA_Perimeter_South_03", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [12, 0, -22], "yaw": 0, "scale": 1.25, "cover": 1 },
+    { "id": "wall-south-04", "name": "AA_Perimeter_South_04", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [24, 0, -22], "yaw": 0, "scale": 1.25, "cover": 1 },
+    { "id": "wall-south-05", "name": "AA_Perimeter_South_05", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [36, 0, -22], "yaw": 0, "scale": 1.25, "cover": 1 },
+    { "id": "wall-south-06", "name": "AA_Perimeter_South_06", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [48, 0, -22], "yaw": 0, "scale": 1.25, "cover": 1 },
+    { "id": "wall-south-07", "name": "AA_Perimeter_South_07", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [60, 0, -22], "yaw": 0, "scale": 1.25, "cover": 1 },
+    { "id": "wall-south-08", "name": "AA_Perimeter_South_08", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [72, 0, -22], "yaw": 0, "scale": 1.25, "cover": 1 },
+    { "id": "wall-south-09", "name": "AA_Perimeter_South_09", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [84, 0, -22], "yaw": 0, "scale": 1.25, "cover": 1 },
+    { "id": "wall-south-10", "name": "AA_Perimeter_South_10", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [96, 0, -22], "yaw": 0, "scale": 1.25, "cover": 1 },
+
+    { "id": "wall-north-01", "name": "AA_Perimeter_North_01", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [-12, 0, 58], "yaw": 180, "scale": 1.25, "cover": 1 },
+    { "id": "wall-north-02", "name": "AA_Perimeter_North_02", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [0, 0, 58], "yaw": 180, "scale": 1.25, "cover": 1 },
+    { "id": "wall-north-03", "name": "AA_Perimeter_North_03", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [12, 0, 58], "yaw": 180, "scale": 1.25, "cover": 1 },
+    { "id": "wall-north-04", "name": "AA_Perimeter_North_04", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [24, 0, 58], "yaw": 180, "scale": 1.25, "cover": 1 },
+    { "id": "wall-north-05", "name": "AA_Perimeter_North_05", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [36, 0, 58], "yaw": 180, "scale": 1.25, "cover": 1 },
+    { "id": "wall-north-06", "name": "AA_Perimeter_North_06", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [48, 0, 58], "yaw": 180, "scale": 1.25, "cover": 1 },
+    { "id": "wall-north-07", "name": "AA_Perimeter_North_07", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [60, 0, 58], "yaw": 180, "scale": 1.25, "cover": 1 },
+    { "id": "wall-north-08", "name": "AA_Perimeter_North_08", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [72, 0, 58], "yaw": 180, "scale": 1.25, "cover": 1 },
+    { "id": "wall-north-09", "name": "AA_Perimeter_North_09", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [84, 0, 58], "yaw": 180, "scale": 1.25, "cover": 1 },
+    { "id": "wall-north-10", "name": "AA_Perimeter_North_10", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [96, 0, 58], "yaw": 180, "scale": 1.25, "cover": 1 },
+
+    { "id": "wall-west-01", "name": "AA_Perimeter_West_01", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [-18, 0, -10], "yaw": 90, "scale": 1.25, "cover": 1 },
+    { "id": "wall-west-02", "name": "AA_Perimeter_West_02", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [-18, 0, 4], "yaw": 90, "scale": 1.25, "cover": 1 },
+    { "id": "wall-west-03", "name": "AA_Perimeter_West_03", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [-18, 0, 18], "yaw": 90, "scale": 1.25, "cover": 1 },
+    { "id": "wall-west-04", "name": "AA_Perimeter_West_04", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [-18, 0, 32], "yaw": 90, "scale": 1.25, "cover": 1 },
+    { "id": "wall-west-05", "name": "AA_Perimeter_West_05", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [-18, 0, 46], "yaw": 90, "scale": 1.25, "cover": 1 },
+
+    { "id": "wall-east-01", "name": "AA_Perimeter_East_01", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [98, 0, -10], "yaw": -90, "scale": 1.25, "cover": 1 },
+    { "id": "wall-east-02", "name": "AA_Perimeter_East_02", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [98, 0, 4], "yaw": -90, "scale": 1.25, "cover": 1 },
+    { "id": "wall-east-03", "name": "AA_Perimeter_East_03", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [98, 0, 18], "yaw": -90, "scale": 1.25, "cover": 1 },
+    { "id": "wall-east-04", "name": "AA_Perimeter_East_04", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [98, 0, 32], "yaw": -90, "scale": 1.25, "cover": 1 },
+    { "id": "wall-east-05", "name": "AA_Perimeter_East_05", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [98, 0, 46], "yaw": -90, "scale": 1.25, "cover": 1 }
   ],
   "lights": [
     { "id": "light-staging-key", "name": "AA_Light_Staging_Key", "position": [0, 6, 0], "color": [0.52, 0.38, 1.0], "intensity": 8000, "radius": 22, "gain": 0.6, "scattering": 0.5 },

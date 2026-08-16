@@ -109,3 +109,79 @@ H.test("arena menu opens a native localized yes-no prompt", function()
     H.equal(opened[1], "player-a")
     H.equal(opened[2], "hmenu")
 end)
+
+H.test("arena defeat knocks the actor down and removes it from combat", function()
+    local previousExt = _G.Ext
+    local previousOsi = _G.Osi
+    local calls = {}
+    _G.Ext = { Utils = { PrintWarning = function() end } }
+    _G.Osi = {
+        ApplyStatus = function(guid, status) table.insert(calls, "status:" .. guid .. ":" .. status) end,
+        SetCanFight = function(_, value) table.insert(calls, "fight:" .. value) end,
+        SetCanJoinCombat = function(_, value) table.insert(calls, "join:" .. value) end,
+        LeaveCombat = function() table.insert(calls, "leave") end,
+    }
+    Adapter.markDefeated("fighter")
+    _G.Ext = previousExt
+    _G.Osi = previousOsi
+    H.equal(calls[1], "status:fighter:INVULNERABLE_NOT_SHOWN")
+    H.equal(calls[2], "status:fighter:KNOCKED_OUT")
+    H.equal(calls[3], "fight:0")
+    H.equal(calls[4], "join:0")
+    H.equal(calls[5], "leave")
+end)
+
+H.test("between-round recovery invokes party restore and refreshes every avatar", function()
+    local previousExt = _G.Ext
+    local previousOsi = _G.Osi
+    local restoredParty
+    local refreshed = {}
+    _G.Ext = { Utils = { PrintWarning = function() end } }
+    _G.Osi = {
+        RestoreParty = function(guid) restoredParty = guid end,
+        PROC_CharacterFullRestore = function(guid) table.insert(refreshed, "full:" .. guid) end,
+        ResetCooldowns = function(guid) table.insert(refreshed, "cooldown:" .. guid) end,
+    }
+    Adapter.fullRestParty(members)
+    _G.Ext = previousExt
+    _G.Osi = previousOsi
+    H.equal(restoredParty, "player-a")
+    H.equal(#refreshed, 4)
+end)
+
+H.test("victory bundle gives four loot rolls per avatar and distributes six rares", function()
+    local previousExt = _G.Ext
+    local previousOsi = _G.Osi
+    local generated = 0
+    local items = {}
+    _G.Ext = {
+        Template = {
+            GetRootTemplate = function()
+                return { TemplateType = "item" }
+            end,
+        },
+    }
+    _G.Osi = {
+        GenerateTreasure = function() generated = generated + 1 end,
+        TemplateAddTo = function(templateId, recipient)
+            table.insert(items, templateId .. ":" .. recipient)
+        end,
+    }
+    local choices = {}
+    for index = 1, 6 do
+        table.insert(choices, { templateId = "item-" .. index })
+    end
+    local result = Adapter.deliverVictoryBundle({
+        level = 8,
+        automatic = { treasureTableId = "RewardMedium", rolls = 2 },
+        choices = choices,
+    }, members)
+    _G.Ext = previousExt
+    _G.Osi = previousOsi
+    H.equal(generated, 8)
+    H.equal(result.treasureRolls, 8)
+    H.equal(result.rareItems, 6)
+    H.equal(items[1], "item-1:player-a")
+    H.equal(items[2], "item-2:player-b")
+    H.equal(items[6], "item-6:player-b")
+end)

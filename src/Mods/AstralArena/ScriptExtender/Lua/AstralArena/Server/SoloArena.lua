@@ -45,6 +45,25 @@ function SoloArena.new(adapter, output, fixtures, rewardCatalog, arenaLayouts, a
     }, SoloArena)
 end
 
+local PROGRESSION_LEVELS = { 3, 5, 8, 10, 12 }
+
+local function progressionFrom(startingLevel)
+    local result = {}
+    local found = false
+    for _, level in ipairs(PROGRESSION_LEVELS) do
+        if level == startingLevel then
+            found = true
+        end
+        if found then
+            table.insert(result, level)
+        end
+    end
+    if #result < 2 then
+        error("an AI arena run requires a party at level 3, 5, 8, or 10", 3)
+    end
+    return result
+end
+
 local function menuResultIsYes(result)
     return result == true or result == 1 or result == "1"
 end
@@ -185,18 +204,18 @@ function SoloArena:bootstrapParty()
     self.generation = self.generation + 1
     local state = ArenaBootstrap.new({
         id = "arena-bootstrap-" .. tostring(self.generation),
-        targetLevel = 5,
+        targetLevel = 3,
     })
     local targetLevel = ArenaBootstrap.begin(state, party.level, #party.members)
     self.bootstrapState = state
     self.adapter.awardPartyToLevel(party.members, targetLevel)
     ArenaBootstrap.markExperienceAwarded(state)
     self.output(string.format(
-        "Arena bootstrap awarded the level-5 XP threshold to %d character(s). Complete every native level-up; the first bout will begin automatically.",
+        "Arena bootstrap awarded the level-3 XP threshold to %d character(s). Complete every native level-up; the initiation bout will begin automatically.",
         #party.members
     ))
     for _, member in ipairs(party.members) do
-        self.adapter.notify(member.guid, "Astral Arena: finish leveling to 5. The first bout will begin automatically.")
+        self.adapter.notify(member.guid, "Astral Arena: finish leveling to 3. The initiation bout will begin automatically.")
     end
     return state
 end
@@ -214,11 +233,25 @@ function SoloArena:_repairMixedLevelParty()
         return false
     end
 
-    local targetLevel = 5
+    local targetLevel = 3
     if self.run and self.run.phase == "awaiting_level_up" then
         targetLevel = self.run.level
     elseif self.bootstrapState then
         targetLevel = self.bootstrapState.targetLevel
+    else
+        -- Session state is intentionally transient. If a co-op save is loaded
+        -- while avatars are at different points in a native level-up, infer the
+        -- next supported tier from the highest reported character level.
+        local highestLevel = 1
+        for _, member in ipairs(members) do
+            highestLevel = math.max(highestLevel, tonumber(member.level) or 1)
+        end
+        for _, level in ipairs(PROGRESSION_LEVELS) do
+            if level >= highestLevel then
+                targetLevel = level
+                break
+            end
+        end
     end
 
     local hasLowerLevel = false
@@ -314,9 +347,7 @@ function SoloArena:start(options)
         error("an AI arena run already exists; use status, continue, or reset", 2)
     end
     local party = self:_party()
-    if party.level ~= 5 then
-        error("a new AI arena run requires a level 5 party", 2)
-    end
+    local levels = progressionFrom(party.level)
     self:_requireArenaParty(party)
     if self.bootstrapState and self.bootstrapState.phase ~= "completed" then
         if self.bootstrapState.phase == "awaiting_level_up" then
@@ -332,6 +363,7 @@ function SoloArena:start(options)
     self.run = SoloRun.new({
         id = "ai-run-" .. tostring(self.generation),
         partyId = "local-player-party",
+        levels = levels,
     })
     self.recentOfferItemIds = {}
     SoloRun.confirmPartyLevel(self.run, party.level)
@@ -350,7 +382,10 @@ function SoloArena:_startBout(party, options)
     local layout = self.arenaLayouts and self.arenaLayouts.select(
         self.run.id .. "-bout-" .. tostring(self.run.battleIndex)
     ) or nil
-    local site = self.arenaSites and self.arenaSites.forBout(self.run.battleIndex) or nil
+    local site = self.arenaSites and (
+        self.arenaSites.forLevel and self.arenaSites.forLevel(self.run.level)
+        or self.arenaSites.forBout(self.run.battleIndex)
+    ) or nil
     local spawned = nil
     local setupOk, setupError = pcall(function()
         if site and self.adapter.prepareArenaSite then
@@ -410,8 +445,9 @@ function SoloArena:_startBout(party, options)
     end
 
     self.output(string.format(
-        "Prepared AI bout %d/3 at L%d in %s: Player Party versus %s%s.",
+        "Prepared AI bout %d/%d at L%d in %s: Player Party versus %s%s.",
         self.run.battleIndex,
+        #self.run.levels - 1,
         self.run.level,
         site and site.displayName or "the active arena",
         fixture.displayName,
@@ -473,7 +509,9 @@ function SoloArena:_schedulePoll(generation)
         end)
         if not ok then
             self.output("ERROR while checking AI combat: " .. tostring(err))
-            self:abort("poll-error")
+            if self.active then
+                self:abort("poll-error")
+            end
         elseif self.active and self.active.generation == generation then
             self:_schedulePoll(generation)
         end
@@ -510,6 +548,9 @@ function SoloArena:_cleanup(active)
     if self.adapter.returnPartyToStaging then
         self.adapter.returnPartyToStaging(active.teams.left.members)
     end
+    if self.adapter.fullRestParty then
+        self.adapter.fullRestParty(active.teams.left.members)
+    end
 end
 
 function SoloArena:_printReward(offer)
@@ -536,16 +577,48 @@ function SoloArena:_finish(resultSide)
             recentOfferItemIds = self.recentOfferItemIds,
             treasureTableId = "RewardMedium",
         })
-        self.output("AI arena victory.")
-        self:_printReward(offer)
-        self:_openMenu("reward", active.teams.left.members)
+        local delivered = self.adapter.deliverVictoryBundle(offer, self.rewardRecipients.members)
+        SoloRun.markAutomaticDelivered(self.run)
+        local selected, targetLevel = SoloRun.claimReward(self.run, offer.choices[1].id)
+        for _, offered in ipairs(offer.choices) do
+            table.insert(self.recentOfferItemIds, offered.id)
+        end
+        self.adapter.awardPartyToLevel(self.rewardRecipients.members, targetLevel)
+        self.menu = nil
+        self.output(string.format(
+            "AI arena victory. Delivered %d loot rolls and all %d rare candidates across the party; full-rest resources restored. Complete native level-ups to L%d for the next bout.",
+            delivered.treasureRolls or 0,
+            delivered.rareItems or 0,
+            targetLevel
+        ))
+        for _, member in ipairs(self.rewardRecipients.members) do
+            self.adapter.notify(member.guid, string.format(
+                "Victory! Party fully rested; loot delivered. Finish leveling to %d for the next bout.",
+                targetLevel
+            ))
+        end
+        return selected
     elseif result == "loss" then
-        self.output("AI arena run defeated. Opening the retry menu in staging.")
-        self:_openMenu("defeat", active.teams.left.members)
+        SoloRun.retryDefeat(self.run)
+        self.output("Arena defeat. Party fully rested; the same bout will restart automatically in staging.")
     else
-        self.output("AI arena draw. Opening the replay menu in staging.")
-        self:_openMenu("draw", active.teams.left.members)
+        self.output("Arena draw. Party fully rested; the same bout will restart automatically in staging.")
     end
+    local generation = self.generation
+    for _, member in ipairs(active.teams.left.members) do
+        self.adapter.notify(member.guid, "Arena rematch begins in 5 seconds.")
+    end
+    self.adapter.schedule(5000, function()
+        if self.generation ~= generation or self.active or not self.run or self.run.phase ~= "seeking_opponent" then
+            return
+        end
+        local ok, err = pcall(function()
+            self:_startBout(self:_party())
+        end)
+        if not ok then
+            self.output("ERROR restarting arena bout: " .. tostring(err))
+        end
+    end)
 end
 
 function SoloArena:pick(choiceIndex, recipientIndex)
@@ -644,9 +717,11 @@ function SoloArena:autoAdvance()
         if party.level == 1 then
             self:bootstrapParty()
             return "bootstrapped"
-        elseif party.level == 5 then
+        elseif party.level == 3 or party.level == 5 or party.level == 8 or party.level == 10 then
             self:start()
             return "started"
+        elseif party.level == 12 then
+            return "completed"
         end
         return "waiting"
     end
@@ -676,6 +751,7 @@ function SoloArena:reset()
     if self.active then
         self:abort("run-reset")
     end
+    self.generation = self.generation + 1
     self.run = nil
     self.bootstrapState = nil
     self.rewardRecipients = nil

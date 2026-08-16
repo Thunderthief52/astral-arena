@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.2-alpha.5 — 2026-08-15
+
+- Replaced the unreliable post-bout prompt dependency with a continuous controller-safe flow: victory loot and progression resolve automatically, while defeats and draws fully restore the party and replay the tier after five seconds.
+- Made arena defeat visibly nonlethal with BG3's knocked-out state, removed defeated actors from combat, and protected them from continued AI attacks.
+- Added a true between-round party restore for spell slots and class resources in addition to healing and cooldown reset.
+- Increased victory loot to four level-scaled treasure rolls per player and distributed all six deterministic rare candidates round-robin across the party for this playable-alpha test.
+- Added a three-enemy level-3 initiation bout before the existing 5 → 8 → 10 → 12 tournament, while allowing saves already at levels 5, 8, or 10 to resume at their current tier.
+- Added 30 oversized shipped-asset perimeter arches, increasing the visual pass to 96 scenery objects and eight accent lights.
+
 ## 0.3.2-alpha.4 — 2026-08-15
 
 - Added native, controller-safe post-bout prompts for defeat retries and draw replays.

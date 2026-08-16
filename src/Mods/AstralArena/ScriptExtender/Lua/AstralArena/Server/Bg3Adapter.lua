@@ -2,6 +2,7 @@ local Adapter = {}
 
 local ENEMY_FACTION = "64321d50-d516-b1b2-cfac-2eb773de1ff6"
 local TOTAL_EXPERIENCE = {
+    [3] = 900,
     [5] = 6500,
     [8] = 34000,
     [10] = 64000,
@@ -116,6 +117,12 @@ function Adapter.returnPartyToStaging(members)
 end
 
 function Adapter.prepareCharacter(guid)
+    safely(function()
+        Osi.RemoveStatus(guid, "KNOCKED_OUT", guid)
+    end)
+    safely(function()
+        Osi.RemoveStatus(guid, "INVULNERABLE_NOT_SHOWN", guid)
+    end)
     Osi.SetCanFight(guid, 1)
     Osi.SetCanJoinCombat(guid, 1)
     Osi.SetImmortal(guid, 1)
@@ -143,8 +150,20 @@ function Adapter.isAlive(guid)
 end
 
 function Adapter.markDefeated(guid)
+    -- Arena combat is nonlethal. The knockout status supplies the proper prone
+    -- pose and AI state, while the combat flags and hidden invulnerability keep
+    -- enemies from farming a defeated avatar at one hit point.
+    safely(function()
+        Osi.ApplyStatus(guid, "INVULNERABLE_NOT_SHOWN", -1.0, 1, guid)
+    end)
+    safely(function()
+        Osi.ApplyStatus(guid, "KNOCKED_OUT", -1.0, 1, guid)
+    end)
     safely(function()
         Osi.SetCanFight(guid, 0)
+    end)
+    safely(function()
+        Osi.SetCanJoinCombat(guid, 0)
     end)
     safely(function()
         Osi.LeaveCombat(guid)
@@ -160,6 +179,15 @@ function Adapter.restoreCharacter(member, opposingFactions)
             Osi.ClearIndividualRelation(member.guid, faction)
         end)
     end
+    safely(function()
+        Osi.RemoveStatus(member.guid, "KNOCKED_OUT", member.guid)
+    end)
+    safely(function()
+        Osi.RemoveStatus(member.guid, "FORCE_KNOCKED_OUT_TEMPORARILY", member.guid)
+    end)
+    safely(function()
+        Osi.RemoveStatus(member.guid, "INVULNERABLE_NOT_SHOWN", member.guid)
+    end)
     safely(function()
         Osi.SetCanFight(member.guid, 1)
     end)
@@ -183,6 +211,25 @@ function Adapter.restoreCharacter(member, opposingFactions)
     safely(function()
         Osi.PROC_CharacterFullRestore(member.guid)
     end)
+end
+
+function Adapter.fullRestParty(members)
+    if type(members) ~= "table" or not members[1] then
+        return
+    end
+    -- RestoreParty refreshes long-rest resources that ResetCooldowns and a
+    -- simple heal do not cover (spell slots, class resources, and similar).
+    safely(function()
+        Osi.RestoreParty(members[1].guid)
+    end)
+    for _, member in ipairs(members) do
+        safely(function()
+            Osi.PROC_CharacterFullRestore(member.guid)
+        end)
+        safely(function()
+            Osi.ResetCooldowns(member.guid)
+        end)
+    end
 end
 
 function Adapter.schedule(delayMilliseconds, callback)
@@ -331,6 +378,47 @@ function Adapter.deliverAutomaticReward(offer, recipientGuid)
     for _ = 1, automatic.rolls do
         Osi.GenerateTreasure(recipientGuid, automatic.treasureTableId, offer.level, recipientGuid)
     end
+end
+
+function Adapter.deliverVictoryBundle(offer, members)
+    if type(members) ~= "table" or not members[1] then
+        error("victory loot requires a player party", 2)
+    end
+
+    local delivered = { treasureRolls = 0, rareItems = 0 }
+    local automatic = offer.automatic or {}
+    local treasureTableId = automatic.treasureTableId
+    if treasureTableId and treasureTableId ~= "" then
+        -- Four rolls per avatar makes the between-round resupply substantial,
+        -- and delivering per avatar avoids split-screen inventory ownership bugs.
+        for _, member in ipairs(members) do
+            for _ = 1, math.max(4, tonumber(automatic.rolls) or 0) do
+                local ok = pcall(function()
+                    Osi.GenerateTreasure(member.guid, treasureTableId, offer.level, member.guid)
+                end)
+                if ok then
+                    delivered.treasureRolls = delivered.treasureRolls + 1
+                end
+            end
+        end
+    end
+
+    -- The native prompt proved unreliable in controller/split-screen play. For
+    -- this playable alpha, distribute the complete six-item shortlist round-robin
+    -- so players can compare and trade the candidates without blocking the run.
+    for index, choice in ipairs(offer.choices or {}) do
+        local recipient = members[((index - 1) % #members) + 1]
+        local valid = Adapter.validateItemTemplate(choice.templateId)
+        if valid then
+            local ok = pcall(function()
+                Osi.TemplateAddTo(choice.templateId, recipient.guid, 1, 1)
+            end)
+            if ok then
+                delivered.rareItems = delivered.rareItems + 1
+            end
+        end
+    end
+    return delivered
 end
 
 function Adapter.deliverItem(templateId, recipientGuid)

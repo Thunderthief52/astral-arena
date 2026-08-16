@@ -15,7 +15,7 @@ _G.Ext = previousExt
 
 local function fakeAdapter()
     local adapter = {
-        alive = {}, queue = {}, restored = {}, deleted = {}, delivered = {}, experienceTargets = {}, layouts = {}, sites = {}, stagingReturns = 0, menus = {},
+        alive = {}, queue = {}, restored = {}, deleted = {}, delivered = {}, experienceTargets = {}, layouts = {}, sites = {}, stagingReturns = 0, fullRests = 0, menus = {},
     }
     function adapter.partyMembers()
         return {
@@ -41,6 +41,7 @@ local function fakeAdapter()
     function adapter.prepareCharacter() end
     function adapter.prepareArenaSite(_, site) table.insert(adapter.sites, site) end
     function adapter.returnPartyToStaging() adapter.stagingReturns = adapter.stagingReturns + 1 end
+    function adapter.fullRestParty() adapter.fullRests = adapter.fullRests + 1 end
     function adapter.makeHostile() end
     function adapter.enterCombat() end
     function adapter.isAlive(guid) return adapter.alive[guid] end
@@ -55,6 +56,10 @@ local function fakeAdapter()
     end
     function adapter.deliverAutomaticReward(_, recipient) table.insert(adapter.delivered, "auto:" .. recipient) end
     function adapter.deliverItem(_, recipient) table.insert(adapter.delivered, "item:" .. recipient) end
+    function adapter.deliverVictoryBundle(_, members)
+        table.insert(adapter.delivered, "bundle:" .. tostring(#members))
+        return { treasureRolls = #members * 4, rareItems = 6 }
+    end
     function adapter.awardPartyToLevel(_, target)
         table.insert(adapter.experienceTargets, target)
         return 1
@@ -66,14 +71,14 @@ local function arena(adapter)
     return SoloArena.new(adapter, function() end, Fixtures, Catalog, Layouts, Sites)
 end
 
-H.test("AI bootstrap awards level-five XP while preserving native choices", function()
+H.test("AI bootstrap awards level-three XP while preserving native choices", function()
     local adapter = fakeAdapter()
     adapter.partyLevel = 1
     local subject = arena(adapter)
     subject:bootstrapParty()
-    H.equal(adapter.experienceTargets[1], 5)
+    H.equal(adapter.experienceTargets[1], 3)
     H.equal(subject.bootstrapState.phase, "awaiting_level_up")
-    adapter.partyLevel = 5
+    adapter.partyLevel = 3
     subject:start({ countdownSeconds = 0 })
     H.equal(subject.bootstrapState.phase, "completed")
 end)
@@ -105,7 +110,7 @@ H.test("AI arena returns the party to staging when fixture setup fails", functio
     H.equal(subject.run.phase, "seeking_opponent")
 end)
 
-H.test("AI victory deletes enemies and opens the six-choice reward", function()
+H.test("AI victory restores the party, delivers loot, and advances without a prompt", function()
     local adapter = fakeAdapter()
     local subject = arena(adapter)
     subject:start({ countdownSeconds = 0 })
@@ -114,79 +119,28 @@ H.test("AI victory deletes enemies and opens the six-choice reward", function()
     H.equal(subject.active, nil)
     H.equal(#adapter.deleted, 4)
     H.equal(adapter.stagingReturns, 1)
-    H.equal(subject.run.phase, "awaiting_reward")
-    H.equal(#subject.run.pendingReward.offer.choices, 6)
-    H.equal(subject.menu.kind, "reward")
-    H.equal(#adapter.menus, 1)
+    H.equal(adapter.fullRests, 1)
+    H.equal(adapter.delivered[1], "bundle:2")
+    H.equal(adapter.experienceTargets[1], 8)
+    H.equal(subject.run.phase, "awaiting_level_up")
+    H.equal(subject.menu, nil)
+    H.equal(#adapter.menus, 0)
 end)
 
-H.test("defeat menu retries the same bout without console commands", function()
+H.test("defeat fully restores and schedules the same bout automatically", function()
     local adapter = fakeAdapter()
     local subject = arena(adapter)
     subject:start({ countdownSeconds = 0 })
     adapter.alive["player-a"] = false
     adapter.alive["player-b"] = false
     table.remove(adapter.queue, 1)()
-    H.equal(subject.run.completion, "defeated")
-    H.equal(subject.menu.kind, "defeat")
-    local prompt = adapter.menus[#adapter.menus]
-    H.truthy(subject:handleMenuResponse(prompt.guid, prompt.key, 1))
+    H.equal(subject.run.phase, "seeking_opponent")
+    H.equal(adapter.fullRests, 1)
+    H.equal(#adapter.menus, 0)
+    table.remove(adapter.queue, 1)()
     H.equal(subject.run.phase, "ready")
     H.equal(subject.run.level, 5)
     H.equal(subject.active.match.level, 5)
-end)
-
-H.test("declining a defeat retry keeps a recoverable menu in staging", function()
-    local adapter = fakeAdapter()
-    local subject = arena(adapter)
-    subject:start({ countdownSeconds = 0 })
-    adapter.alive["player-a"] = false
-    adapter.alive["player-b"] = false
-    table.remove(adapter.queue, 1)()
-    local prompt = adapter.menus[#adapter.menus]
-    H.truthy(subject:handleMenuResponse(prompt.guid, prompt.key, 0))
-    H.equal(subject.active, nil)
-    H.equal(subject.menu.kind, "defeat")
-    H.truthy(subject:reopenMenu())
-    H.equal(#adapter.menus, 2)
-end)
-
-H.test("reward menu cycles items and recipients then advances progression", function()
-    local adapter = fakeAdapter()
-    local subject = arena(adapter)
-    subject:start({ countdownSeconds = 0 })
-    for index = 1, 4 do adapter.alive["enemy-" .. index] = false end
-    table.remove(adapter.queue, 1)()
-
-    local rewardPrompt = adapter.menus[#adapter.menus]
-    H.truthy(subject:handleMenuResponse(rewardPrompt.guid, rewardPrompt.key, 0))
-    H.equal(subject.menu.choiceIndex, 2)
-    rewardPrompt = adapter.menus[#adapter.menus]
-    H.truthy(subject:handleMenuResponse(rewardPrompt.guid, rewardPrompt.key, 1))
-    H.equal(subject.menu.kind, "recipient")
-
-    local recipientPrompt = adapter.menus[#adapter.menus]
-    H.truthy(subject:handleMenuResponse(recipientPrompt.guid, recipientPrompt.key, 0))
-    H.equal(subject.menu.recipientIndex, 2)
-    recipientPrompt = adapter.menus[#adapter.menus]
-    H.truthy(subject:handleMenuResponse(recipientPrompt.guid, recipientPrompt.key, 1))
-    H.equal(adapter.delivered[1], "auto:player-b")
-    H.equal(adapter.delivered[2], "item:player-b")
-    H.equal(subject.run.phase, "awaiting_level_up")
-    H.equal(subject.menu, nil)
-end)
-
-H.test("reward selection delivers automatic loot and one item then awards level-eight XP", function()
-    local adapter = fakeAdapter()
-    local subject = arena(adapter)
-    subject:start({ countdownSeconds = 0 })
-    for index = 1, 4 do adapter.alive["enemy-" .. index] = false end
-    table.remove(adapter.queue, 1)()
-    subject:pick(2, 2)
-    H.equal(adapter.delivered[1], "auto:player-b")
-    H.equal(adapter.delivered[2], "item:player-b")
-    H.equal(adapter.experienceTargets[1], 8)
-    H.equal(subject.run.phase, "awaiting_level_up")
 end)
 
 H.test("continue refuses until every party member reaches the expected level", function()
@@ -195,7 +149,6 @@ H.test("continue refuses until every party member reaches the expected level", f
     subject:start({ countdownSeconds = 0 })
     for index = 1, 4 do adapter.alive["enemy-" .. index] = false end
     table.remove(adapter.queue, 1)()
-    subject:pick(1, 1)
     H.raises(function() subject:continue() end, "level 8")
     adapter.partyLevel = 8
     local match = subject:continue()
@@ -214,12 +167,12 @@ H.test("AI arena abort restores players and deletes temporary enemies", function
     H.equal(subject.run.phase, "seeking_opponent")
 end)
 
-H.test("automatic onboarding bootstraps a fresh party without console commands", function()
+H.test("automatic onboarding bootstraps a fresh party to level three without console commands", function()
     local adapter = fakeAdapter()
     adapter.partyLevel = 1
     local subject = arena(adapter)
     H.equal(subject:autoAdvance(), "bootstrapped")
-    H.equal(adapter.experienceTargets[1], 5)
+    H.equal(adapter.experienceTargets[1], 3)
     H.equal(subject.bootstrapState.phase, "awaiting_level_up")
 end)
 
@@ -233,18 +186,41 @@ H.test("automatic onboarding never mutates a party outside AA_Arena_Main", funct
     H.equal(subject.bootstrapState, nil)
 end)
 
-H.test("automatic onboarding validates and starts when every player reaches level five", function()
+H.test("automatic onboarding validates and starts when every player reaches level three", function()
     local adapter = fakeAdapter()
     adapter.partyLevel = 1
     local subject = arena(adapter)
     subject:autoAdvance()
-    adapter.partyLevel = 5
+    adapter.partyLevel = 3
     H.equal(subject:autoAdvance(), "started")
     H.equal(subject.bootstrapState.phase, "completed")
-    H.equal(subject.active.match.level, 5)
+    H.equal(subject.active.match.level, 3)
+    H.equal(#subject.active.teams.right.members, 3)
 end)
 
 H.test("automatic onboarding repairs a split-screen avatar missed by the XP award", function()
+    local adapter = fakeAdapter()
+    adapter.partyLevels = { 3, 1 }
+    local subject = arena(adapter)
+    H.equal(subject:autoAdvance(), "repairing")
+    H.equal(adapter.experienceTargets[1], 3)
+    adapter.partyLevels = { 3, 3 }
+    H.equal(subject:autoAdvance(), "started")
+    H.equal(subject.active.match.level, 3)
+end)
+
+H.test("automatic progression starts the next bout after reward level-up", function()
+    local adapter = fakeAdapter()
+    local subject = arena(adapter)
+    subject:start({ countdownSeconds = 0 })
+    for index = 1, 4 do adapter.alive["enemy-" .. index] = false end
+    table.remove(adapter.queue, 1)()
+    adapter.partyLevel = 8
+    H.equal(subject:autoAdvance(), "started")
+    H.equal(subject.active.match.level, 8)
+end)
+
+H.test("save recovery infers the current tier for a mixed level-five party", function()
     local adapter = fakeAdapter()
     adapter.partyLevels = { 5, 1 }
     local subject = arena(adapter)
@@ -255,16 +231,13 @@ H.test("automatic onboarding repairs a split-screen avatar missed by the XP awar
     H.equal(subject.active.match.level, 5)
 end)
 
-H.test("automatic progression starts the next bout after reward level-up", function()
+H.test("automatic recovery resumes an existing level-eight arena save", function()
     local adapter = fakeAdapter()
-    local subject = arena(adapter)
-    subject:start({ countdownSeconds = 0 })
-    for index = 1, 4 do adapter.alive["enemy-" .. index] = false end
-    table.remove(adapter.queue, 1)()
-    subject:pick(1, 1)
     adapter.partyLevel = 8
+    local subject = arena(adapter)
     H.equal(subject:autoAdvance(), "started")
     H.equal(subject.active.match.level, 8)
+    H.equal(adapter.sites[1].id, "crescent-ruin")
 end)
 
 H.test("manual bootstrap also rejects a party outside AA_Arena_Main", function()

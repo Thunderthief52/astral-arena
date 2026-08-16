@@ -2,12 +2,12 @@
 
 ## Build under test
 
-- Version: `0.3.2-alpha.4`
+- Version: `0.3.2-alpha.5`
 - Adventure UUID: `29c48c80-8777-f7b5-6bb8-376c1c5d8db6`
 - Character flow: BG3 system character creator → `AA_Arena_Main`
-- PAK: `dist\AstralArena-0.3.2-alpha.4.pak`
+- PAK: `dist\AstralArena-0.3.2-alpha.5.pak`
 
-This candidate adds native, controller-safe post-bout menus for defeat retries, draw replays, and victory reward/recipient selection. It retains split-screen XP repair, the safe fresh New Game handoff, and the shipped-asset visual pass.
+This candidate makes the AI tournament continuous without post-bout menus. It adds visible knockouts, full between-round recovery, automatic generous loot, automatic defeat replays, a level-3 initiation, current-tier save recovery, and a large ruin-arch perimeter.
 
 ## Install
 
@@ -17,7 +17,7 @@ This candidate adds native, controller-safe post-bout menus for defeat retries, 
 
    ```powershell
    Set-ExecutionPolicy -Scope Process Bypass
-   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.2-alpha.4.pak"
+   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.2-alpha.5.pak"
    ```
 
 4. Confirm this file exists:
@@ -32,7 +32,7 @@ This candidate adds native, controller-safe post-bout menus for defeat retries, 
 
 ## Discard placeholder-party saves
 
-Do not continue a save containing four naked, classless, immobile characters at one HP. Those entities are BG3's temporary system character-creation placeholders, not recoverable player builds. Delete or ignore that playtest save and begin a fresh New Game with `0.3.2-alpha.4` enabled. A save containing your real custom split-screen characters at mixed levels is recoverable: install this build, reload it, and finish the newly offered level-ups on the lower character.
+Do not continue a save containing four naked, classless, immobile characters at one HP. Those entities are BG3's temporary system character-creation placeholders, not recoverable player builds. Delete or ignore that playtest save and begin a fresh New Game with `0.3.2-alpha.5` enabled. Saves containing real custom arena characters at levels 5, 8, or 10 can resume at their current tier; mixed-level split-screen parties receive missing XP repair.
 
 ## Start a clean Adventure
 
@@ -40,40 +40,39 @@ Do not continue a save containing four naked, classless, immobile characters at 
 2. Create one character for solo, join the ordinary online lobby before finalizing characters for co-op, or connect the second controller before completing split-screen character creation.
 3. Finish the supported BG3 system character creator normally. This system scene is expected; it is not a campaign location. Do not use Honour Mode for this alpha.
 4. Confirm the finished custom party transfers into `AA_Arena_Main`, not a Nautiloid or Act 1 campaign location. A naked character-creation dummy must not remain active.
-5. Make a named manual save such as `AA 0.3.2-alpha.4 BEFORE AUTO START`.
-6. After character creation completes, confirm Astral Arena automatically awards the vanilla level-5 XP threshold and displays a notification. No console command is required.
-7. Complete every ordinary BG3 level-up through level 5. In co-op or split-screen, both players should receive XP and each player completes their own choices.
-8. Confirm the runtime silently validates the party, enemy fixtures, and reward catalog, then moves the whole party to Astral Flats and begins the three-second countdown.
+5. Make a named manual save such as `AA 0.3.2-alpha.5 BEFORE AUTO START`.
+6. Confirm Astral Arena automatically awards the vanilla level-3 XP threshold and displays a notification. No console command is required.
+7. Complete every ordinary BG3 level-up through level 3. In co-op or split-screen, both players should receive XP and complete their own choices.
+8. Confirm the party moves to Astral Flats and begins the three-second countdown against three Astral Initiates.
 
 If automatic onboarding pauses, `!aa_ai_status` and `!aa_ai_doctor` remain available as diagnostics. `!aa_ai_bootstrap`, `!aa_ai_start`, and `!aa_ai_continue` are recovery commands, not normal play steps.
 
-## Verify the three bouts
+## Verify the four bouts
 
 | Bout | Party level | Expected site | Opponent | Reward target |
 | --- | ---: | --- | --- | ---: |
-| 1 | 5 | Astral Flats | Astral Vanguard | 8 |
-| 2 | 8 | Crescent Ruin | Astral Bastion | 10 |
-| 3 | 10 | Echelon Steps | Astral Judicators | 12 |
+| 1 | 3 | Astral Flats | Astral Initiates (3 enemies) | 5 |
+| 2 | 5 | Astral Flats | Astral Vanguard | 8 |
+| 3 | 8 | Crescent Ruin | Astral Bastion | 10 |
+| 4 | 10 | Echelon Steps | Astral Judicators | 12 |
 
 For each bout:
 
 1. Confirm the party moves together from staging to the named site during setup and every character stands on solid terrain.
 2. Confirm the site's surrounding arches, pillars, rocks, rubble, vegetation, or steps render normally instead of as missing or black placeholder geometry.
-3. Confirm four temporary enemies appear ahead of the party on valid ground and the three-second countdown completes.
-4. Fight normally. Defeated characters should stop at one HP.
-5. After victory, confirm temporary enemies disappear and every player returns to staging with health/resources restored.
-6. Use the host's Yes/No prompt to cycle through the six rare candidates. Choose Yes on the desired item.
-7. Cycle through party recipients the same way, then choose Yes for the intended character.
-8. Confirm the recipient receives the chosen item plus the automatic `RewardMedium` bundle.
-9. Complete native level-ups to the next target; the next bout starts automatically when every player is ready.
+3. Confirm the expected temporary enemies appear ahead of the party on valid ground and the three-second countdown completes.
+4. Fight normally. At one HP, defeated characters should fall into a knocked-out pose, leave initiative, and stop being attacked.
+5. After victory, confirm temporary enemies disappear and every player returns to staging with long-rest resources restored.
+6. Check every party inventory. Each player should receive four level-scaled loot rolls, and the six rare candidates should be distributed round-robin across the party.
+7. Complete native level-ups to the next target; the next bout starts automatically when every player is ready.
 
-After a defeat, confirm the host receives a retry prompt and choosing Yes immediately rebuilds the same-level bout. Choosing No leaves the restored party safely in staging; `!aa_ai_menu` can reopen that dismissed prompt as a recovery measure.
+After a defeat or draw, confirm the party returns to staging, fully restores, and the same tier rebuilds automatically after five seconds without a prompt.
 
-After the third reward, finish leveling to 12. The runtime automatically completes the run; expected console output is `Astral Arena champion complete at level 12.`
+After the fourth reward, finish leveling to 12. The runtime automatically completes the run; expected console output is `Astral Arena champion complete at level 12.`
 
 ## Mode-specific checks
 
-- **Solo:** one player-created avatar can complete automatic onboarding and all three bouts.
+- **Solo:** one player-created avatar can complete automatic onboarding and all four bouts.
 - **Ordinary co-op:** every connected player's avatar moves to each site, remains controllable by its owner, receives party XP, and can be selected as a reward recipient.
 - **Split-screen:** both local avatars move together, remain controllable by their controllers, and return to staging after cleanup. Test with one avatar per controller before adding companions.
 - **Party size:** test one character first, then two to four. The runtime rejects more than four active party members.

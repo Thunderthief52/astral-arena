@@ -114,7 +114,7 @@ local function scheduleAutomaticProgression(generation)
         elseif action == "completed" then
             return
         elseif action == "bootstrapped" then
-            printLine("Automatic onboarding is waiting for every player to finish level-up choices through level 5.")
+            printLine("Automatic onboarding is waiting for every player to finish level-up choices through level 3.")
         elseif action == "started" then
             printLine("Automatic progression started the next Astral Arena bout.")
         end

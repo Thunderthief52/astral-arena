@@ -45,16 +45,16 @@ Exit criteria:
 
 Goal: make matches repeatable enough to evaluate builds rather than setup accidents.
 
-The `0.3.2-alpha.4` candidate combines the existing level-5, level-8, and level-10 AI fixtures, deterministic rewards, split-screen-safe native XP progression, controller-safe result/reward prompts, a completion-gated system-character-creation transfer, automatic level-1 onboarding, and the first Toolkit-authored Adventure level with a shipped-asset visual pass.
+The `0.3.2-alpha.5` candidate adds a level-3 initiation to the existing level-5, level-8, and level-10 fixtures; visible knockout handling; full between-round restoration; automatic abundant rewards and progression; current-tier save recovery; and a perimeter wall pass.
 
-`AA_Arena_Main` now starts independently of vanilla campaign locations and provides a decorated staging area plus Astral Flats, Crescent Ruin, and Echelon Steps. The runtime moves the cooperative party between these sites and returns it through common cleanup. The first visual pass adds 66 shipped-asset objects and eight accent lights; Toolkit Game Mode inspection also moved Echelon inward from the eastern terrain edge. This playable foundation must pass new-game, solo, ordinary co-op, and split-screen engine playtests before the map expands.
+`AA_Arena_Main` starts independently of vanilla campaign locations and provides a decorated staging area plus Astral Flats, Crescent Ruin, and Echelon Steps. The current pass has 96 shipped-asset objects and eight accent lights, including 30 oversized ruin arches around the active footprint. This playable foundation must pass new-game, solo, ordinary co-op, and split-screen engine playtests before the map expands.
 
 Planned work:
 
 - regenerate and validate AI-grid navigation around the first tactical props, then complete named anchors, spectator boundaries, camera bounds, final lighting, and minimap data for the first three sites;
 - add and validate the remaining nine combat sites;
-- replace the chained Yes/No reward prompts with a graphical item grid and tooltips;
-- standardized resource restore and equipment-budget validation;
+- replace the generous all-six fallback with a graphical one-of-six item grid and tooltips;
+- validate the new standardized full restore across every class resource and add equipment-budget enforcement;
 - no-surprise start and deterministic initiative policy experiments;
 - configurable preparation time and hard-control guardrails;
 - expand each existing level-5, level-8, and level-10 fixture into a seedable opponent pool;

@@ -10,6 +10,13 @@ H.test("arena defines a safe staging area and three combat sites", function()
     H.equal(sites[3].id, "echelon-steps")
 end)
 
+H.test("arena maps the level-three initiation and tournament tiers to intended sites", function()
+    H.equal(Sites.forLevel(3).id, "astral-flats")
+    H.equal(Sites.forLevel(5).id, "astral-flats")
+    H.equal(Sites.forLevel(8).id, "crescent-ruin")
+    H.equal(Sites.forLevel(10).id, "echelon-steps")
+end)
+
 H.test("arena site progression is deterministic and wraps", function()
     H.equal(Sites.forBout(1).id, "astral-flats")
     H.equal(Sites.forBout(2).id, "crescent-ruin")
