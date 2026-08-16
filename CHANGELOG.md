@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.2-alpha.4 — 2026-08-15
+
+- Added native, controller-safe post-bout prompts for defeat retries and draw replays.
+- Added a no-console victory flow that cycles through six deterministic reward candidates and every party recipient.
+- Added packaged English fallback localization plus runtime item and recipient names for the arena prompts.
+- Added defeat-retry state recovery and regression coverage for retry, dismiss/reopen, reward cycling, and recipient selection.
+
 ## 0.3.2-alpha.3 — 2026-08-15
 
 - Fixed local split-screen onboarding awarding level-5 XP to only one independently owned avatar.

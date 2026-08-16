@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$Version = "0.3.2-alpha.3",
+    [string]$Version = "0.3.2-alpha.4",
     [string]$Bg3DataPath,
     [string]$DivinePath
 )
@@ -17,6 +17,8 @@ $SourceModule = Join-Path $RepositoryRoot "toolkit\Data\Mods\$ModuleFolder"
 $StageMods = Join-Path $BuildRoot "Mods"
 $StageModule = Join-Path $StageMods $ModuleFolder
 $PakPath = Join-Path $RepositoryRoot "dist\AstralArena-$Version.pak"
+$LocalizationSource = Join-Path $RepositoryRoot "src\Localization\English\AstralArena_English.xml"
+$StageLocalization = Join-Path $BuildRoot "Localization\English\AstralArena_English.loca"
 
 if (-not $DivinePath) {
     $DivinePath = Join-Path (Split-Path -Parent $RepositoryRoot) "tools\ExportTool-v1.19.5\Packed\Tools\Divine.exe"
@@ -51,6 +53,15 @@ $StageScriptExtender = Join-Path $StageModule "ScriptExtender"
 New-Item -ItemType Directory -Force -Path $StageScriptExtender | Out-Null
 Copy-Item -Path (Join-Path $RepositoryRoot "src\Mods\AstralArena\ScriptExtender\*") -Destination $StageScriptExtender -Recurse -Force
 
+if (-not (Test-Path -LiteralPath $LocalizationSource -PathType Leaf)) {
+    throw "English arena menu localization source is missing: $LocalizationSource"
+}
+New-Item -ItemType Directory -Force -Path (Split-Path -Parent $StageLocalization) | Out-Null
+& $DivinePath -g bg3 -a convert-loca -s $LocalizationSource -d $StageLocalization
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $StageLocalization -PathType Leaf)) {
+    throw "Divine failed to compile the arena menu localization."
+}
+
 $InstalledModule = Join-Path $Bg3DataPath "Mods\$ModuleFolder"
 foreach ($RelativePath in @("GUI\metadata.lsf", "mod_publish_logo.png")) {
     $Source = Join-Path $InstalledModule $RelativePath
@@ -79,7 +90,8 @@ foreach ($RequiredEntry in @(
     "Mods/$ModuleFolder/meta.lsx",
     "Mods/$ModuleFolder/Levels/AA_Arena_Main/meta.lsf",
     "Mods/$ModuleFolder/ScriptExtender/Lua/AstralArena/Server/Controller.lua",
-    "Mods/$ModuleFolder/ScriptExtender/Lua/AstralArena/Server/Bg3Adapter.lua"
+    "Mods/$ModuleFolder/ScriptExtender/Lua/AstralArena/Server/Bg3Adapter.lua",
+    "Localization/English/AstralArena_English.loca"
 )) {
     if (-not ($Listing | Where-Object { $_ -like "$RequiredEntry`t*" })) {
         throw "Created PAK is missing required entry: $RequiredEntry"

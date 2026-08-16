@@ -73,3 +73,39 @@ H.test("party XP award does not multiply ordinary party-wide experience", functi
         H.equal(awarded, 1)
     end)
 end)
+
+H.test("arena menu targets the host avatar when it is in the party", function()
+    local previousOsi = _G.Osi
+    _G.Osi = { GetHostCharacter = function() return "player-b" end }
+    local owner = Adapter.menuOwner(members)
+    _G.Osi = previousOsi
+    H.equal(owner, "player-b")
+end)
+
+H.test("arena menu opens a native localized yes-no prompt", function()
+    local previousExt = _G.Ext
+    local previousOsi = _G.Osi
+    local updated
+    local opened
+    _G.Ext = {
+        Loca = {
+            UpdateTranslatedString = function(key, message)
+                updated = { key, message }
+                return true
+            end,
+        },
+        Utils = { PrintWarning = function() end },
+    }
+    _G.Osi = {
+        OpenMessageBoxYesNo = function(guid, key)
+            opened = { guid, key }
+        end,
+    }
+    Adapter.openYesNo("player-a", "hmenu", "Retry?")
+    _G.Ext = previousExt
+    _G.Osi = previousOsi
+    H.equal(updated[1], "hmenu")
+    H.equal(updated[2], "Retry?")
+    H.equal(opened[1], "player-a")
+    H.equal(opened[2], "hmenu")
+end)

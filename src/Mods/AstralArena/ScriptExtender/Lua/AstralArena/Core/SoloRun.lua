@@ -130,6 +130,17 @@ function SoloRun.recordResult(run, result)
     return bout
 end
 
+function SoloRun.retryDefeat(run)
+    if run.phase ~= "completed" or run.completion ~= "defeated" then
+        error("solo run is not waiting for a defeat retry", 2)
+    end
+    run.phase = "seeking_opponent"
+    run.completion = nil
+    run.opponent = nil
+    run.pendingReward = nil
+    return run.phase
+end
+
 function SoloRun.createRewardOffer(run, catalog, options)
     assertPhase(run, "awaiting_reward")
     options = options or {}

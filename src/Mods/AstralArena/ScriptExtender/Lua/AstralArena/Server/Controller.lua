@@ -221,6 +221,12 @@ function Controller.Register()
         end
     end)
 
+    Ext.Osiris.RegisterListener("MessageBoxYesNoClosed", 3, "after", function(character, messageKey, result)
+        safely(function()
+            soloArena:handleMenuResponse(character, messageKey, result)
+        end)
+    end)
+
     Ext.RegisterConsoleCommand("aa_demo", function()
         safely(Controller.API.CreateDemo)
     end)
@@ -260,6 +266,7 @@ function Controller.Register()
         printLine("  !aa_ai_doctor               validate party, AI templates, and reward templates")
         printLine("  !aa_ai_start                start the L5 -> L8 -> L10 -> L12 AI run")
         printLine("  !aa_ai_pick <1-6> <member>  deliver two random rolls and one selected item")
+        printLine("  !aa_ai_menu                 reopen a dismissed arena decision prompt")
         printLine("  !aa_ai_continue             continue after every character finishes level-up")
         printLine("  !aa_ai_status               show run, reward, or level-up state")
         printLine("  !aa_ai_abort                restore players and delete active AI enemies")
@@ -364,6 +371,12 @@ function Controller.Register()
                 error("usage: !aa_ai_pick <choice 1-6> <recipient number>")
             end
             soloArena:pick(choiceIndex, recipientIndex)
+        end)
+    end)
+
+    Ext.RegisterConsoleCommand("aa_ai_menu", function()
+        safely(function()
+            soloArena:reopenMenu()
         end)
     end)
 

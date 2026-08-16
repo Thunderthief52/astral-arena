@@ -195,6 +195,32 @@ function Adapter.notify(guid, message)
     end)
 end
 
+function Adapter.menuOwner(members)
+    local host = safely(function()
+        return Osi.GetHostCharacter()
+    end)
+    if host and host ~= "" then
+        for _, member in ipairs(members or {}) do
+            if member.guid == host then
+                return host
+            end
+        end
+    end
+    return members and members[1] and members[1].guid or nil
+end
+
+function Adapter.openYesNo(guid, messageKey, message)
+    if not guid or guid == "" then
+        error("arena menu requires a player character", 2)
+    end
+    if Ext.Loca and Ext.Loca.UpdateTranslatedString then
+        safely(function()
+            Ext.Loca.UpdateTranslatedString(messageKey, message)
+        end)
+    end
+    Osi.OpenMessageBoxYesNo(guid, messageKey)
+end
+
 function Adapter.validateCharacterTemplate(templateId)
     local template = Ext.Template.GetRootTemplate(templateId)
     if not template then

@@ -15,7 +15,7 @@ _G.Ext = previousExt
 
 local function fakeAdapter()
     local adapter = {
-        alive = {}, queue = {}, restored = {}, deleted = {}, delivered = {}, experienceTargets = {}, layouts = {}, sites = {}, stagingReturns = 0,
+        alive = {}, queue = {}, restored = {}, deleted = {}, delivered = {}, experienceTargets = {}, layouts = {}, sites = {}, stagingReturns = 0, menus = {},
     }
     function adapter.partyMembers()
         return {
@@ -49,6 +49,10 @@ local function fakeAdapter()
     function adapter.deleteTemporary(member) table.insert(adapter.deleted, member.guid) end
     function adapter.schedule(_, callback) table.insert(adapter.queue, callback) end
     function adapter.notify() end
+    function adapter.menuOwner() return "player-a" end
+    function adapter.openYesNo(guid, key, message)
+        table.insert(adapter.menus, { guid = guid, key = key, message = message })
+    end
     function adapter.deliverAutomaticReward(_, recipient) table.insert(adapter.delivered, "auto:" .. recipient) end
     function adapter.deliverItem(_, recipient) table.insert(adapter.delivered, "item:" .. recipient) end
     function adapter.awardPartyToLevel(_, target)
@@ -112,6 +116,64 @@ H.test("AI victory deletes enemies and opens the six-choice reward", function()
     H.equal(adapter.stagingReturns, 1)
     H.equal(subject.run.phase, "awaiting_reward")
     H.equal(#subject.run.pendingReward.offer.choices, 6)
+    H.equal(subject.menu.kind, "reward")
+    H.equal(#adapter.menus, 1)
+end)
+
+H.test("defeat menu retries the same bout without console commands", function()
+    local adapter = fakeAdapter()
+    local subject = arena(adapter)
+    subject:start({ countdownSeconds = 0 })
+    adapter.alive["player-a"] = false
+    adapter.alive["player-b"] = false
+    table.remove(adapter.queue, 1)()
+    H.equal(subject.run.completion, "defeated")
+    H.equal(subject.menu.kind, "defeat")
+    local prompt = adapter.menus[#adapter.menus]
+    H.truthy(subject:handleMenuResponse(prompt.guid, prompt.key, 1))
+    H.equal(subject.run.phase, "ready")
+    H.equal(subject.run.level, 5)
+    H.equal(subject.active.match.level, 5)
+end)
+
+H.test("declining a defeat retry keeps a recoverable menu in staging", function()
+    local adapter = fakeAdapter()
+    local subject = arena(adapter)
+    subject:start({ countdownSeconds = 0 })
+    adapter.alive["player-a"] = false
+    adapter.alive["player-b"] = false
+    table.remove(adapter.queue, 1)()
+    local prompt = adapter.menus[#adapter.menus]
+    H.truthy(subject:handleMenuResponse(prompt.guid, prompt.key, 0))
+    H.equal(subject.active, nil)
+    H.equal(subject.menu.kind, "defeat")
+    H.truthy(subject:reopenMenu())
+    H.equal(#adapter.menus, 2)
+end)
+
+H.test("reward menu cycles items and recipients then advances progression", function()
+    local adapter = fakeAdapter()
+    local subject = arena(adapter)
+    subject:start({ countdownSeconds = 0 })
+    for index = 1, 4 do adapter.alive["enemy-" .. index] = false end
+    table.remove(adapter.queue, 1)()
+
+    local rewardPrompt = adapter.menus[#adapter.menus]
+    H.truthy(subject:handleMenuResponse(rewardPrompt.guid, rewardPrompt.key, 0))
+    H.equal(subject.menu.choiceIndex, 2)
+    rewardPrompt = adapter.menus[#adapter.menus]
+    H.truthy(subject:handleMenuResponse(rewardPrompt.guid, rewardPrompt.key, 1))
+    H.equal(subject.menu.kind, "recipient")
+
+    local recipientPrompt = adapter.menus[#adapter.menus]
+    H.truthy(subject:handleMenuResponse(recipientPrompt.guid, recipientPrompt.key, 0))
+    H.equal(subject.menu.recipientIndex, 2)
+    recipientPrompt = adapter.menus[#adapter.menus]
+    H.truthy(subject:handleMenuResponse(recipientPrompt.guid, recipientPrompt.key, 1))
+    H.equal(adapter.delivered[1], "auto:player-b")
+    H.equal(adapter.delivered[2], "item:player-b")
+    H.equal(subject.run.phase, "awaiting_level_up")
+    H.equal(subject.menu, nil)
 end)
 
 H.test("reward selection delivers automatic loot and one item then awards level-eight XP", function()

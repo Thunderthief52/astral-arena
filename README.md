@@ -1,6 +1,6 @@
 # Astral Arena
 
-Astral Arena is an experimental Baldur's Gate 3 arena Adventure for Windows. Version `0.3.2-alpha.3` fixes split-screen XP onboarding and automatically repairs real-character parties left at mixed levels, while retaining the safe character-creation handoff, base-game-asset visual pass, and cooperative AI progression. Its longer-term goal is an eight-entrant 5 → 8 → 10 → 12 live bracket plus a separate asynchronous level-pool mode built from player-authored parties.
+Astral Arena is an experimental Baldur's Gate 3 arena Adventure for Windows. Version `0.3.2-alpha.4` adds controller-safe in-game result and reward menus, including immediate defeat retries, while retaining split-screen XP repair, the safe character-creation handoff, the base-game-asset visual pass, and cooperative AI progression. Its longer-term goal is an eight-entrant 5 → 8 → 10 → 12 live bracket plus a separate asynchronous level-pool mode built from player-authored parties.
 
 > **Alpha safety note:** use a separate manual save, remove story NPCs from the area, and do not save during an active match. The mod restores combat relationships and characters after a bout, but this is the first engine playtest build.
 
@@ -21,6 +21,7 @@ Astral Arena is an experimental Baldur's Gate 3 arena Adventure for Windows. Ver
 - A Toolkit-authored Adventure module that starts in the isolated `AA_Arena_Main` level rather than a vanilla campaign location.
 - A decorated safe staging area plus three visually distinct runtime-selected combat sites: Astral Flats, Crescent Ruin, and Echelon Steps.
 - Twelve deterministic-random enemy formations, with the first three bouts bound to those sites and cleanup returning the party to staging.
+- Native Yes/No arena prompts for retrying defeats or draws and cycling through reward items and party recipients with a controller.
 
 The level now uses shipped BG3 stonework, ruins, rocks, vegetation, cover, elevation, and colored accent lighting. Final terrain polish, graphical bracket/reward UI, player-authored AI ghosts, Eddard matchmaking coordinator, and public rankings are **not** in this alpha.
 
@@ -35,14 +36,14 @@ The level now uses shipped BG3 stonework, ruins, rocks, vegetation, cover, eleva
 
 ## Install the Adventure PAK
 
-The Toolkit build is `dist\AstralArena-0.3.2-alpha.3.pak`.
+The Toolkit build is `dist\AstralArena-0.3.2-alpha.4.pak`.
 
 1. Close Baldur's Gate 3.
 2. Install Norbyte's Script Extender if it is not already present.
 3. From the repository root, install the PAK:
 
    ```powershell
-   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.2-alpha.3.pak"
+   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.2-alpha.4.pak"
    ```
 
    Manual alternative: copy the PAK to:
@@ -56,7 +57,7 @@ The Toolkit build is `dist\AstralArena-0.3.2-alpha.3.pak`.
 6. Choose **New Game**, select **Astral Arena Adventure** if BG3 displays an Adventure choice, and create the player characters.
 7. For ordinary online co-op, install the identical PAK and Script Extender version on every PC. Split-screen needs one installation.
 
-The installer backs up a previous canonical Adventure PAK under `%LOCALAPPDATA%\AstralArena\PakBackups`. Saves containing the temporary 1-HP character-creation dummies remain invalid and should be discarded. A save containing the two real custom split-screen characters at mixed levels can be reloaded with `0.3.2-alpha.3`; the lower-level avatar receives its missing XP and the first bout begins after both players finish leveling to 5. Follow the exact new-game, solo, co-op, and split-screen checklist in [docs/ADVENTURE_PLAYTEST.md](docs/ADVENTURE_PLAYTEST.md).
+The installer backs up a previous canonical Adventure PAK under `%LOCALAPPDATA%\AstralArena\PakBackups`. Saves containing the temporary 1-HP character-creation dummies remain invalid and should be discarded. A save containing real custom split-screen characters at mixed levels can be reloaded with `0.3.2-alpha.4`; the lower-level avatar receives its missing XP and the first bout begins after both players finish leveling to 5. Follow the exact new-game, solo, co-op, and split-screen checklist in [docs/ADVENTURE_PLAYTEST.md](docs/ADVENTURE_PLAYTEST.md).
 
 ## Run the first match
 
@@ -102,7 +103,7 @@ For the PvP test matrix, expected results, logs, and bug-report checklist, read 
 
 ## Run the AI progression playtest
 
-Start a disposable Astral Arena Adventure new game with one to four player-created characters. The Adventure automatically grants the level-5 XP threshold after character creation, waits until everyone finishes native level-up choices, validates the encounter, and moves the party to Astral Flats. After each victory, use `!aa_ai_pick <choice 1-6> <party-member number>` for this alpha's reward choice; later bouts start automatically once everyone finishes leveling. The three bouts use Astral Flats, Crescent Ruin, and Echelon Steps, returning the party to staging after cleanup.
+Start a disposable Astral Arena Adventure new game with one to four player-created characters. The Adventure automatically grants the level-5 XP threshold after character creation, waits until everyone finishes native level-up choices, validates the encounter, and moves the party to Astral Flats. After each result, the host receives an in-game controller-safe prompt: retry a defeat or draw, or cycle through the six rewards and party recipients after a victory. Later bouts start automatically once everyone finishes leveling. The three bouts use Astral Flats, Crescent Ruin, and Echelon Steps, returning the party to staging after cleanup.
 
 This mode awards real loot and XP. Read [docs/AI_PLAYTEST.md](docs/AI_PLAYTEST.md) before starting; `!aa_ai_reset` does not undo inventory or experience changes.
 
@@ -126,6 +127,7 @@ This mode awards real loot and XP. Read [docs/AI_PLAYTEST.md](docs/AI_PLAYTEST.m
 | `!aa_ai_bootstrap` | Recovery command: manually trigger the otherwise automatic level-1 bootstrap. |
 | `!aa_ai_start` | Recovery command: manually start the level-5 run if automatic onboarding pauses. |
 | `!aa_ai_pick 1 1` | Take reward choice 1 on party member 1 and award next-tier XP. |
+| `!aa_ai_menu` | Recovery command: reopen a dismissed result prompt. |
 | `!aa_ai_continue` | Recovery command: manually start a ready next tier. |
 | `!aa_ai_status` | Show AI run state. |
 | `!aa_ai_abort` | Abort combat, restore players, and delete temporary AI enemies. |
@@ -138,15 +140,15 @@ The deterministic Lua code runs outside BG3 with LuaJIT or Lua 5.1+:
 ```sh
 luajit tests/run.lua
 luajit scripts/simulate.lua
-./scripts/build-release.sh 0.3.2-alpha.3
+./scripts/build-release.sh 0.3.2-alpha.4
 ```
 
 Windows equivalents:
 
 ```powershell
 lua tests\run.lua
-.\scripts\Build-Pak.ps1 -Version 0.3.2-alpha.3
-.\scripts\Build-Release.ps1 -Version 0.3.2-alpha.3
+.\scripts\Build-Pak.ps1 -Version 0.3.2-alpha.4
+.\scripts\Build-Release.ps1 -Version 0.3.2-alpha.4
 ```
 
 `Build-Pak.ps1` combines the checked-in Toolkit level, the current Script Extender runtime, and the Toolkit-generated module artwork into the installable Adventure PAK. Run it after syncing/opening the project in the Toolkit. `Build-Release.ps1` then includes that PAK and the playtest documentation in the generated archive under `dist/`.

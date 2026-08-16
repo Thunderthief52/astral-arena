@@ -2,6 +2,7 @@ local Match = Ext.Require("AstralArena/Core/Match.lua")
 local Roster = Ext.Require("AstralArena/Core/Roster.lua")
 local SoloRun = Ext.Require("AstralArena/Core/SoloRun.lua")
 local ArenaBootstrap = Ext.Require("AstralArena/Core/ArenaBootstrap.lua")
+local Constants = Ext.Require("AstralArena/Shared/Constants.lua")
 
 local SoloArena = {}
 SoloArena.__index = SoloArena
@@ -40,7 +41,135 @@ function SoloArena.new(adapter, output, fixtures, rewardCatalog, arenaLayouts, a
         recentOfferItemIds = {},
         rewardRecipients = nil,
         repairNoticeTarget = nil,
+        menu = nil,
     }, SoloArena)
+end
+
+local function menuResultIsYes(result)
+    return result == true or result == 1 or result == "1"
+end
+
+function SoloArena:_menuOwner(members)
+    if self.adapter.menuOwner then
+        return self.adapter.menuOwner(members)
+    end
+    return members and members[1] and members[1].guid or nil
+end
+
+function SoloArena:_showMenu()
+    local menu = self.menu
+    if not menu then
+        return false
+    end
+
+    local key
+    local message
+    if menu.kind == "defeat" then
+        key = Constants.MenuMessages.defeat
+        message = string.format(
+            "Astral Arena defeat at level %d. Retry this bout now? Choose No to remain safely in staging.",
+            self.run and self.run.level or 5
+        )
+    elseif menu.kind == "draw" then
+        key = Constants.MenuMessages.draw
+        message = string.format(
+            "The level %d bout ended in a draw. Replay this bout now? Choose No to remain safely in staging.",
+            self.run and self.run.level or 5
+        )
+    elseif menu.kind == "reward" then
+        key = Constants.MenuMessages.reward
+        local choices = self.run.pendingReward.offer.choices
+        local choice = choices[menu.choiceIndex]
+        message = string.format(
+            "Victory reward %d/%d: %s (%s). Take this item? Choose No to view the next reward.",
+            menu.choiceIndex,
+            #choices,
+            choice.displayName,
+            choice.rarity
+        )
+    elseif menu.kind == "recipient" then
+        key = Constants.MenuMessages.recipient
+        local members = self.rewardRecipients.members
+        local recipient = members[menu.recipientIndex]
+        message = string.format(
+            "Give %s to %s? Choose No to view the next party member.",
+            menu.selectedChoice.displayName,
+            recipient.name or recipient.guid
+        )
+    else
+        error("unknown arena menu state: " .. tostring(menu.kind), 2)
+    end
+
+    menu.messageKey = key
+    self.adapter.openYesNo(menu.ownerGuid, key, message)
+    return true
+end
+
+function SoloArena:_openMenu(kind, members)
+    self.menu = {
+        kind = kind,
+        ownerGuid = self:_menuOwner(members),
+        choiceIndex = 1,
+        recipientIndex = 1,
+    }
+    self:_showMenu()
+end
+
+function SoloArena:reopenMenu()
+    if not self.menu then
+        error("there is no arena menu to reopen", 2)
+    end
+    return self:_showMenu()
+end
+
+function SoloArena:handleMenuResponse(characterGuid, messageKey, result)
+    local menu = self.menu
+    if not menu or characterGuid ~= menu.ownerGuid or messageKey ~= menu.messageKey then
+        return false
+    end
+
+    local accepted = menuResultIsYes(result)
+    if menu.kind == "defeat" or menu.kind == "draw" then
+        if accepted then
+            if menu.kind == "defeat" then
+                SoloRun.retryDefeat(self.run)
+            end
+            self.menu = nil
+            self:_startBout(self:_party())
+        else
+            menu.dismissed = true
+            self.output("Arena bout paused in staging by player choice. Use !aa_ai_menu to reopen the arena prompt.")
+        end
+        return true
+    end
+
+    if menu.kind == "reward" then
+        local choices = self.run.pendingReward.offer.choices
+        if accepted then
+            menu.selectedChoice = choices[menu.choiceIndex]
+            menu.kind = "recipient"
+            menu.recipientIndex = 1
+        else
+            menu.choiceIndex = (menu.choiceIndex % #choices) + 1
+        end
+        self:_showMenu()
+        return true
+    end
+
+    if menu.kind == "recipient" then
+        local members = self.rewardRecipients.members
+        if accepted then
+            local choiceIndex = menu.choiceIndex
+            local recipientIndex = menu.recipientIndex
+            self:pick(choiceIndex, recipientIndex)
+        else
+            menu.recipientIndex = (menu.recipientIndex % #members) + 1
+            self:_showMenu()
+        end
+        return true
+    end
+
+    return false
 end
 
 function SoloArena:bootstrapParty()
@@ -211,6 +340,7 @@ end
 
 function SoloArena:_startBout(party, options)
     options = options or {}
+    self.menu = nil
     local fixture = self.fixtures.get(self.run.level)
     if not fixture then
         error("no AI fixture exists for level " .. tostring(self.run.level), 2)
@@ -408,10 +538,13 @@ function SoloArena:_finish(resultSide)
         })
         self.output("AI arena victory.")
         self:_printReward(offer)
+        self:_openMenu("reward", active.teams.left.members)
     elseif result == "loss" then
-        self.output("AI arena run defeated. Reload the pre-test save or reset to try again.")
+        self.output("AI arena run defeated. Opening the retry menu in staging.")
+        self:_openMenu("defeat", active.teams.left.members)
     else
-        self.output("AI arena draw. Use !aa_ai_continue to replay this tier.")
+        self.output("AI arena draw. Opening the replay menu in staging.")
+        self:_openMenu("draw", active.teams.left.members)
     end
 end
 
@@ -443,6 +576,7 @@ function SoloArena:pick(choiceIndex, recipientIndex)
         table.insert(self.recentOfferItemIds, offered.id)
     end
     self.adapter.awardPartyToLevel(self.rewardRecipients.members, targetLevel)
+    self.menu = nil
     self.output(string.format(
         "%s received %s and the automatic bundle. Complete native level-ups to L%d; the next bout will begin automatically.",
         recipient.name or recipient.guid,
@@ -469,6 +603,9 @@ function SoloArena:continue()
     SoloRun.confirmPartyLevel(self.run, party.level)
     if self.run.phase == "completed" then
         self.output("Astral Arena champion complete at level 12.")
+        for _, member in ipairs(party.members) do
+            self.adapter.notify(member.guid, "Astral Arena complete: your party is champion at level 12.")
+        end
         return self.run
     end
     return self:_startBout(party)
@@ -544,6 +681,7 @@ function SoloArena:reset()
     self.rewardRecipients = nil
     self.recentOfferItemIds = {}
     self.repairNoticeTarget = nil
+    self.menu = nil
     self.output("AI arena session state reset. Awarded XP and items are not removed; reload the pre-test save for a clean reset.")
 end
 

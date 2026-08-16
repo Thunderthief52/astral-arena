@@ -2,7 +2,7 @@
 
 ## What this candidate tests
 
-Version `0.3.2-alpha.3` fixes independently owned split-screen XP delivery and mixed-level recovery while retaining the shipped-asset visual pass, completion-gated character-creation handoff, and automatic new-game onboarding for the continuous solo/co-op progression run:
+Version `0.3.2-alpha.4` adds controller-safe result and reward prompts while retaining split-screen XP repair, the shipped-asset visual pass, the completion-gated character-creation handoff, and automatic new-game onboarding for the continuous solo/co-op progression run:
 
 ```text
 fight at L5 -> loot for L8 -> native level-up
@@ -58,13 +58,9 @@ Expected after victory:
 - defeated enemies stop at one HP;
 - all temporary enemies disappear;
 - the player party leaves combat, returns to staging, and is fully restored;
-- the console prints six deterministic `+2` weapon choices and numbered reward recipients.
+- the host receives an in-game prompt showing the first deterministic `+2` weapon choice.
 
-Choose one item and its recipient. For example, to give option 3 and the automatic bundle to party member 2:
-
-```text
-!aa_ai_pick 3 2
-```
+Choose No to cycle through candidates and Yes to select one. Then use the same controller-safe prompt to cycle through party members and confirm the recipient.
 
 The selected character receives:
 
@@ -88,6 +84,7 @@ Astral Arena champion complete at level 12.
 | Command | Effect |
 | --- | --- |
 | `!aa_ai_status` | Show current tier and whether combat, reward selection, or level-up is pending. |
+| `!aa_ai_menu` | Reopen a result prompt that the host dismissed with No. |
 | `!aa_ai_abort` | Stop an active fight, restore players, and delete temporary enemies. Use `!aa_ai_continue` only to replay the ready tier manually. |
 | `!aa_ai_reset` | Forget the current session run. Does not remove items or XP. |
 
@@ -96,7 +93,7 @@ If combat cleanup, inventory, or progression looks wrong, stop immediately and r
 ## Current intentional limitations
 
 - One developer-authored AI team per combat level.
-- Console-driven reward selection rather than BG3's native Reward UI.
+- Reward selection uses chained native Yes/No dialogs rather than a graphical inventory grid with item tooltips.
 - The rare catalog is an intentionally conservative set of ten vanilla `+2` weapons; armor, jewelry, named build-defining items, and class-aware weighting come after catalog auditing.
 - The automatic bundle uses two calls to the vanilla `RewardMedium` table. It will become an Astral Arena-owned treasure table after the first balance reports.
 - No run persistence across save/reload, crash, or game restart.
