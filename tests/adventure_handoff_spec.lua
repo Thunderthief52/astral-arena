@@ -1,0 +1,20 @@
+local H = require("tests.test_helper")
+local AdventureHandoff = require("AstralArena.Shared.AdventureHandoff")
+
+H.test("system character creation loading never triggers an early arena transfer", function()
+    local state = AdventureHandoff.new()
+    H.equal(AdventureHandoff.shouldRecover(state, true, "SYS_CC_I"), false)
+end)
+
+H.test("a completed character creator may recover from the system scene", function()
+    local state = AdventureHandoff.new()
+    AdventureHandoff.markCharacterCreationFinished(state)
+    H.equal(AdventureHandoff.shouldRecover(state, true, "SYS_CC_I"), true)
+end)
+
+H.test("character creation recovery is scoped to the active adventure and system scene", function()
+    local state = AdventureHandoff.new()
+    AdventureHandoff.markCharacterCreationFinished(state)
+    H.equal(AdventureHandoff.shouldRecover(state, false, "SYS_CC_I"), false)
+    H.equal(AdventureHandoff.shouldRecover(state, true, "AA_Arena_Main"), false)
+end)

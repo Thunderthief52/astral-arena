@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$Version = "0.1.0-alpha.1"
+    [string]$Version = "0.3.2-alpha.9"
 )
 
 $ErrorActionPreference = "Stop"
@@ -11,20 +11,34 @@ if ($Version -notmatch "^[0-9A-Za-z][0-9A-Za-z.-]*$") {
 $RepositoryRoot = Split-Path -Parent $PSScriptRoot
 $BuildRoot = Join-Path $RepositoryRoot "build\AstralArena-$Version"
 $Archive = Join-Path $RepositoryRoot "dist\AstralArena-$Version.zip"
+$AdventurePak = Join-Path $RepositoryRoot "dist\AstralArena-$Version.pak"
 
 if (Test-Path $BuildRoot) {
     Remove-Item $BuildRoot -Recurse -Force
 }
-New-Item -ItemType Directory -Force -Path (Join-Path $BuildRoot "Mods") | Out-Null
+New-Item -ItemType Directory -Force -Path $BuildRoot | Out-Null
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $Archive) | Out-Null
 
-Copy-Item (Join-Path $RepositoryRoot "src\Mods\AstralArena") (Join-Path $BuildRoot "Mods\AstralArena") -Recurse
-Copy-Item (Join-Path $PSScriptRoot "Install-Playtest.ps1") $BuildRoot
-Copy-Item (Join-Path $PSScriptRoot "Uninstall-Playtest.ps1") $BuildRoot
-Copy-Item (Join-Path $PSScriptRoot "Enable-SE-Console.ps1") $BuildRoot
+if (Test-Path $AdventurePak -PathType Leaf) {
+    New-Item -ItemType Directory -Force -Path (Join-Path $BuildRoot "dist") | Out-Null
+    New-Item -ItemType Directory -Force -Path (Join-Path $BuildRoot "scripts") | Out-Null
+    Copy-Item -LiteralPath $AdventurePak -Destination (Join-Path $BuildRoot "dist")
+    Copy-Item (Join-Path $PSScriptRoot "Install-Pak.ps1") (Join-Path $BuildRoot "scripts")
+    Copy-Item (Join-Path $PSScriptRoot "Enable-SE-Console.ps1") (Join-Path $BuildRoot "scripts")
+} else {
+    New-Item -ItemType Directory -Force -Path (Join-Path $BuildRoot "Mods") | Out-Null
+    Copy-Item (Join-Path $RepositoryRoot "src\Mods\AstralArena") (Join-Path $BuildRoot "Mods\AstralArena") -Recurse
+    Copy-Item (Join-Path $PSScriptRoot "Install-Playtest.ps1") $BuildRoot
+    Copy-Item (Join-Path $PSScriptRoot "Uninstall-Playtest.ps1") $BuildRoot
+    Copy-Item (Join-Path $PSScriptRoot "Enable-SE-Console.ps1") $BuildRoot
+}
+
 Copy-Item (Join-Path $RepositoryRoot "PLAYTEST.md") $BuildRoot
 Copy-Item (Join-Path $RepositoryRoot "README.md") $BuildRoot
+Copy-Item (Join-Path $RepositoryRoot "CHANGELOG.md") $BuildRoot
+Copy-Item (Join-Path $RepositoryRoot "CONTRIBUTING.md") $BuildRoot
 Copy-Item (Join-Path $RepositoryRoot "LICENSE") $BuildRoot
+Copy-Item (Join-Path $RepositoryRoot "docs") (Join-Path $BuildRoot "docs") -Recurse
 
 if (Test-Path $Archive) {
     Remove-Item $Archive -Force

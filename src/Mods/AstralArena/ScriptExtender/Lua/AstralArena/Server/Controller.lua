@@ -3,6 +3,12 @@ local Constants = Ext.Require("AstralArena/Shared/Constants.lua")
 local Persistence = Ext.Require("AstralArena/Server/Persistence.lua")
 local Bg3Adapter = Ext.Require("AstralArena/Server/Bg3Adapter.lua")
 local Sparring = Ext.Require("AstralArena/Server/Sparring.lua")
+local SoloArena = Ext.Require("AstralArena/Server/SoloArena.lua")
+local AIFixtures = Ext.Require("AstralArena/Shared/AIFixtures.lua")
+local RewardCatalog = Ext.Require("AstralArena/Shared/RewardCatalog.lua")
+local ArenaLayouts = Ext.Require("AstralArena/Shared/ArenaLayouts.lua")
+local ArenaSites = Ext.Require("AstralArena/Shared/ArenaSites.lua")
+local AdventureHandoff = Ext.Require("AstralArena/Shared/AdventureHandoff.lua")
 
 local Controller = { API = {} }
 local registered = false
@@ -16,7 +22,125 @@ local function printState(state)
 end
 
 local sparring = Sparring.new(Bg3Adapter, printLine)
+local soloArena = SoloArena.new(Bg3Adapter, printLine, AIFixtures, RewardCatalog, ArenaLayouts, ArenaSites)
 Controller.Sparring = sparring
+Controller.SoloArena = soloArena
+
+local autoGeneration = 0
+local adventureHandoff = AdventureHandoff.new()
+local armAutomaticProgression
+
+local function isAstralAdventureActive()
+    local ok, startupLevel = pcall(function()
+        return Osi.GetActiveModStartupLevel()
+    end)
+    return ok and startupLevel == Constants.ArenaLevel
+end
+
+local function configureAdventureTransition()
+    local ok, err = pcall(function()
+        Osi.DB_CharacterCreationTransitionInfo(Constants.ArenaLevel, "")
+    end)
+    if not ok then
+        printLine("ERROR: Could not configure the post-character-creation arena transition: " .. tostring(err))
+        return false
+    end
+    return true
+end
+
+local function recoverCharacterCreationHandoff(levelName)
+    if not AdventureHandoff.shouldRecover(adventureHandoff, isAstralAdventureActive(), levelName) then
+        return false
+    end
+
+    local ok, err = pcall(function()
+        Osi.TeleportPartiesToLevelWithMovie(Constants.ArenaLevel, "", "")
+    end)
+    if not ok then
+        printLine("ERROR: Could not recover the character-creation handoff: " .. tostring(err))
+        return false
+    end
+
+    printLine("Recovered a finished party stranded in " .. levelName .. "; transferring to " .. Constants.ArenaLevel .. ".")
+    return true
+end
+
+local function currentPartyRegion()
+    local members = Bg3Adapter.partyMembers()
+    if not members[1] then
+        return nil
+    end
+
+    local region = Osi.GetRegion(members[1].guid)
+    for index = 2, #members do
+        if Osi.GetRegion(members[index].guid) ~= region then
+            return nil
+        end
+    end
+    return region
+end
+
+local function finishCharacterCreationHandoff()
+    local ok, levelName = pcall(currentPartyRegion)
+    if not ok then
+        printLine("Character-creation handoff check paused: " .. tostring(levelName))
+        return
+    end
+
+    if levelName == Constants.ArenaLevel then
+        armAutomaticProgression()
+        return
+    end
+
+    recoverCharacterCreationHandoff(levelName)
+end
+
+local function scheduleAutomaticProgression(generation)
+    Bg3Adapter.schedule(1000, function()
+        if generation ~= autoGeneration then
+            return
+        end
+        local ok, action = pcall(function()
+            return soloArena:autoAdvance()
+        end)
+        if not ok then
+            printLine("Automatic arena onboarding paused: " .. tostring(action))
+            scheduleAutomaticProgression(generation)
+            return
+        end
+        if action == "outside" then
+            printLine("Automatic arena onboarding ignored outside " .. Constants.ArenaLevel .. ".")
+            return
+        elseif action == "completed" then
+            return
+        elseif action == "bootstrapped" then
+            printLine("Automatic onboarding is waiting for every player to finish level-up choices through level 3.")
+        elseif action == "started" then
+            printLine("Automatic progression started the next Astral Arena bout.")
+        end
+        scheduleAutomaticProgression(generation)
+    end)
+end
+
+armAutomaticProgression = function()
+    autoGeneration = autoGeneration + 1
+    local generation = autoGeneration
+    Bg3Adapter.schedule(1500, function()
+        if generation == autoGeneration then
+            local ok, action = pcall(function()
+                return soloArena:autoAdvance()
+            end)
+            if not ok then
+                printLine("Automatic arena onboarding paused: " .. tostring(action))
+                scheduleAutomaticProgression(generation)
+                return
+            end
+            if action ~= "outside" and action ~= "completed" then
+                scheduleAutomaticProgression(generation)
+            end
+        end
+    end)
+end
 
 function Controller.API.GetState()
     return Persistence.LoadOrCreate()
@@ -69,6 +193,38 @@ function Controller.Register()
     Ext.Events.SessionLoaded:Subscribe(function()
         local state = Persistence.LoadOrCreate()
         printLine("Loaded tournament state: " .. state.status)
+        armAutomaticProgression()
+    end)
+
+    -- SessionLoaded is a restricted Script Extender callback and cannot mutate
+    -- Osiris databases. Register the transition immediately before Osiris
+    -- processes CharacterCreationFinished instead.
+    Ext.Osiris.RegisterListener("CharacterCreationFinished", 0, "before", function()
+        if isAstralAdventureActive() then
+            AdventureHandoff.markCharacterCreationFinished(adventureHandoff)
+            configureAdventureTransition()
+        end
+    end)
+
+    Ext.Osiris.RegisterListener("CharacterCreationFinished", 0, "after", function()
+        if isAstralAdventureActive() then
+            -- LevelGameplayReady fires when the system character-creation scene
+            -- first opens. Waiting until CharacterCreationFinished prevents the
+            -- four temporary 1-HP creator dummies from entering the arena.
+            Bg3Adapter.schedule(2500, finishCharacterCreationHandoff)
+        end
+    end)
+
+    Ext.Osiris.RegisterListener("LevelGameplayReady", 2, "after", function(levelName)
+        if levelName == Constants.ArenaLevel then
+            armAutomaticProgression()
+        end
+    end)
+
+    Ext.Osiris.RegisterListener("MessageBoxYesNoClosed", 3, "after", function(character, messageKey, result)
+        safely(function()
+            soloArena:handleMenuResponse(character, messageKey, result)
+        end)
     end)
 
     Ext.RegisterConsoleCommand("aa_demo", function()
@@ -97,11 +253,24 @@ function Controller.Register()
     Ext.RegisterConsoleCommand("aa_help", function()
         printLine("Astral Arena " .. Constants.DisplayVersion)
         printLine("Playable sparring commands:")
-        printLine("  !aa_scan                    list characters assigned to each multiplayer user")
-        printLine("  !aa_spar                    begin a same-level match between the two users")
+        printLine("  !aa_doctor                  validate online or split-screen team discovery")
+        printLine("  !aa_scan                    list assignments and player-avatar components")
+        printLine("  !aa_spar                    begin a same-level match after a 3-second countdown")
+        printLine("  !aa_rematch                 rescan teams and replay after a completed match")
         printLine("  !aa_spar_status             show the current or previous sparring result")
         printLine("  !aa_forfeit left|right      concede for the selected side")
         printLine("  !aa_abort                   stop the match and restore both teams")
+        printLine("AI progression starts automatically after Adventure character creation.")
+        printLine("AI diagnostics and recovery commands:")
+        printLine("  !aa_ai_bootstrap            award L1 characters XP for native level-ups to L5")
+        printLine("  !aa_ai_doctor               validate party, AI templates, and reward templates")
+        printLine("  !aa_ai_start                start the L5 -> L8 -> L10 -> L12 AI run")
+        printLine("  !aa_ai_pick <1-6> <member>  deliver two random rolls and one selected item")
+        printLine("  !aa_ai_menu                 reopen a dismissed arena decision prompt")
+        printLine("  !aa_ai_continue             continue after every character finishes level-up")
+        printLine("  !aa_ai_status               show run, reward, or level-up state")
+        printLine("  !aa_ai_abort                restore players and delete active AI enemies")
+        printLine("  !aa_ai_reset                reset session state; does not undo XP or loot")
         printLine("Tournament simulation: !aa_demo, !aa_state, !aa_win <match> <entrant>, !aa_reset")
     end)
 
@@ -121,8 +290,8 @@ function Controller.Register()
                 tostring(Ext.Utils.Version()),
                 tostring(Osi.GetUserCount())
             ))
-            sparring:scan()
-            printLine("Doctor complete. Exactly two assigned users and matching character levels are required.")
+            sparring:doctor()
+            printLine("Doctor complete. Team discovery and safety checks passed.")
         end)
     end)
 
@@ -134,7 +303,19 @@ function Controller.Register()
 
     Ext.RegisterConsoleCommand("aa_spar", function()
         safely(function()
+            if soloArena.active then
+                error("an AI arena match is active; use !aa_ai_abort first")
+            end
             sparring:startAuto()
+        end)
+    end)
+
+    Ext.RegisterConsoleCommand("aa_rematch", function()
+        safely(function()
+            if soloArena.active then
+                error("an AI arena match is active; use !aa_ai_abort first")
+            end
+            sparring:rematch()
         end)
     end)
 
@@ -156,6 +337,73 @@ function Controller.Register()
     Ext.RegisterConsoleCommand("aa_abort", function()
         safely(function()
             sparring:abort("manual-abort")
+        end)
+    end)
+
+    Ext.RegisterConsoleCommand("aa_ai_doctor", function()
+        safely(function()
+            soloArena:doctor()
+            printLine("AI doctor complete. No game state was changed.")
+        end)
+    end)
+
+    Ext.RegisterConsoleCommand("aa_ai_bootstrap", function()
+        safely(function()
+            if sparring.active then
+                error("a PvP sparring match is active; use !aa_abort first")
+            end
+            soloArena:bootstrapParty()
+        end)
+    end)
+
+    Ext.RegisterConsoleCommand("aa_ai_start", function()
+        safely(function()
+            if sparring.active then
+                error("a PvP sparring match is active; use !aa_abort first")
+            end
+            soloArena:start()
+        end)
+    end)
+
+    Ext.RegisterConsoleCommand("aa_ai_pick", function(_, choiceIndex, recipientIndex)
+        safely(function()
+            if not choiceIndex then
+                error("usage: !aa_ai_pick <choice 1-6> <recipient number>")
+            end
+            soloArena:pick(choiceIndex, recipientIndex)
+        end)
+    end)
+
+    Ext.RegisterConsoleCommand("aa_ai_menu", function()
+        safely(function()
+            soloArena:reopenMenu()
+        end)
+    end)
+
+    Ext.RegisterConsoleCommand("aa_ai_continue", function()
+        safely(function()
+            if sparring.active then
+                error("a PvP sparring match is active; use !aa_abort first")
+            end
+            soloArena:continue()
+        end)
+    end)
+
+    Ext.RegisterConsoleCommand("aa_ai_status", function()
+        safely(function()
+            printLine(soloArena:status())
+        end)
+    end)
+
+    Ext.RegisterConsoleCommand("aa_ai_abort", function()
+        safely(function()
+            soloArena:abort("manual-abort")
+        end)
+    end)
+
+    Ext.RegisterConsoleCommand("aa_ai_reset", function()
+        safely(function()
+            soloArena:reset()
         end)
     end)
 

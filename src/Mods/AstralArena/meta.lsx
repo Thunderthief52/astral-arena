@@ -9,7 +9,7 @@
         <node id="ModuleInfo">
           <attribute id="Author" type="LSString" value="Astral Arena Team" />
           <attribute id="CharacterCreationLevelName" type="FixedString" value="" />
-          <attribute id="Description" type="LSString" value="Eight-entrant party-versus-party tournament framework" />
+          <attribute id="Description" type="LSString" value="Party arena with PvP sparring and an AI progression playtest" />
           <attribute id="Folder" type="LSString" value="AstralArena" />
           <attribute id="GMTemplate" type="FixedString" value="" />
           <attribute id="LobbyLevelName" type="FixedString" value="" />
@@ -23,10 +23,10 @@
           <attribute id="Tags" type="LSString" value="Gameplay;Multiplayer" />
           <attribute id="Type" type="FixedString" value="Add-on" />
           <attribute id="UUID" type="FixedString" value="3b7d59a3-a846-4ecd-9c5d-a7bfe3f1b84f" />
-          <attribute id="Version64" type="int64" value="36028797018963968" />
+          <attribute id="Version64" type="int64" value="36169536654802949" />
           <children>
             <node id="PublishVersion">
-              <attribute id="Version64" type="int64" value="36028797018963968" />
+              <attribute id="Version64" type="int64" value="36169536654802949" />
             </node>
             <node id="Scripts" />
             <node id="TargetModes">
@@ -42,4 +42,3 @@
     </node>
   </region>
 </save>
-

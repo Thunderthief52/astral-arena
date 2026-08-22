@@ -22,6 +22,11 @@ local function factions(group)
     return values
 end
 
+local function clampCountdown(value)
+    value = tonumber(value) or 3
+    return math.max(0, math.min(10, math.floor(value)))
+end
+
 function Sparring.new(adapter, output)
     return setmetatable({
         adapter = adapter,
@@ -32,27 +37,67 @@ function Sparring.new(adapter, output)
     }, Sparring)
 end
 
-function Sparring:scan()
-    local members = self.adapter.partyMembers()
+function Sparring:scan(members)
+    members = members or self.adapter.partyMembers()
     local groups = Roster.groupByUser(members)
+    local avatars = Roster.avatarMembers(members)
     self.output(string.format("Found %d assigned multiplayer user(s).", #groups))
     for _, group in ipairs(groups) do
         self.output(string.format(
-            "User %d controls %d: %s",
-            group.userId,
+            "%s controls %d: %s",
+            group.label,
             #group.members,
             memberNames(group)
         ))
         for _, member in ipairs(group.members) do
+            local avatarSuffix = member.isAvatar
+                and string.format("; player avatar user=%s", tostring(member.avatarUserId))
+                or ""
             self.output(string.format(
-                "  L%d %s [%s]",
+                "  L%d %s [%s%s]",
                 member.level,
                 member.name or "Unknown",
-                member.guid
+                member.guid,
+                avatarSuffix
             ))
         end
     end
-    return groups
+    self.output(string.format("Detected %d player-avatar component(s).", #avatars))
+    for index, member in ipairs(avatars) do
+        self.output(string.format(
+            "  Avatar %d: L%d %s [%s; avatar user=%s; reserved user=%s]",
+            index,
+            member.level,
+            member.name or "Unknown",
+            member.guid,
+            tostring(member.avatarUserId),
+            tostring(member.userId)
+        ))
+    end
+    return members, groups, avatars
+end
+
+function Sparring:doctor()
+    local members = self.adapter.partyMembers()
+    self:scan(members)
+    local teams = Roster.resolveTeams(members, 4)
+    if teams.mode == "split-screen-avatars" then
+        self.output(string.format(
+            "READY via split-screen fallback: %s versus %s. %d non-avatar party member(s) will not fight.",
+            memberNames(teams.left),
+            memberNames(teams.right),
+            teams.ignoredPartyMembers
+        ))
+    else
+        self.output(string.format(
+            "READY via multiplayer assignments: %s (%s) versus %s (%s).",
+            teams.left.label,
+            memberNames(teams.left),
+            teams.right.label,
+            memberNames(teams.right)
+        ))
+    end
+    return teams
 end
 
 local function prepareGroups(adapter, teams)
@@ -72,16 +117,22 @@ local function connectTeams(adapter, teams)
     end
 end
 
-function Sparring:startAuto()
+function Sparring:_notifyBoth(teams, message)
+    self.adapter.notify(teams.left.members[1].guid, message)
+    self.adapter.notify(teams.right.members[1].guid, message)
+end
+
+function Sparring:startAuto(options)
+    options = options or {}
     if self.active then
         error("a sparring match is already active; use !aa_abort first", 2)
     end
 
-    local teams = Roster.autoTeams(self.adapter.partyMembers(), 4)
+    local teams = Roster.resolveTeams(self.adapter.partyMembers(), 4)
     local match = Match.new({
         id = "sparring-" .. tostring(self.generation + 1),
-        leftEntrantId = "user-" .. tostring(teams.left.userId),
-        rightEntrantId = "user-" .. tostring(teams.right.userId),
+        leftEntrantId = teams.left.entrantId,
+        rightEntrantId = teams.right.entrantId,
         level = teams.level,
         maxPartySize = 4,
     })
@@ -97,12 +148,11 @@ function Sparring:startAuto()
         teams = teams,
         match = match,
         defeated = {},
+        countdownRemaining = clampCountdown(options.countdownSeconds),
     }
 
     local setupOk, setupError = pcall(function()
         prepareGroups(self.adapter, teams)
-        connectTeams(self.adapter, teams)
-        Match.beginCombat(match)
     end)
     if not setupOk then
         local active = self.active
@@ -111,19 +161,85 @@ function Sparring:startAuto()
         error("match setup failed and was rolled back: " .. tostring(setupError), 2)
     end
 
-    local announcement = string.format(
-        "Astral Arena L%d: User %d (%s) versus User %d (%s)",
+    if teams.mode == "split-screen-avatars" then
+        self.output(string.format(
+            "Using split-screen avatar fallback; %d non-avatar party member(s) are spectators.",
+            teams.ignoredPartyMembers
+        ))
+    end
+    self.output(string.format(
+        "Prepared L%d: %s (%s) versus %s (%s).",
         teams.level,
-        teams.left.userId,
+        teams.left.label,
         memberNames(teams.left),
-        teams.right.userId,
+        teams.right.label,
         memberNames(teams.right)
+    ))
+
+    if self.active.countdownRemaining == 0 then
+        self:_beginCombat(self.generation)
+    else
+        self:_countdown(self.generation, self.active.countdownRemaining)
+    end
+    return match
+end
+
+function Sparring:rematch(options)
+    if self.active then
+        error("a sparring match is already active; use !aa_abort first", 2)
+    end
+    if not self.lastResult then
+        error("there is no completed match to replay; use !aa_spar", 2)
+    end
+    return self:startAuto(options)
+end
+
+function Sparring:_countdown(generation, remaining)
+    if not self.active or self.active.generation ~= generation then
+        return
+    end
+    self.active.countdownRemaining = remaining
+    local message = "Astral Arena begins in " .. tostring(remaining) .. "..."
+    self.output(message)
+    self:_notifyBoth(self.active.teams, message)
+    self.adapter.schedule(1000, function()
+        if not self.active or self.active.generation ~= generation then
+            return
+        end
+        if remaining <= 1 then
+            self:_beginCombat(generation)
+        else
+            self:_countdown(generation, remaining - 1)
+        end
+    end)
+end
+
+function Sparring:_beginCombat(generation)
+    if not self.active or self.active.generation ~= generation then
+        return
+    end
+    local active = self.active
+    local combatOk, combatError = pcall(function()
+        connectTeams(self.adapter, active.teams)
+        Match.beginCombat(active.match)
+    end)
+    if not combatOk then
+        self.output("ERROR starting combat: " .. tostring(combatError))
+        self:abort("combat-start-error")
+        return
+    end
+
+    local announcement = string.format(
+        "FIGHT — L%d %s (%s) versus %s (%s)",
+        active.teams.level,
+        active.teams.left.label,
+        memberNames(active.teams.left),
+        active.teams.right.label,
+        memberNames(active.teams.right)
     )
     self.output(announcement)
-    self.adapter.notify(teams.left.members[1].guid, announcement)
-    self.adapter.notify(teams.right.members[1].guid, announcement)
-    self:_schedulePoll(self.generation)
-    return match
+    self:_notifyBoth(active.teams, announcement)
+    self:_schedulePoll(generation)
 end
 
 function Sparring:_schedulePoll(generation)
@@ -152,7 +268,13 @@ function Sparring:_poll()
             if not isAlive and not self.active.defeated[member.guid] then
                 self.active.defeated[member.guid] = true
                 self.adapter.markDefeated(member.guid)
-                self.output((member.name or member.guid) .. " is defeated.")
+                self.output((member.name or member.guid) .. " is down and making death saves.")
+            elseif isAlive and self.active.defeated[member.guid] then
+                self.active.defeated[member.guid] = nil
+                if self.adapter.markRecovered then
+                    self.adapter.markRecovered(member.guid)
+                end
+                self.output((member.name or member.guid) .. " is back in the fight.")
             end
         end
     end
@@ -183,12 +305,15 @@ function Sparring:_finish(resultSide)
             resolution = "defeat",
             winnerSide = resultSide,
             winnerUserId = winners.userId,
+            winnerLabel = winners.label,
             level = active.teams.level,
+            mode = active.teams.mode,
         }
     else
         result = {
             resolution = "draw",
             level = active.teams.level,
+            mode = active.teams.mode,
         }
     end
 
@@ -197,14 +322,13 @@ function Sparring:_finish(resultSide)
     self:_cleanup(active)
 
     local message
-    if result.winnerUserId ~= nil then
-        message = "Astral Arena winner: User " .. tostring(result.winnerUserId)
+    if result.winnerLabel then
+        message = "Astral Arena winner: " .. result.winnerLabel
     else
         message = "Astral Arena result: draw"
     end
     self.output(message)
-    self.adapter.notify(active.teams.left.members[1].guid, message)
-    self.adapter.notify(active.teams.right.members[1].guid, message)
+    self:_notifyBoth(active.teams, message)
     return result
 end
 
@@ -236,16 +360,25 @@ function Sparring:status()
         for _ in pairs(self.active.defeated) do
             defeatedCount = defeatedCount + 1
         end
+        if self.active.match.phase == "preparation" then
+            return string.format(
+                "Preparing L%d %s versus %s (countdown %d)",
+                self.active.teams.level,
+                self.active.teams.left.label,
+                self.active.teams.right.label,
+                self.active.countdownRemaining
+            )
+        end
         return string.format(
-            "Active L%d match: User %d versus User %d (%d defeated)",
+            "Active L%d match: %s versus %s (%d defeated)",
             self.active.teams.level,
-            self.active.teams.left.userId,
-            self.active.teams.right.userId,
+            self.active.teams.left.label,
+            self.active.teams.right.label,
             defeatedCount
         )
     elseif self.lastResult then
-        if self.lastResult.winnerUserId ~= nil then
-            return "Last winner: User " .. tostring(self.lastResult.winnerUserId)
+        if self.lastResult.winnerLabel then
+            return "Last winner: " .. self.lastResult.winnerLabel
         end
         return "Last result: draw"
     end

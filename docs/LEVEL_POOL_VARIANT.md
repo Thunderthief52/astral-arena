@@ -20,7 +20,8 @@ The mode is complementary to the live PvP bracket:
 - After each completed bout, grant exactly enough experience to reach the next level and open BG3's native level-up flow.
 - The next bout cannot begin until every surviving party member has completed that level-up.
 - Class progression, subclass, feats or ability-score improvements, selected spells, prepared spells, and multiclass decisions are all player choices.
-- Use standardized, level-banded equipment budgets so the mode tests builds rather than imported campaign loot. Equipment shopping or rewards can become its own later phase.
+- Use standardized, level-banded equipment budgets so the mode tests builds rather than imported campaign loot.
+- After every completed bout, grant a small automatic utility bundle and offer six level-banded equipment choices; the player keeps one. Losses also qualify so one defeat does not create an equipment death spiral.
 - At level 12, the run ends after the final bout; surviving lives and total trophies determine its result.
 
 Advancing after either result is the recommended prototype rule. A win-only progression option can be tested later, but it risks repeatedly matching a losing build at the same level.
@@ -60,11 +61,12 @@ The snapshot is a build recipe, not a copied save. The mod reconstructs a tempor
 The prototype should avoid recreating BG3's level-up UI. Its responsibilities are narrower:
 
 1. Finish the arena bout and restore the player's party.
-2. Award the exact experience required for the next level.
-3. Wait while BG3 handles level-up decisions normally.
-4. Validate that every party member is at the expected level.
-5. Serialize the resulting build choices and request a same-level opponent.
-6. Start the next bout only after the snapshot and opponent both validate.
+2. Create and resolve the pending arena reward.
+3. Award the exact experience required for the next level.
+4. Wait while BG3 handles level-up decisions normally.
+5. Validate that every party member is at the expected level.
+6. Serialize the resulting build and equipment choices and request a same-level opponent.
+7. Start the next bout only after the snapshot and opponent both validate.
 
 If BG3 does not expose enough Script Extender data to reconstruct every native choice reliably, the first playable version can save local ghost opponents as cloned temporary characters. Public community ghosts still require the stricter declarative format.
 
@@ -81,3 +83,4 @@ If BG3 does not expose enough Script Extender data to reconstruct every native c
 This variant should reuse roster validation, match phases, victory and draw detection, ruleset versioning, and cleanup from Astral Arena. Native progression, lives, trophies, snapshot serialization, opponent selection, and asynchronous exchange should remain separate modules so neither mode destabilizes the other.
 
 The proposed Eddard coordinator boundary is documented in [EDDARD_COORDINATOR.md](EDDARD_COORDINATOR.md).
+The deterministic offer rules and item-safety boundary are documented in [REWARDS.md](REWARDS.md).

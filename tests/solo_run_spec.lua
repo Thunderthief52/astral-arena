@@ -1,0 +1,103 @@
+local H = require("tests.test_helper")
+local SoloRun = require("AstralArena.Core.SoloRun")
+local Fixtures = require("AstralArena.Shared.AIFixtures")
+local Catalog = require("AstralArena.Shared.RewardCatalog")
+
+local function newRun()
+    return SoloRun.new({ id = "solo-test", partyId = "party-1" })
+end
+
+local function winAt(run, level)
+    SoloRun.confirmPartyLevel(run, level)
+    SoloRun.assignOpponent(run, Fixtures.get(level))
+    SoloRun.beginCombat(run)
+    return SoloRun.recordResult(run, "win")
+end
+
+local function claim(run)
+    local offer = SoloRun.createRewardOffer(run, Catalog, {
+        seed = "seed-" .. tostring(run.battleIndex),
+        treasureTableId = "RewardMedium",
+    })
+    SoloRun.markAutomaticDelivered(run)
+    return SoloRun.claimReward(run, offer.choices[1].id)
+end
+
+H.test("solo arena fights through the level-twelve championship", function()
+    local run = newRun()
+    for _, level in ipairs({ 5, 8, 10, 12 }) do
+        local bout = winAt(run, level)
+        H.equal(bout.matchLevel, level)
+        claim(run)
+    end
+    H.equal(run.level, 12)
+    H.equal(run.phase, "completed")
+    H.equal(run.completion, "champion")
+    H.equal(#run.bouts, 4)
+end)
+
+H.test("each victory offers loot for the next progression tier", function()
+    local run = newRun()
+    local bout = winAt(run, 5)
+    H.equal(bout.rewardLevel, 8)
+    local offer = SoloRun.createRewardOffer(run, Catalog, { treasureTableId = "RewardMedium" })
+    H.equal(offer.level, 8)
+    H.equal(offer.automatic.treasureTableId, "RewardMedium")
+    H.equal(#offer.choices, 6)
+end)
+
+H.test("equipment cannot be claimed before the automatic reward", function()
+    local run = newRun()
+    winAt(run, 5)
+    local offer = SoloRun.createRewardOffer(run, Catalog)
+    H.raises(function()
+        SoloRun.claimReward(run, offer.choices[1].id)
+    end, "automatic reward")
+end)
+
+H.test("a solo arena loss ends the run without loot", function()
+    local run = newRun()
+    SoloRun.confirmPartyLevel(run, 5)
+    SoloRun.assignOpponent(run, Fixtures.get(5))
+    SoloRun.beginCombat(run)
+    SoloRun.recordResult(run, "loss")
+    H.equal(run.phase, "completed")
+    H.equal(run.completion, "defeated")
+    H.equal(run.pendingReward, nil)
+end)
+
+H.test("a defeated solo arena can retry the same level", function()
+    local run = newRun()
+    SoloRun.confirmPartyLevel(run, 5)
+    SoloRun.assignOpponent(run, Fixtures.get(5))
+    SoloRun.beginCombat(run)
+    SoloRun.recordResult(run, "loss")
+    H.equal(SoloRun.retryDefeat(run), "seeking_opponent")
+    H.equal(run.level, 5)
+    H.equal(run.battleIndex, 1)
+    H.equal(run.completion, nil)
+end)
+
+H.test("only a defeated run can use the defeat retry transition", function()
+    local run = newRun()
+    H.raises(function() SoloRun.retryDefeat(run) end, "defeat retry")
+end)
+
+H.test("AI fixtures must match the current combat level", function()
+    local run = newRun()
+    SoloRun.confirmPartyLevel(run, 5)
+    H.raises(function()
+        SoloRun.assignOpponent(run, Fixtures.get(8))
+    end, "level 5")
+end)
+
+H.test("draws repeat the tier without producing loot", function()
+    local run = newRun()
+    SoloRun.confirmPartyLevel(run, 5)
+    SoloRun.assignOpponent(run, Fixtures.get(5))
+    SoloRun.beginCombat(run)
+    SoloRun.recordResult(run, "draw")
+    H.equal(run.level, 5)
+    H.equal(run.phase, "seeking_opponent")
+    H.equal(run.pendingReward, nil)
+end)

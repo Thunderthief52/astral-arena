@@ -13,9 +13,11 @@
 - Detect two connected peers through assigned party characters
 - Support one to four same-level fighters per side
 - Apply temporary hostility and start combat
-- Use temporary immortality and one HP as nonlethal defeat
+- Use native zero-HP downing and death saves, followed by safe bout cleanup
 - Detect victory/draw and restore relationships, combat state, health, and resources
 - Provide scan, doctor, status, forfeit, and abort commands
+- Resolve collapsed split-screen ownership through exactly two player-avatar components
+- Provide a start countdown and ownership-rescanning rematch
 - Package guarded Windows installer and detailed playtest protocol
 
 ## M1b — dedicated playable 4v4 arena
@@ -25,6 +27,7 @@
 - Begin combat after both players confirm readiness
 - Add graphical readiness and result prompts
 - Validate teardown against disconnects, summons, transformations, and environmental deaths
+- Add explicit split-screen companion assignment for couch 2v2 and 4v4
 
 ## M2 — fair PvP ruleset
 
@@ -35,10 +38,16 @@
 - Full resource reset between games
 - Equipment budget and banned-item validation
 - Disconnect, forfeit, and host-migration safeguards
+- Deterministic post-match reward queue with an audited vanilla item catalog
+- Automatic utility bundle plus a controller-friendly one-of-six equipment choice
+- Split-screen recipient confirmation and duplicate-delivery recovery
 
 ## M3 — AI training tournament
 
-- Curated AI parties at levels 3, 6, and 9
+- Initial vertical slice: one fixed four-enemy team at levels 5, 8, and 10 with 5 → 8 → 10 → 12 rewards/progression
+- Fresh-character bridge: native level-1 → 5 bootstrap plus twelve deterministic encounter formations
+- Dedicated Adventure startup level with staging area and twelve isolated combat sites
+- Additional curated AI-party variants at levels 5, 8, and 10
 - Arena-aware positioning profiles
 - Same match controller and PvP rules used by multiplayer
 - Eight-team solo bracket with repeatable seeds
@@ -63,6 +72,7 @@
 - Keep one player-created party and make class, spell, feat, and multiclass choices through BG3's native level-up flow
 - Fight a player-authored party snapshot from the same level, with developer fixtures only as empty-pool fallbacks
 - Lives/trophies structure inspired by asynchronous auto-battlers
+- Reward every completed bout with level-banded arena loot, including losses, before native level-up
 - Exchange validated snapshots through a Windows companion and the Eddard coordinator
 - Reuse the match engine without coupling this mode to the live PvP bracket
 

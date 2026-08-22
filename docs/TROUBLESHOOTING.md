@@ -27,7 +27,13 @@ Then enter `!aa_version` and attach the console output to a report.
 
 ## `!aa_doctor` finds only one user
 
-The game has not assigned a party character to the guest. Open Escape → Multiplayer/Session and drag at least one character to the second player. Run `!aa_doctor` again.
+For online play, the game may not have assigned a party character to the guest. Open Escape → Multiplayer/Session and drag at least one character to the second player, then run `!aa_doctor` again.
+
+For split-screen, one ordinary ownership group is acceptable when the doctor also detects exactly two `UserAvatar` components. It should print `READY via split-screen fallback`. If it finds fewer or more than two player avatars, confirm both controllers joined before loading the save and start with exactly two custom/origin player avatars.
+
+## Split-screen fallback ignores companions
+
+This is intentional in `0.1.1-alpha.1`. When BG3 collapses ordinary ownership, the mod can reliably identify the two controller avatars but cannot safely infer which companions belong to each controller. The fallback therefore creates a 1v1 and reports all non-avatar party members as spectators.
 
 ## `!aa_doctor` reports mixed levels
 
@@ -37,7 +43,7 @@ Every registered fighter must currently have the same character level. Level the
 
 Enter `!aa_abort`, reload the pre-test save, and retry in a smaller, flatter area with one character per player. Disable AI, party-control, initiative, and PvP mods. Report which characters entered combat and which remained outside it.
 
-## A character remains at 1 HP or cannot fight after cleanup
+## A character remains downed or cannot fight after cleanup
 
 First try `!aa_abort`. If it says no match is active or does not restore the character, reload the manual save made before the match. Do not continue the campaign from the affected state. Attach the relevant runtime log.
 
