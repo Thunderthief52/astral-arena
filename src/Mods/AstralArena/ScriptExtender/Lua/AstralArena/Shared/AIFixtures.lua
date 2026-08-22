@@ -11,6 +11,10 @@ local BY_LEVEL = {
             { id = "warrior", displayName = "Initiate Warrior", role = "frontline", templateId = "814b1e10-eafc-4739-9b17-7a8a4e99be9f" },
         },
         selectionOrder = { "warrior", "raider", "gish" },
+        waveOrders = {
+            { "warrior", "raider", "gish" },
+            { "gish", "raider", "warrior" },
+        },
     },
     [5] = {
         id = "astral-vanguard",
@@ -23,6 +27,10 @@ local BY_LEVEL = {
             { id = "warrior", displayName = "Vanguard Warrior", role = "frontline", templateId = "814b1e10-eafc-4739-9b17-7a8a4e99be9f" },
         },
         selectionOrder = { "warrior", "raider", "gish", "devastator" },
+        waveOrders = {
+            { "warrior", "raider", "gish", "devastator" },
+            { "gish", "devastator", "warrior", "raider" },
+        },
     },
     [8] = {
         id = "astral-bastion",
@@ -35,6 +43,11 @@ local BY_LEVEL = {
             { id = "defender-b", displayName = "Bastion Shield", role = "frontline", templateId = "3423bf45-3295-43d7-843b-fe0be417dc31" },
         },
         selectionOrder = { "defender-a", "ranger", "attacker", "defender-b" },
+        waveOrders = {
+            { "defender-a", "ranger", "attacker", "defender-b" },
+            { "defender-b", "attacker", "ranger", "defender-a" },
+            { "defender-a", "attacker", "defender-b", "ranger" },
+        },
     },
     [10] = {
         id = "astral-judicators",
@@ -47,6 +60,11 @@ local BY_LEVEL = {
             { id = "caster", displayName = "Judicator Caster", role = "caster", templateId = "1a80541e-f990-4a07-ba08-008b9992f7be" },
         },
         selectionOrder = { "fist-a", "caster", "cleric", "fist-b" },
+        waveOrders = {
+            { "fist-a", "caster", "cleric", "fist-b" },
+            { "fist-b", "cleric", "caster", "fist-a" },
+            { "fist-a", "cleric", "fist-b", "caster" },
+        },
     },
 }
 
@@ -54,13 +72,17 @@ function Fixtures.get(level)
     return BY_LEVEL[level]
 end
 
-function Fixtures.forPartySize(level, partySize)
+function Fixtures.forWave(level, partySize, waveIndex)
     local fixture = BY_LEVEL[level]
     if not fixture then
         return nil
     end
 
     partySize = math.max(1, math.floor(tonumber(partySize) or 1))
+    waveIndex = math.floor(tonumber(waveIndex) or 1)
+    if waveIndex < 1 or waveIndex > #(fixture.waveOrders or {}) then
+        error(string.format("fixture level %d does not define wave %d", level, waveIndex), 2)
+    end
     local memberCount = math.min(#fixture.members, partySize)
     local byId = {}
     for _, member in ipairs(fixture.members) do
@@ -68,7 +90,8 @@ function Fixtures.forPartySize(level, partySize)
     end
 
     local members = {}
-    for _, memberId in ipairs(fixture.selectionOrder or {}) do
+    local selectionOrder = fixture.waveOrders[waveIndex] or fixture.selectionOrder or {}
+    for _, memberId in ipairs(selectionOrder) do
         if #members >= memberCount then
             break
         end
@@ -100,7 +123,18 @@ function Fixtures.forPartySize(level, partySize)
     scaled.members = members
     scaled.fullMemberCount = #fixture.members
     scaled.partySize = partySize
+    scaled.waveIndex = waveIndex
+    scaled.waveCount = #(fixture.waveOrders or {})
     return scaled
+end
+
+function Fixtures.forPartySize(level, partySize)
+    return Fixtures.forWave(level, partySize, 1)
+end
+
+function Fixtures.waveCount(level)
+    local fixture = BY_LEVEL[level]
+    return fixture and #(fixture.waveOrders or {}) or 0
 end
 
 function Fixtures.levels()

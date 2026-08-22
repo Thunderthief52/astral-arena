@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.2-alpha.8 — 2026-08-22
+
+- Turned every arena battle into a multi-wave event: two waves at levels 3 and 5, then three waves at levels 8 and 10.
+- Kept every wave scaled to the active player-character count and rotated role order between waves for varied two- and three-character rosters.
+- Added a three-second inter-wave breather that deletes cleared enemies and restores downed teammates to partial health without refreshing surviving characters, spell slots, class resources, or cooldowns.
+- Reserved the existing full long-rest-equivalent restoration, abundant loot bundle, and level progression for victory over the final wave.
+
 ## 0.3.2-alpha.7 — 2026-08-22
 
 - Scaled each AI bout to the active player-character count instead of always spawning the full four-enemy fixture; each reduced roster deliberately keeps a frontline and ranged threat.

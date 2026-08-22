@@ -15,7 +15,7 @@ _G.Ext = previousExt
 
 local function fakeAdapter()
     local adapter = {
-        alive = {}, queue = {}, restored = {}, recovered = {}, deleted = {}, delivered = {}, experienceTargets = {}, layouts = {}, sites = {}, stagingReturns = 0, fullRests = 0, menus = {}, partySize = 2,
+        alive = {}, queue = {}, restored = {}, recovered = {}, deleted = {}, delivered = {}, experienceTargets = {}, layouts = {}, sites = {}, stagingReturns = 0, fullRests = 0, menus = {}, partySize = 2, spawnCalls = 0, interWaveRecoveries = 0,
     }
     function adapter.partyMembers()
         local ids = { "player-a", "player-b", "player-c", "player-d" }
@@ -35,10 +35,11 @@ local function fakeAdapter()
     function adapter.validateItemTemplate() return true end
     function adapter.isPartyInArena() return adapter.inArena ~= false end
     function adapter.spawnFixtureTeam(fixture, _, layout)
+        adapter.spawnCalls = adapter.spawnCalls + 1
         table.insert(adapter.layouts, layout)
         local values = {}
         for index, member in ipairs(fixture.members) do
-            local guid = "enemy-" .. index
+            local guid = string.format("enemy-%d-%d", adapter.spawnCalls, index)
             adapter.alive[guid] = true
             table.insert(values, { guid = guid, name = member.displayName, faction = "enemy", temporary = true })
         end
@@ -57,6 +58,13 @@ local function fakeAdapter()
     function adapter.markDefeated() end
     function adapter.markRecovered(guid) table.insert(adapter.recovered, guid) end
     function adapter.restoreCharacter(member) table.insert(adapter.restored, member.guid) end
+    function adapter.recoverBetweenWaves(member)
+        adapter.interWaveRecoveries = adapter.interWaveRecoveries + 1
+        if not adapter.alive[member.guid] then
+            adapter.alive[member.guid] = true
+            table.insert(adapter.recovered, member.guid)
+        end
+    end
     function adapter.deleteTemporary(member) table.insert(adapter.deleted, member.guid) end
     function adapter.schedule(_, callback) table.insert(adapter.queue, callback) end
     function adapter.notify() end
@@ -79,6 +87,25 @@ end
 
 local function arena(adapter)
     return SoloArena.new(adapter, function() end, Fixtures, Catalog, Layouts, Sites)
+end
+
+local function defeatCurrentWave(subject, adapter)
+    for _, member in ipairs(subject.active.teams.right.members) do
+        adapter.alive[member.guid] = false
+    end
+    table.remove(adapter.queue, 1)()
+end
+
+local function clearBout(subject, adapter)
+    local waveCount = subject.active.waveCount
+    for waveIndex = 1, waveCount do
+        defeatCurrentWave(subject, adapter)
+        if waveIndex < waveCount then
+            H.truthy(subject.active.transitioning)
+            H.equal(adapter.fullRests, 0)
+            table.remove(adapter.queue, 1)()
+        end
+    end
 end
 
 H.test("AI bootstrap awards level-three XP while preserving native choices", function()
@@ -105,6 +132,8 @@ H.test("AI arena scales a level-five fixture to a two-character party", function
     local match = subject:start({ countdownSeconds = 0 })
     H.equal(match.phase, "combat")
     H.equal(match.level, 5)
+    H.equal(subject.active.waveCount, 2)
+    H.equal(subject.active.waveIndex, 1)
     H.equal(#subject.active.teams.right.members, 2)
     H.equal(subject.active.teams.right.members[1].name, "Vanguard Warrior")
     H.equal(subject.active.teams.right.members[2].name, "Vanguard Raider")
@@ -126,10 +155,11 @@ H.test("AI victory restores the party, delivers loot, and advances without a pro
     local adapter = fakeAdapter()
     local subject = arena(adapter)
     subject:start({ countdownSeconds = 0 })
-    for index = 1, 2 do adapter.alive["enemy-" .. index] = false end
-    table.remove(adapter.queue, 1)()
+    clearBout(subject, adapter)
     H.equal(subject.active, nil)
-    H.equal(#adapter.deleted, 2)
+    H.equal(adapter.spawnCalls, 2)
+    H.equal(#adapter.deleted, 4)
+    H.equal(adapter.interWaveRecoveries, 2)
     H.equal(adapter.stagingReturns, 1)
     H.equal(adapter.fullRests, 1)
     H.equal(adapter.delivered[1], "bundle:2")
@@ -137,6 +167,43 @@ H.test("AI victory restores the party, delivers loot, and advances without a pro
     H.equal(subject.run.phase, "awaiting_level_up")
     H.equal(subject.menu, nil)
     H.equal(#adapter.menus, 0)
+end)
+
+H.test("AI fixture waves rotate roles while preserving party-size scaling", function()
+    H.equal(Fixtures.waveCount(3), 2)
+    H.equal(Fixtures.waveCount(5), 2)
+    H.equal(Fixtures.waveCount(8), 3)
+    H.equal(Fixtures.waveCount(10), 3)
+    local secondWave = Fixtures.forWave(5, 2, 2)
+    H.equal(#secondWave.members, 2)
+    H.equal(secondWave.members[1].id, "gish")
+    H.equal(secondWave.members[2].id, "devastator")
+end)
+
+H.test("higher-tier bouts use three waves without resting between them", function()
+    local adapter = fakeAdapter()
+    adapter.partyLevel = 8
+    local subject = arena(adapter)
+    subject:start({ countdownSeconds = 0 })
+    H.equal(subject.active.waveCount, 3)
+    defeatCurrentWave(subject, adapter)
+    H.equal(adapter.fullRests, 0)
+    H.equal(subject.active.waveIndex, 1)
+    H.truthy(subject.active.transitioning)
+    table.remove(adapter.queue, 1)()
+    H.equal(subject.active.waveIndex, 2)
+    H.equal(#subject.active.teams.right.members, 2)
+end)
+
+H.test("a downed teammate recovers for the next wave without a full rest", function()
+    local adapter = fakeAdapter()
+    local subject = arena(adapter)
+    subject:start({ countdownSeconds = 0 })
+    adapter.alive["player-a"] = false
+    defeatCurrentWave(subject, adapter)
+    H.equal(adapter.fullRests, 0)
+    H.equal(adapter.alive["player-a"], true)
+    H.equal(adapter.recovered[1], "player-a")
 end)
 
 H.test("AI arena retains the full fixture for a four-character party", function()
@@ -180,8 +247,7 @@ H.test("continue refuses until every party member reaches the expected level", f
     local adapter = fakeAdapter()
     local subject = arena(adapter)
     subject:start({ countdownSeconds = 0 })
-    for index = 1, 2 do adapter.alive["enemy-" .. index] = false end
-    table.remove(adapter.queue, 1)()
+    clearBout(subject, adapter)
     H.raises(function() subject:continue() end, "level 8")
     adapter.partyLevel = 8
     local match = subject:continue()
@@ -246,8 +312,7 @@ H.test("automatic progression starts the next bout after reward level-up", funct
     local adapter = fakeAdapter()
     local subject = arena(adapter)
     subject:start({ countdownSeconds = 0 })
-    for index = 1, 2 do adapter.alive["enemy-" .. index] = false end
-    table.remove(adapter.queue, 1)()
+    clearBout(subject, adapter)
     adapter.partyLevel = 8
     H.equal(subject:autoAdvance(), "started")
     H.equal(subject.active.match.level, 8)

@@ -2,12 +2,12 @@
 
 ## Build under test
 
-- Version: `0.3.2-alpha.7`
+- Version: `0.3.2-alpha.8`
 - Adventure UUID: `29c48c80-8777-f7b5-6bb8-376c1c5d8db6`
 - Character flow: BG3 system character creator → `AA_Arena_Main`
-- PAK: `dist\AstralArena-0.3.2-alpha.7.pak`
+- PAK: `dist\AstralArena-0.3.2-alpha.8.pak`
 
-This candidate scales enemy rosters to the active player-character count and makes solid scenery explicitly block movement and click-through destinations. It retains native death saves, full between-round recovery, automatic generous loot, automatic defeat replays, level-3 initiation, current-tier save recovery, and the ruin-arch perimeter.
+This candidate makes every party-scaled battle a multi-wave event: two waves at levels 3 and 5, then three waves at levels 8 and 10. Downed allies recover at partial health during a three-second intermission without a rest; the full long rest, loot, and progression resolve only after the final wave. Solid scenery remains explicitly movement- and click-blocking.
 
 ## Install
 
@@ -17,7 +17,7 @@ This candidate scales enemy rosters to the active player-character count and mak
 
    ```powershell
    Set-ExecutionPolicy -Scope Process Bypass
-   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.2-alpha.7.pak"
+   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.2-alpha.8.pak"
    ```
 
 4. Confirm this file exists:
@@ -32,7 +32,7 @@ This candidate scales enemy rosters to the active player-character count and mak
 
 ## Discard placeholder-party saves
 
-Do not continue a save containing four naked, classless, immobile characters at one HP. Those entities are BG3's temporary system character-creation placeholders, not recoverable player builds. Delete or ignore that playtest save and begin a fresh New Game with `0.3.2-alpha.7` enabled. Saves containing real custom arena characters at levels 5, 8, or 10 can resume at their current tier; mixed-level split-screen parties receive missing XP repair.
+Do not continue a save containing four naked, classless, immobile characters at one HP. Those entities are BG3's temporary system character-creation placeholders, not recoverable player builds. Delete or ignore that playtest save and begin a fresh New Game with `0.3.2-alpha.8` enabled. Saves containing real custom arena characters at levels 5, 8, or 10 can resume at their current tier; mixed-level split-screen parties receive missing XP repair.
 
 ## Start a clean Adventure
 
@@ -40,10 +40,10 @@ Do not continue a save containing four naked, classless, immobile characters at 
 2. Create one character for solo, join the ordinary online lobby before finalizing characters for co-op, or connect the second controller before completing split-screen character creation.
 3. Finish the supported BG3 system character creator normally. This system scene is expected; it is not a campaign location. Do not use Honour Mode for this alpha.
 4. Confirm the finished custom party transfers into `AA_Arena_Main`, not a Nautiloid or Act 1 campaign location. A naked character-creation dummy must not remain active.
-5. Make a named manual save such as `AA 0.3.2-alpha.7 BEFORE AUTO START`.
+5. Make a named manual save such as `AA 0.3.2-alpha.8 BEFORE AUTO START`.
 6. Confirm Astral Arena automatically awards the vanilla level-3 XP threshold and displays a notification. No console command is required.
 7. Complete every ordinary BG3 level-up through level 3. In co-op or split-screen, both players should receive XP and complete their own choices.
-8. Confirm the party moves to Astral Flats and begins the three-second countdown against the party-sized Astral Initiate roster (up to three enemies).
+8. Confirm the party moves to Astral Flats and begins the three-second countdown against wave 1/2 of the party-sized Astral Initiate roster (up to three enemies per wave).
 
 If automatic onboarding pauses, `!aa_ai_status` and `!aa_ai_doctor` remain available as diagnostics. `!aa_ai_bootstrap`, `!aa_ai_start`, and `!aa_ai_continue` are recovery commands, not normal play steps.
 
@@ -51,10 +51,10 @@ If automatic onboarding pauses, `!aa_ai_status` and `!aa_ai_doctor` remain avail
 
 | Bout | Party level | Expected site | Opponent | Reward target |
 | --- | ---: | --- | --- | ---: |
-| 1 | 3 | Astral Flats | Astral Initiates (matches party, max 3) | 5 |
-| 2 | 5 | Astral Flats | Astral Vanguard | 8 |
-| 3 | 8 | Crescent Ruin | Astral Bastion | 10 |
-| 4 | 10 | Echelon Steps | Astral Judicators | 12 |
+| 1 | 3 | Astral Flats | Astral Initiates (2 waves; matches party, max 3) | 5 |
+| 2 | 5 | Astral Flats | Astral Vanguard (2 waves) | 8 |
+| 3 | 8 | Crescent Ruin | Astral Bastion (3 waves) | 10 |
+| 4 | 10 | Echelon Steps | Astral Judicators (3 waves) | 12 |
 
 For each bout:
 
@@ -63,11 +63,12 @@ For each bout:
 3. Confirm party members stop at solid pillars, arches, rocks, and cover instead of walking into them, while decorative grass remains passable.
 4. Confirm the expected number of temporary enemies matches the active player-character count (subject to the fixture caps), appears ahead of the party on valid ground, and the three-second countdown completes.
 5. Fight normally. At zero HP, a player or enemy should enter BG3's native downed pose and keep its death-save turn in initiative. While another teammate remains active, confirm the downed actor rolls death saves and can be helped or healed without enemies farming extra failures. A recovered actor should lose arena protection and rejoin normally.
-6. After victory, confirm temporary enemies disappear and every player returns to staging with long-rest resources restored.
-7. Check every party inventory. Each player should receive four level-scaled loot rolls, and the six rare candidates should be distributed round-robin across the party.
-8. Complete native level-ups to the next target; the next bout starts automatically when every player is ready.
+6. After every non-final wave, confirm cleared enemies disappear, downed allies return at partial health, no loot or XP arrives, spell slots and class resources remain spent, and the next wave appears after three seconds.
+7. After the final wave, confirm temporary enemies disappear and every player returns to staging with long-rest resources restored.
+8. Check every party inventory. Each player should receive four level-scaled loot rolls, and the six rare candidates should be distributed round-robin across the party.
+9. Complete native level-ups to the next target; the next bout starts automatically when every player is ready.
 
-After a defeat or draw, confirm the party returns to staging, fully restores, and the same tier rebuilds automatically after five seconds without a prompt.
+After a defeat or draw in any wave, confirm the party returns to staging, fully restores, and the same tier restarts from wave 1 automatically after five seconds without a prompt.
 
 After the fourth reward, finish leveling to 12. The runtime automatically completes the run; expected console output is `Astral Arena champion complete at level 12.`
 

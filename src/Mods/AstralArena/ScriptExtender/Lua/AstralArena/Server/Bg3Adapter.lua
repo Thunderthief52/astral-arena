@@ -230,6 +230,53 @@ function Adapter.restoreCharacter(member, opposingFactions)
     end)
 end
 
+function Adapter.recoverBetweenWaves(member, opposingFactions)
+    local wasDown = not Adapter.isAlive(member.guid)
+    safely(function()
+        Osi.LeaveCombat(member.guid)
+    end)
+    for faction in pairs(opposingFactions or {}) do
+        safely(function()
+            Osi.ClearIndividualRelation(member.guid, faction)
+        end)
+    end
+    safely(function()
+        Osi.RemoveStatus(member.guid, "KNOCKED_OUT", member.guid)
+    end)
+    safely(function()
+        Osi.RemoveStatus(member.guid, "FORCE_KNOCKED_OUT_TEMPORARILY", member.guid)
+    end)
+    safely(function()
+        Osi.RemoveStatusesWithType(member.guid, "DOWNED", member.guid)
+    end)
+    safely(function()
+        Osi.RemoveStatus(member.guid, "INVULNERABLE_NOT_SHOWN", member.guid)
+    end)
+    if Osi.IsDead(member.guid) == 1 then
+        safely(function()
+            Osi.Resurrect(member.guid)
+        end)
+    end
+    safely(function()
+        Osi.SetCanFight(member.guid, 1)
+    end)
+    safely(function()
+        Osi.SetCanJoinCombat(member.guid, 1)
+    end)
+    safely(function()
+        Osi.SetImmortal(member.guid, 0)
+    end)
+    ensureDeathSavingThrows(member.guid)
+    if wasDown then
+        -- A wave transition cannot leave a player stranded at zero HP, but it
+        -- is intentionally not a short or long rest. Surviving characters keep
+        -- their current health, spell slots, class resources, and cooldowns.
+        safely(function()
+            Osi.SetHitpointsPercentage(member.guid, 50)
+        end)
+    end
+end
+
 function Adapter.fullRestParty(members)
     if type(members) ~= "table" or not members[1] then
         return

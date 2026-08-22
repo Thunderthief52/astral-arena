@@ -2,18 +2,18 @@
 
 ## What this candidate tests
 
-Version `0.3.2-alpha.7` tests a continuous, non-blocking solo/co-op progression run with party-sized enemy rosters, solid tactical scenery, native death saves, full between-round recovery, automatic generous loot, save-tier recovery, and a level-3 initiation:
+Version `0.3.2-alpha.8` tests a continuous, non-blocking solo/co-op progression run with party-sized multi-wave battles, solid tactical scenery, native death saves, final-wave long rests and loot, save-tier recovery, and a level-3 initiation:
 
 ```text
-fight at L3 -> loot for L5 -> native level-up
-fight at L5 -> loot for L8 -> native level-up
-fight at L8 -> loot for L10 -> native level-up
-fight at L10 -> loot for L12 -> native level-up -> champion
+2 waves at L3 -> long rest + loot for L5 -> native level-up
+2 waves at L5 -> long rest + loot for L8 -> native level-up
+3 waves at L8 -> long rest + loot for L10 -> native level-up
+3 waves at L10 -> long rest + loot for L12 -> native level-up -> champion
 ```
 
 The level-12 party is the completed championship build. There is no level-12 fight in this ruleset; a later exhibition or boss bout can be added separately.
 
-The whole active party fights against a matching number of temporary AI enemies. Reduced rosters deliberately retain a frontline and a ranged or magical threat. The level-3 fixture is capped at three enemies; later fixtures are capped at four. This includes a solo avatar, online co-op players, or split-screen players cooperating against the AI.
+The whole active party fights each wave against a matching number of temporary AI enemies. Reduced rosters rotate roles between waves while retaining melee and ranged or magical pressure. The level-3 fixture is capped at three enemies per wave; later fixtures are capped at four. This includes a solo avatar, online co-op players, or split-screen players cooperating against the AI.
 
 ## Important safety boundary
 
@@ -52,20 +52,20 @@ The Adventure PAK starts in the private `AA_Arena_Main` level. Read [ADVENTURE_P
 
 1. Confirm every active party member finishes leveling to 3.
 2. Confirm the party moves from staging to Astral Flats and starts the countdown.
-3. Fight the party-sized Astral Initiate roster (up to three enemies). After victory, confirm the full restore, automatic loot delivery, and XP target for level 5.
+3. Clear both party-sized Astral Initiate waves (up to three enemies per wave). Confirm there is no rest or loot after wave 1, then confirm the full restore, automatic loot delivery, and XP target for level 5 after wave 2.
 
 ### Level 5 tournament opener
 
 1. Confirm every active party member finishes leveling to 5 and is not already in combat.
 2. Confirm automatic validation moves the whole party from staging to Astral Flats and starts the three-second countdown.
-3. Fight the party-sized Astral Vanguard roster normally. A two-character split-screen party should face exactly two opponents: a Vanguard Warrior and Vanguard Raider.
+3. Fight both party-sized Astral Vanguard waves normally. A two-character split-screen party should face exactly two opponents per wave, beginning with Vanguard Warrior + Vanguard Raider and then Vanguard Gish + Vanguard Devastator.
 
 Expected after victory:
 
 - players and enemies enter BG3's native downed state at zero HP, make death saves while teammates remain active, and can recover through healing or a natural 20;
 - downed actors receive temporary protection against AI farming; that protection is removed immediately when they recover;
-- all temporary enemies disappear;
-- the player party leaves combat, returns to staging, and receives a full long-rest-equivalent resource restore;
+- enemies from a cleared non-final wave disappear, downed allies recover at partial health, and the next wave arrives after three seconds without refreshing resources or delivering loot;
+- after the final wave, all temporary enemies disappear and the player party returns to staging with a full long-rest-equivalent resource restore;
 - every avatar receives four level-scaled treasure rolls and the six rare candidates are distributed round-robin across party inventories.
 
 The whole party then receives enough vanilla experience to reach level 8. Complete every normal BG3 level-up screen, including all class, subclass, feat, spell, and multiclass choices. The next bout starts automatically when every active party member reaches level 8.

@@ -338,6 +338,22 @@ local function connectTeams(adapter, teams)
     end
 end
 
+local function createWaveMatch(run, teams, waveIndex)
+    local match = Match.new({
+        id = string.format("%s-bout-%d-wave-%d", run.id, run.battleIndex, waveIndex),
+        leftEntrantId = teams.left.entrantId,
+        rightEntrantId = teams.right.entrantId,
+        level = run.level,
+        maxPartySize = 4,
+    })
+    Match.setRoster(match, "left", guids(teams.left))
+    Match.setRoster(match, "right", guids(teams.right))
+    Match.setReady(match, "left", true)
+    Match.setReady(match, "right", true)
+    Match.beginPreparation(match)
+    return match
+end
+
 function SoloArena:start(options)
     options = options or {}
     if self.active then
@@ -373,7 +389,9 @@ end
 function SoloArena:_startBout(party, options)
     options = options or {}
     self.menu = nil
-    local fixture = self.fixtures.forPartySize
+    local fixture = self.fixtures.forWave
+        and self.fixtures.forWave(self.run.level, #party.members, 1)
+        or self.fixtures.forPartySize
         and self.fixtures.forPartySize(self.run.level, #party.members)
         or self.fixtures.get(self.run.level)
     if not fixture then
@@ -382,7 +400,7 @@ function SoloArena:_startBout(party, options)
     SoloRun.assignOpponent(self.run, fixture)
 
     local layout = self.arenaLayouts and self.arenaLayouts.select(
-        self.run.id .. "-bout-" .. tostring(self.run.battleIndex)
+        self.run.id .. "-bout-" .. tostring(self.run.battleIndex) .. "-wave-1"
     ) or nil
     local site = self.arenaSites and (
         self.arenaSites.forLevel and self.arenaSites.forLevel(self.run.level)
@@ -412,18 +430,8 @@ function SoloArena:_startBout(party, options)
             members = spawned,
         },
     }
-    local match = Match.new({
-        id = self.run.id .. "-bout-" .. tostring(self.run.battleIndex),
-        leftEntrantId = party.entrantId,
-        rightEntrantId = fixture.id,
-        level = self.run.level,
-        maxPartySize = 4,
-    })
-    Match.setRoster(match, "left", guids(teams.left))
-    Match.setRoster(match, "right", guids(teams.right))
-    Match.setReady(match, "left", true)
-    Match.setReady(match, "right", true)
-    Match.beginPreparation(match)
+    local match = createWaveMatch(self.run, teams, 1)
+    local waveCount = self.fixtures.waveCount and self.fixtures.waveCount(self.run.level) or 1
 
     self.active = {
         generation = self.generation,
@@ -433,6 +441,9 @@ function SoloArena:_startBout(party, options)
         countdownRemaining = countdown(options.countdownSeconds),
         layout = layout,
         site = site,
+        waveIndex = 1,
+        waveCount = math.max(1, waveCount),
+        transitioning = false,
     }
     local ok, err = pcall(function()
         preparePlayers(self.adapter, party)
@@ -447,11 +458,12 @@ function SoloArena:_startBout(party, options)
     end
 
     self.output(string.format(
-        "Prepared AI bout %d/%d at L%d in %s: %d player(s) versus %d %s%s.",
+        "Prepared AI bout %d/%d at L%d in %s: %d wave(s), with %d player(s) versus %d %s in wave 1%s.",
         self.run.battleIndex,
         #self.run.levels - 1,
         self.run.level,
         site and site.displayName or "the active arena",
+        self.active.waveCount,
         #party.members,
         #spawned,
         fixture.displayName,
@@ -499,7 +511,17 @@ function SoloArena:_beginCombat(generation)
         self:abort("combat-start-error")
         return
     end
-    self.output(string.format("FIGHT — L%d Player Party versus %s", self.run.level, self.active.teams.right.label))
+    local message = string.format(
+        "WAVE %d/%d — L%d Player Party versus %s",
+        self.active.waveIndex,
+        self.active.waveCount,
+        self.run.level,
+        self.active.teams.right.label
+    )
+    self.output(message)
+    for _, member in ipairs(self.active.teams.left.members) do
+        self.adapter.notify(member.guid, message)
+    end
     self:_schedulePoll(generation)
 end
 
@@ -516,7 +538,7 @@ function SoloArena:_schedulePoll(generation)
             if self.active then
                 self:abort("poll-error")
             end
-        elseif self.active and self.active.generation == generation then
+        elseif self.active and self.active.generation == generation and not self.active.transitioning then
             self:_schedulePoll(generation)
         end
     end)
@@ -542,8 +564,100 @@ function SoloArena:_poll()
     end
     local _, side = Match.evaluateAlive(self.active.match, alive)
     if self.active.match.phase == "completed" then
-        self:_finish(side)
+        if side == "left" and self.active.waveIndex < self.active.waveCount then
+            self:_advanceWave()
+        else
+            self:_finish(side)
+        end
     end
+end
+
+function SoloArena:_cleanupBetweenWaves(active)
+    local enemyFactions = factionSet(active.teams.right)
+    for _, member in ipairs(active.teams.left.members) do
+        if self.adapter.recoverBetweenWaves then
+            self.adapter.recoverBetweenWaves(member, enemyFactions)
+        else
+            self.adapter.restoreCharacter(member, enemyFactions)
+        end
+    end
+    for _, member in ipairs(active.teams.right.members) do
+        self.adapter.deleteTemporary(member)
+    end
+end
+
+function SoloArena:_spawnNextWave(generation)
+    local active = self.active
+    if not active or active.generation ~= generation or not active.transitioning then
+        return
+    end
+
+    local nextWave = active.waveIndex + 1
+    local party = active.teams.left
+    local fixture = self.fixtures.forWave
+        and self.fixtures.forWave(self.run.level, #party.members, nextWave)
+        or self.fixtures.forPartySize(self.run.level, #party.members)
+    local layout = self.arenaLayouts and self.arenaLayouts.select(
+        self.run.id .. "-bout-" .. tostring(self.run.battleIndex) .. "-wave-" .. tostring(nextWave)
+    ) or nil
+
+    local ok, err = pcall(function()
+        local spawned = self.adapter.spawnFixtureTeam(fixture, party.members[1].guid, layout)
+        active.teams = {
+            level = self.run.level,
+            left = party,
+            right = {
+                entrantId = fixture.id,
+                label = fixture.displayName,
+                members = spawned,
+            },
+        }
+        active.match = createWaveMatch(self.run, active.teams, nextWave)
+        active.defeated = {}
+        active.layout = layout
+        active.waveIndex = nextWave
+        connectTeams(self.adapter, active.teams)
+        Match.beginCombat(active.match)
+    end)
+    if not ok then
+        self.output("ERROR preparing the next arena wave: " .. tostring(err))
+        self:abort("wave-setup-error")
+        return
+    end
+
+    active.transitioning = false
+    local message = string.format(
+        "WAVE %d/%d — L%d Player Party versus %s",
+        active.waveIndex,
+        active.waveCount,
+        self.run.level,
+        active.teams.right.label
+    )
+    self.output(message)
+    for _, member in ipairs(party.members) do
+        self.adapter.notify(member.guid, message)
+    end
+    self:_schedulePoll(generation)
+end
+
+function SoloArena:_advanceWave()
+    local active = self.active
+    active.transitioning = true
+    self:_cleanupBetweenWaves(active)
+    local message = string.format(
+        "Wave %d/%d cleared. Downed allies recovered at partial health; no long rest yet. Wave %d arrives in 3 seconds.",
+        active.waveIndex,
+        active.waveCount,
+        active.waveIndex + 1
+    )
+    self.output(message)
+    for _, member in ipairs(active.teams.left.members) do
+        self.adapter.notify(member.guid, message)
+    end
+    local generation = active.generation
+    self.adapter.schedule(3000, function()
+        self:_spawnNextWave(generation)
+    end)
 end
 
 function SoloArena:_cleanup(active)
@@ -749,7 +863,9 @@ function SoloArena:abort(reason)
         error("there is no active AI arena match", 2)
     end
     local active = self.active
-    Match.abort(active.match, reason or "manual-abort")
+    if active.match.phase ~= "completed" and active.match.phase ~= "aborted" then
+        Match.abort(active.match, reason or "manual-abort")
+    end
     self.active = nil
     self:_cleanup(active)
     self.run.phase = "seeking_opponent"
