@@ -1,6 +1,8 @@
 local Adapter = {}
 
 local REVIVIFY_SCROLL_TEMPLATE = "c1c3e4fb-d68c-4e10-afdc-d4550238d50e"
+local WITHERS_TEMPLATE = "edb2601b-7f01-44e5-84df-7513a695d4eb"
+local WITHERS_LEDGER_TEMPLATE = "14d9b664-b4e4-4e22-a83f-7fafd09f61f5"
 
 local ENEMY_FACTION = "64321d50-d516-b1b2-cfac-2eb773de1ff6"
 local TOTAL_EXPERIENCE = {
@@ -334,6 +336,92 @@ function Adapter.openYesNo(guid, messageKey, message)
         end)
     end
     Osi.OpenMessageBoxYesNo(guid, messageKey)
+end
+
+function Adapter.getGold(guid)
+    return math.max(0, tonumber(Osi.GetGold(guid)) or 0)
+end
+
+function Adapter.addGold(guid, amount)
+    amount = math.floor(tonumber(amount) or 0)
+    if amount ~= 0 then
+        Osi.AddGold(guid, amount)
+    end
+end
+
+local function entityIsInArena(guid)
+    if not guid or guid == "" then
+        return false
+    end
+    return safely(function()
+        return Ext.Entity.Get(guid) ~= nil and Osi.GetRegion(guid) == "AA_Arena_Main"
+    end) == true
+end
+
+function Adapter.ensureCampService(_, state)
+    state = state or {}
+    local withersGuid = state.withersGuid
+    if not entityIsInArena(withersGuid) then
+        withersGuid = safely(function()
+            return Osi.CreateAt(WITHERS_TEMPLATE, 10.5, 0.0, 10.5, 1, 0, "")
+        end)
+        if not withersGuid or withersGuid == "" then
+            error("engine could not create the arena Withers", 2)
+        end
+        safely(function() Osi.MakeNPC(withersGuid) end)
+        safely(function() Osi.SetOnStage(withersGuid, 1) end)
+        safely(function() Osi.SetCanFight(withersGuid, 0) end)
+        safely(function() Osi.SetCanJoinCombat(withersGuid, 0) end)
+        safely(function() Osi.SetImmortal(withersGuid, 1) end)
+        safely(function() Osi.SetCharacterLootable(withersGuid, 0) end)
+        -- Withers supplies the recognizable camp presence; the nearby ledger
+        -- owns the deterministic custom interaction and avoids campaign dialog.
+        safely(function() Osi.SetCanInteract(withersGuid, 0) end)
+    end
+
+    local ledgerGuid = state.ledgerGuid
+    if not entityIsInArena(ledgerGuid) then
+        ledgerGuid = safely(function()
+            return Osi.CreateAt(WITHERS_LEDGER_TEMPLATE, 8.0, 0.15, 9.5, 0, 0, "")
+        end)
+        if not ledgerGuid or ledgerGuid == "" then
+            Ext.Utils.PrintWarning("[Astral Arena] Engine could not create Withers' arena ledger; automatic hireling onboarding remains available.")
+            return { withersGuid = withersGuid }
+        end
+        safely(function() Osi.SetOnStage(ledgerGuid, 1) end)
+        safely(function() Osi.SetCanPickUp(ledgerGuid, 0) end)
+        safely(function() Osi.SetCanInteract(ledgerGuid, 1) end)
+    end
+    return { withersGuid = withersGuid, ledgerGuid = ledgerGuid }
+end
+
+function Adapter.hireFollower(candidate, buyerGuid, targetLevel, callback)
+    local hirelingGuid = candidate and candidate.characterGuid
+    local ok, err = pcall(function()
+        if not hirelingGuid or hirelingGuid == "" then
+            error("hireling character GUID is missing")
+        end
+        Osi.TeleportTo(hirelingGuid, buyerGuid, "AA_Hireling_Arrived", 0, 0, 0, 1, 1)
+        safely(function() Osi.SetOnStage(hirelingGuid, 1) end)
+        safely(function() Osi.SetLevel(hirelingGuid, targetLevel) end)
+        Osi.PROC_Hirelings_Hire(hirelingGuid, buyerGuid)
+    end)
+    if not ok then
+        callback(false, err)
+        return
+    end
+    Adapter.schedule(1200, function()
+        safely(function() Osi.SetLevel(hirelingGuid, targetLevel) end)
+        safely(function() Adapter.prepareCharacter(hirelingGuid) end)
+        local found = false
+        for _, member in ipairs(Adapter.partyMembers()) do
+            if member.guid == hirelingGuid then
+                found = true
+                break
+            end
+        end
+        callback(found, found and nil or "BG3 did not add the summoned hireling to the active party")
+    end)
 end
 
 function Adapter.validateCharacterTemplate(templateId)

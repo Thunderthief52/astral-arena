@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.2-alpha.13 — 2026-08-22
+
+- Reworked staging into a Jergal-themed Court of the Last Witness with a shipped Withers visual, Jergal monument, additional passable banners and vegetation, and blue-violet ledger lighting.
+- Added a persistent arena-owned Withers service: each player avatar receives 300 gold once, six class-varied followers cost 100 gold, recruited followers join at the current arena level, and the ordinary four-person party cap remains enforced.
+- Added an illuminated world ledger that reopens hireling selection between battles without loading Withers' campaign dialog or quest state.
+- Increased the visual pass from 87 scenery objects and eight lights to 103 scenery objects and sixteen lights, with distinct palettes for Astral Flats, Crescent Ruin, and Echelon Steps.
+- Extended validation from the three combat approaches to two staging navigation routes; any dressing inside a protected route must now explicitly support walking through or walking on it.
+- Expanded defeat and draw recovery to a 30-second camp window so players can use the ledger before the automatic rematch.
+
 ## 0.3.2-alpha.12 — 2026-08-22
 
 - Increased all twelve enemy formations to 30–34 metres from the player line, beyond a standard 9-metre move or 18-metre dash into melee range.

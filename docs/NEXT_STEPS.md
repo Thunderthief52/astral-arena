@@ -45,9 +45,9 @@ Exit criteria:
 
 Goal: make matches repeatable enough to evaluate builds rather than setup accidents.
 
-The `0.3.2-alpha.12` candidate turns the party-sized, role-balanced level-3, level-5, level-8, level-10, and level-12 fixtures into two-, three-, and four-wave battles. Downed actors remain vulnerable to native death-save failures and real death. Non-final waves preserve dead/downed states for a 30-second manual revival window; only the battle boundary automatically resurrects and fully restores the party. Opening formations use 30–34 metres of separation, and a once-per-run armory with Revivify scrolls closes the early-game equipment gap.
+The `0.3.2-alpha.13` candidate turns the party-sized, role-balanced level-3, level-5, level-8, level-10, and level-12 fixtures into two-, three-, and four-wave battles. Downed actors remain vulnerable to native death-save failures and real death. Non-final waves preserve dead/downed states for a 30-second manual revival window; only the battle boundary automatically resurrects and fully restores the party. Opening formations use 30–34 metres of separation, a once-per-run armory with Revivify scrolls closes the early-game equipment gap, and Withers offers optional level-matched followers for undersized parties.
 
-`AA_Arena_Main` starts independently of vanilla campaign locations and provides a decorated staging area plus Astral Flats, Crescent Ruin, and Echelon Steps. The current pass has 87 shipped-asset objects and eight accent lights, including 30 oversized ruin arches around the active footprint. All nine loose rocks were removed and the validator now enforces three scenery-free combat approach lanes. This playable foundation must pass new-game, solo, ordinary co-op, and split-screen engine playtests before the map expands.
+`AA_Arena_Main` starts independently of vanilla campaign locations and provides a Jergal-themed staging court plus Astral Flats, Crescent Ruin, and Echelon Steps. The current pass has 103 shipped-asset objects and sixteen accent lights, including 30 oversized ruin arches around the active footprint. All loose rocks remain removed and the validator now enforces three combat approach lanes plus the staging and Withers routes. This playable foundation must pass new-game, solo, ordinary co-op, and split-screen engine playtests before the map expands.
 
 Planned work:
 

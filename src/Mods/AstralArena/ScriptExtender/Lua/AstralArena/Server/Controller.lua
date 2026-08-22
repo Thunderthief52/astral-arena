@@ -9,6 +9,9 @@ local RewardCatalog = Ext.Require("AstralArena/Shared/RewardCatalog.lua")
 local ArenaLayouts = Ext.Require("AstralArena/Shared/ArenaLayouts.lua")
 local ArenaSites = Ext.Require("AstralArena/Shared/ArenaSites.lua")
 local AdventureHandoff = Ext.Require("AstralArena/Shared/AdventureHandoff.lua")
+local HirelingCatalog = Ext.Require("AstralArena/Shared/HirelingCatalog.lua")
+local CampPersistence = Ext.Require("AstralArena/Server/CampPersistence.lua")
+local CampService = Ext.Require("AstralArena/Server/CampService.lua")
 
 local Controller = { API = {} }
 local registered = false
@@ -22,9 +25,11 @@ local function printState(state)
 end
 
 local sparring = Sparring.new(Bg3Adapter, printLine)
-local soloArena = SoloArena.new(Bg3Adapter, printLine, AIFixtures, RewardCatalog, ArenaLayouts, ArenaSites)
+local campService = CampService.new(Bg3Adapter, printLine, HirelingCatalog, CampPersistence)
+local soloArena = SoloArena.new(Bg3Adapter, printLine, AIFixtures, RewardCatalog, ArenaLayouts, ArenaSites, campService)
 Controller.Sparring = sparring
 Controller.SoloArena = soloArena
+Controller.CampService = campService
 
 local autoGeneration = 0
 local adventureHandoff = AdventureHandoff.new()
@@ -223,7 +228,21 @@ function Controller.Register()
 
     Ext.Osiris.RegisterListener("MessageBoxYesNoClosed", 3, "after", function(character, messageKey, result)
         safely(function()
-            soloArena:handleMenuResponse(character, messageKey, result)
+            if not campService:handleMenuResponse(character, messageKey, result) then
+                soloArena:handleMenuResponse(character, messageKey, result)
+            end
+        end)
+    end)
+
+    Ext.Osiris.RegisterListener("UseFinished", 3, "after", function(character, item, success)
+        safely(function()
+            if (success == 1 or success == true) and campService:isLedger(item) then
+                if soloArena.active then
+                    Bg3Adapter.notify(character, "Withers' ledger is available between complete arena battles.")
+                else
+                    campService:open(character)
+                end
+            end
         end)
     end)
 

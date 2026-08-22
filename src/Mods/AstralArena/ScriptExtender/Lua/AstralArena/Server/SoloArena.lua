@@ -26,7 +26,7 @@ local function countdown(value)
     return math.max(0, math.min(30, math.floor(value)))
 end
 
-function SoloArena.new(adapter, output, fixtures, rewardCatalog, arenaLayouts, arenaSites)
+function SoloArena.new(adapter, output, fixtures, rewardCatalog, arenaLayouts, arenaSites, campService)
     return setmetatable({
         adapter = adapter,
         output = output,
@@ -43,6 +43,7 @@ function SoloArena.new(adapter, output, fixtures, rewardCatalog, arenaLayouts, a
         repairNoticeTarget = nil,
         menu = nil,
         preparationBundleDelivered = false,
+        campService = campService,
     }, SoloArena)
 end
 
@@ -789,7 +790,7 @@ function SoloArena:_finish(resultSide)
         ))
         for _, member in ipairs(self.rewardRecipients.members) do
             self.adapter.notify(member.guid, string.format(
-                "Victory! Party fully rested; loot delivered. Finish leveling to %d for the next bout.",
+                "Victory! Fully rested and loot delivered. Use Withers' ledger now if you want another follower, then finish leveling to %d.",
                 targetLevel
             ))
         end
@@ -802,9 +803,9 @@ function SoloArena:_finish(resultSide)
     end
     local generation = self.generation
     for _, member in ipairs(active.teams.left.members) do
-        self.adapter.notify(member.guid, "Arena rematch begins in 5 seconds.")
+        self.adapter.notify(member.guid, "Party fully rested. Withers' ledger is open; the arena rematch begins in 30 seconds.")
     end
-    self.adapter.schedule(5000, function()
+    self.adapter.schedule(30000, function()
         if self.generation ~= generation or self.active or not self.run or self.run.phase ~= "seeking_opponent" then
             return
         end
@@ -916,6 +917,10 @@ function SoloArena:autoAdvance()
         return "outside"
     end
 
+    if self.campService and self.campService.ensureCamp then
+        self.campService:ensureCamp(party.members)
+    end
+
     if self.run then
         if self.run.phase == "completed" then
             return "completed"
@@ -932,6 +937,11 @@ function SoloArena:autoAdvance()
             self:bootstrapParty()
             return "bootstrapped"
         elseif party.level == 3 or party.level == 5 or party.level == 8 or party.level == 10 or party.level == 12 then
+            if self.campService
+                and self.campService:prepareOnboarding(party.members, party.level) ~= "ready"
+            then
+                return "camp"
+            end
             self:start()
             return "started"
         end
@@ -940,6 +950,11 @@ function SoloArena:autoAdvance()
 
     if (self.bootstrapState.phase == "awaiting_level_up" or self.bootstrapState.phase == "completed")
         and party.level == self.bootstrapState.targetLevel then
+        if self.campService
+            and self.campService:prepareOnboarding(party.members, party.level) ~= "ready"
+        then
+            return "camp"
+        end
         self:start()
         return "started"
     end

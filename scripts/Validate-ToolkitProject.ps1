@@ -45,6 +45,7 @@ if ($Values.Type -ne "Adventure") { throw "Module type must be Adventure." }
 if ($Values.StartupLevelName -ne "AA_Arena_Main") { throw "Startup level is not AA_Arena_Main." }
 if ($Values.CharacterCreationLevelName -ne "") { throw "Character creation must inherit BG3's system character creator." }
 if ($Values.NumPlayers -ne "4") { throw "Adventure must support four players." }
+if ($Values.Version64 -ne "36028797018963981") { throw "Adventure module version is not alpha.13 build 13." }
 if ((Get-Content -LiteralPath $MetaPath -Raw) -match 'WLD_|BGO_|CRE_|END_|TUT_') {
     throw "Adventure metadata references a vanilla campaign level."
 }
@@ -90,6 +91,23 @@ if ($AdapterText -notmatch 'AddExplorationExperience\(member\.guid, gain\)') {
 if ($AdapterText -match 'AddExplorationExperience\(members\[1\]\.guid, gain\)') {
     throw "XP onboarding still assumes the first party member covers every split-screen avatar."
 }
+foreach ($RequiredCampTemplate in @(
+    "edb2601b-7f01-44e5-84df-7513a695d4eb",
+    "14d9b664-b4e4-4e22-a83f-7fafd09f61f5"
+)) {
+    if ($AdapterText -notmatch [regex]::Escape($RequiredCampTemplate)) {
+        throw "Arena camp is missing shipped template $RequiredCampTemplate."
+    }
+}
+
+$CampServicePath = Join-Path $RepositoryRoot "src\Mods\AstralArena\ScriptExtender\Lua\AstralArena\Server\CampService.lua"
+$CampServiceText = Get-Content -LiteralPath $CampServicePath -Raw
+if ($CampServiceText -notmatch 'STARTING_GOLD = 300' -or $CampServiceText -notmatch 'HIRELING_COST = 100') {
+    throw "Arena camp economy is not configured for 300 starting gold and 100-gold hirelings."
+}
+if ($ControllerText -notmatch 'RegisterListener\("UseFinished", 3') {
+    throw "Withers' world ledger has no UseFinished interaction listener."
+}
 
 $SoloArenaPath = Join-Path $RepositoryRoot "src\Mods\AstralArena\ScriptExtender\Lua\AstralArena\Server\SoloArena.lua"
 $SoloArenaText = Get-Content -LiteralPath $SoloArenaPath -Raw
@@ -132,17 +150,22 @@ foreach ($Object in $SceneryManifest.objects) {
     }
 }
 
-$ClearZones = @($SceneryManifest.combatClearZones)
-if ($ClearZones.Count -ne 3) {
+$CombatClearZones = @($SceneryManifest.combatClearZones)
+$NavigationClearZones = @($SceneryManifest.navigationClearZones)
+if ($CombatClearZones.Count -ne 3) {
     throw "Arena scenery manifest must define three combat-clear approach zones."
 }
+if ($NavigationClearZones.Count -lt 2) {
+    throw "Arena scenery manifest must define safe staging and Withers approach zones."
+}
+$ClearZones = @($CombatClearZones) + @($NavigationClearZones)
 foreach ($Zone in $ClearZones) {
     if (@($Zone.minimum).Count -ne 2 -or @($Zone.maximum).Count -ne 2) {
         throw "Combat-clear zone '$($Zone.id)' has invalid bounds."
     }
     foreach ($Object in $SceneryManifest.objects) {
         $Position = @($Object.position)
-        $BlocksTravel = $Object.decorative -ne $true -and $Object.walkOn -ne $true
+        $BlocksTravel = $Object.walkThrough -ne $true -and $Object.walkOn -ne $true
         $Inside = $Position[0] -ge $Zone.minimum[0] -and $Position[0] -le $Zone.maximum[0] -and $Position[2] -ge $Zone.minimum[1] -and $Position[2] -le $Zone.maximum[1]
         if ($BlocksTravel -and $Inside) {
             throw "Solid scenery '$($Object.id)' intrudes into combat-clear zone '$($Zone.id)'."
@@ -180,6 +203,6 @@ Write-Host "Toolkit project validation passed:" -ForegroundColor Green
 Write-Host "  Adventure UUID: $ModuleUuid"
 Write-Host "  Character flow: inherited system CC -> AA_Arena_Main"
 Write-Host "  Combat sites:   Astral Flats, Crescent Ruin, Echelon Steps"
-Write-Host "  Clear lanes:    $($ClearZones.Count) scenery-free player-to-enemy approaches"
+Write-Host "  Clear lanes:    $($CombatClearZones.Count) combat approaches + $($NavigationClearZones.Count) camp routes"
 Write-Host "  Visual pass:    $ExpectedSceneryCount scenery objects, $ExpectedLightCount lights"
 Write-Host "  Players:        1-4"

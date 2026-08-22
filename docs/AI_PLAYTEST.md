@@ -2,7 +2,7 @@
 
 ## What this candidate tests
 
-Version `0.3.2-alpha.12` tests a continuous solo/co-op progression run with party-sized multi-wave battles, validated clear combat lanes, 30–34 metre opening separation, a level-appropriate preparation armory, fully lethal native death saves, manual between-wave resurrection, final-wave automatic resurrection/rest/loot, save-tier recovery, a level-3 initiation, and a true level-12 championship:
+Version `0.3.2-alpha.13` tests a continuous solo/co-op progression run with a 300-gold-per-avatar Withers hireling onboarding, party-sized multi-wave battles, validated combat and camp routes, 30–34 metre opening separation, a level-appropriate preparation armory, fully lethal native death saves, manual between-wave resurrection, final-wave automatic resurrection/rest/loot, save-tier recovery, a level-3 initiation, and a true level-12 championship:
 
 ```text
 2 waves at L3 -> long rest + loot for L5 -> native level-up
@@ -36,8 +36,9 @@ Normal Adventure play requires no bootstrap, doctor, start, or continue command.
 1. confirms the whole party is inside `AA_Arena_Main`;
 2. validates every AI and reward template before mutating the run;
 3. grants each fresh level-1 avatar the vanilla level-3 XP threshold without multiplying ordinary party-wide XP;
-4. waits for every player to finish their own native level-up choices; and
-5. starts the next bout when the complete party reaches the required level.
+4. waits for every player to finish their own native level-up choices;
+5. grants each avatar 300 gold and offers level-matched 100-gold followers through Withers, up to four active party members; and
+6. starts the next bout after the host fills the party or declines the remaining offers.
 
 For troubleshooting only, `!aa_version`, `!aa_ai_status`, and `!aa_ai_doctor` remain available. Stop and report the console output if automatic onboarding pauses or a template is missing.
 
