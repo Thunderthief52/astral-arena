@@ -790,7 +790,7 @@ function SoloArena:_finish(resultSide)
         ))
         for _, member in ipairs(self.rewardRecipients.members) do
             self.adapter.notify(member.guid, string.format(
-                "Victory! Fully rested and loot delivered. Use Withers' ledger now if you want another follower, then finish leveling to %d.",
+                "Victory! Fully rested and loot delivered. Finish leveling to %d when your party is ready for the next bout.",
                 targetLevel
             ))
         end
@@ -803,7 +803,7 @@ function SoloArena:_finish(resultSide)
     end
     local generation = self.generation
     for _, member in ipairs(active.teams.left.members) do
-        self.adapter.notify(member.guid, "Party fully rested. Withers' ledger is open; the arena rematch begins in 30 seconds.")
+        self.adapter.notify(member.guid, "Party fully rested. The arena rematch begins from wave 1 in 30 seconds.")
     end
     self.adapter.schedule(30000, function()
         if self.generation ~= generation or self.active or not self.run or self.run.phase ~= "seeking_opponent" then

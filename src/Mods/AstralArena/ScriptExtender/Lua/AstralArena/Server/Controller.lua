@@ -234,18 +234,6 @@ function Controller.Register()
         end)
     end)
 
-    Ext.Osiris.RegisterListener("UseFinished", 3, "after", function(character, item, success)
-        safely(function()
-            if (success == 1 or success == true) and campService:isLedger(item) then
-                if soloArena.active then
-                    Bg3Adapter.notify(character, "Withers' ledger is available between complete arena battles.")
-                else
-                    campService:open(character)
-                end
-            end
-        end)
-    end)
-
     Ext.Osiris.RegisterListener("StatusApplied", 4, "after", function(object, status)
         safely(function()
             soloArena:onStatusApplied(object, status)

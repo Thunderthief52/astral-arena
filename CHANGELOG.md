@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.2-alpha.14 — 2026-08-22
+
+- Fixed the crash immediately after character creation by removing runtime cloning of Withers' campaign root template and the campaign-linked book used as his ledger.
+- Preserved the automatic controller-safe hireling selection, one-time 300-gold grants, 100-gold level-matched followers, four-person party cap, decorated Jergal court, and all alpha.13 arena scenery.
+- Added a regression guard that rejects both crash-linked root-template UUIDs and any world-ledger listener from future startup builds.
+- Confirmed from the matching Script Extender and Osiris logs that both split-screen avatars reached `AA_Arena_Main` and received level-3 XP before the two runtime clones entered the level and the process terminated.
+
 ## 0.3.2-alpha.13 — 2026-08-22
 
 - Reworked staging into a Jergal-themed Court of the Last Witness with a shipped Withers visual, Jergal monument, additional passable banners and vegetation, and blue-violet ledger lighting.

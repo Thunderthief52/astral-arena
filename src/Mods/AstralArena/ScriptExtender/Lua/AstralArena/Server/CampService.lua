@@ -45,23 +45,10 @@ function CampService:ensureCamp(members)
     end
     local state = self:_state()
     local changed = false
-    if self.adapter.ensureCampService then
-        local ok, handles = pcall(self.adapter.ensureCampService, members, state)
-        if ok then
-            handles = handles or {}
-            if handles.withersGuid and handles.withersGuid ~= state.withersGuid then
-                state.withersGuid = handles.withersGuid
-                changed = true
-            end
-            if handles.ledgerGuid and handles.ledgerGuid ~= state.ledgerGuid then
-                state.ledgerGuid = handles.ledgerGuid
-                changed = true
-            end
-        elseif not self.campWarningShown then
-            self.campWarningShown = true
-            self.output("Withers' world dressing could not initialize; the automatic hireling menu remains available: " .. tostring(handles))
-        end
-    end
+    -- Never clone campaign NPC or item templates into the Adventure at runtime.
+    -- BG3 attaches their campaign story components during EnteredLevel and may
+    -- terminate before onboarding opens. The menu provides the hiring service
+    -- without creating any world entities.
     for _, member in ipairs(members) do
         if isAvatar(member) and not state.fundedCharacters[member.guid] then
             self.adapter.addGold(member.guid, STARTING_GOLD)
@@ -214,11 +201,6 @@ function CampService:handleMenuResponse(characterGuid, messageKey, result)
         end
     end)
     return true
-end
-
-function CampService:isLedger(itemGuid)
-    local state = self:_state()
-    return itemGuid and itemGuid ~= "" and itemGuid == state.ledgerGuid
 end
 
 return CampService

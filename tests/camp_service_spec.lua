@@ -17,11 +17,10 @@ local function fixture()
         { guid = "player-b", name = "Player B", userId = 1, level = 3, isAvatar = true },
     }
     local gold = { ["player-a"] = 0, ["player-b"] = 0 }
-    local adapter = { menus = {}, notifications = {}, hires = {}, campEnsures = 0 }
+    local adapter = { menus = {}, notifications = {}, hires = {} }
     function adapter.partyMembers() return members end
     function adapter.ensureCampService()
-        adapter.campEnsures = adapter.campEnsures + 1
-        return { withersGuid = "withers", ledgerGuid = "ledger" }
+        error("automatic onboarding must never spawn campaign world entities")
     end
     function adapter.addGold(guid, amount) gold[guid] = (gold[guid] or 0) + amount end
     function adapter.getGold(guid) return gold[guid] or 0 end
@@ -56,12 +55,13 @@ local function fixture()
     return service, adapter, members, gold, function() return state end, output
 end
 
-H.test("arena camp grants each avatar starting gold exactly once", function()
-    local service, _, members, gold = fixture()
+H.test("arena camp grants each avatar starting gold exactly once without spawning world entities", function()
+    local service, adapter, members, gold = fixture()
     service:ensureCamp(members)
     service:ensureCamp(members)
     H.equal(gold["player-a"], 300)
     H.equal(gold["player-b"], 300)
+    H.equal(#adapter.notifications, 2)
 end)
 
 H.test("Withers onboarding hires level-matched followers and stops at four", function()
@@ -98,11 +98,4 @@ H.test("a failed hire refunds its gold", function()
     local menu = adapter.menus[#adapter.menus]
     service:handleMenuResponse("player-a", menu.key, 1)
     H.equal(gold["player-a"], 300)
-end)
-
-H.test("the persistent ledger id identifies the world interaction", function()
-    local service, _, members = fixture()
-    service:ensureCamp(members)
-    H.truthy(service:isLedger("ledger"))
-    H.equal(service:isLedger("other"), false)
 end)
