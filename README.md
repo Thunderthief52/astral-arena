@@ -1,6 +1,6 @@
 # Astral Arena
 
-Astral Arena is an experimental Baldur's Gate 3 arena Adventure for Windows. Version `0.3.2-alpha.8` turns each party-scaled arena battle into a multi-wave event: two waves at levels 3 and 5, then three waves at levels 8 and 10. Downed allies recover at partial health between waves without a rest; the full long rest, abundant loot, and progression arrive after the final wave. Solid scenery continues to block movement and click-through destinations.
+Astral Arena is an experimental Baldur's Gate 3 arena Adventure for Windows. Version `0.3.2-alpha.9` uses party-scaled multi-wave battles: two waves at levels 3 and 5, three at levels 8 and 10, and a four-wave level-12 championship followed by a staged victory celebration. Downed allies recover at partial health between waves without a rest; the full long rest, abundant loot, and progression arrive after the final wave. Solid scenery continues to block movement and click-through destinations.
 
 > **Alpha safety note:** use a separate manual save, remove story NPCs from the area, and do not save during an active match. The mod restores combat relationships and characters after a bout, but this is the first engine playtest build.
 
@@ -16,9 +16,9 @@ Astral Arena is an experimental Baldur's Gate 3 arena Adventure for Windows. Ver
 - Three-second start countdown and automatic team rescan for rematches.
 - A deterministic eight-entrant tournament simulator and a tested 1–12 asynchronous run model.
 - A tested deterministic reward engine for level-banded automatic bundles and one-of-six equipment offers.
-- A player-party-versus-AI run with a level-3 initiation, fights at levels 5, 8, and 10, and native progression to 5, 8, 10, and 12.
+- A player-party-versus-AI run with a level-3 initiation, fights at levels 5, 8, and 10, and a four-wave level-12 championship.
 - Party-sized AI rosters: one to four player characters face the same number of deliberately selected opponents, capped by the three-member initiation fixture and four-member tournament fixtures.
-- Multi-wave battles: two waves at levels 3 and 5, three waves at levels 8 and 10, with a three-second partial-recovery breather but no rest between waves.
+- Multi-wave battles: two waves at levels 3 and 5, three waves at levels 8 and 10, and four championship waves at level 12, with a three-second partial-recovery breather but no rest between waves.
 - Automatic post-character-creation onboarding that grants the vanilla level-3 XP threshold, waits for every player-authored level-up choice, validates fixtures and rewards internally, and starts each ready bout.
 - A Toolkit-authored Adventure module that starts in the isolated `AA_Arena_Main` level rather than a vanilla campaign location.
 - A decorated safe staging area plus three visually distinct runtime-selected combat sites: Astral Flats, Crescent Ruin, and Echelon Steps.
@@ -39,14 +39,14 @@ The level now uses shipped BG3 stonework, ruins, rocks, vegetation, cover, eleva
 
 ## Install the Adventure PAK
 
-The Toolkit build is `dist\AstralArena-0.3.2-alpha.8.pak`.
+The Toolkit build is `dist\AstralArena-0.3.2-alpha.9.pak`.
 
 1. Close Baldur's Gate 3.
 2. Install Norbyte's Script Extender if it is not already present.
 3. From the repository root, install the PAK:
 
    ```powershell
-   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.2-alpha.8.pak"
+   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.2-alpha.9.pak"
    ```
 
    Manual alternative: copy the PAK to:
@@ -60,7 +60,7 @@ The Toolkit build is `dist\AstralArena-0.3.2-alpha.8.pak`.
 6. Choose **New Game**, select **Astral Arena Adventure** if BG3 displays an Adventure choice, and create the player characters.
 7. For ordinary online co-op, install the identical PAK and Script Extender version on every PC. Split-screen needs one installation.
 
-The installer backs up a previous canonical Adventure PAK under `%LOCALAPPDATA%\AstralArena\PakBackups`. Saves containing temporary 1-HP character-creation dummies remain invalid and should be discarded. Real custom-character arena saves at levels 5, 8, or 10 can resume at their current tier with `0.3.2-alpha.8`; mixed-level split-screen parties receive missing XP repair. Follow [docs/ADVENTURE_PLAYTEST.md](docs/ADVENTURE_PLAYTEST.md).
+The installer backs up a previous canonical Adventure PAK under `%LOCALAPPDATA%\AstralArena\PakBackups`. Saves containing temporary 1-HP character-creation dummies remain invalid and should be discarded. Real custom-character arena saves at levels 5, 8, 10, or 12 can resume at their current tier with `0.3.2-alpha.9`; mixed-level split-screen parties receive missing XP repair. Follow [docs/ADVENTURE_PLAYTEST.md](docs/ADVENTURE_PLAYTEST.md).
 
 ## Run the first match
 
@@ -106,7 +106,7 @@ For the PvP test matrix, expected results, logs, and bug-report checklist, read 
 
 ## Run the AI progression playtest
 
-Start a disposable Astral Arena Adventure new game with one to four player-created characters. The Adventure grants the level-3 XP threshold, waits until everyone finishes native level-up choices, and begins a party-sized two-wave initiation at Astral Flats. Cleared non-final waves bring downed allies back at partial health without refreshing resources; completing the battle returns and fully rests the party. Victories automatically deliver four loot rolls per player plus all six rare candidates across party inventories, then grant the next level threshold; losses and draws replay the full battle after five seconds. Later bouts begin automatically after everyone finishes leveling. Existing saves at levels 5, 8, or 10 resume at the matching tier.
+Start a disposable Astral Arena Adventure new game with one to four player-created characters. The Adventure grants the level-3 XP threshold, waits until everyone finishes native level-up choices, and begins a party-sized two-wave initiation at Astral Flats. Cleared non-final waves bring downed allies back at partial health without refreshing resources; completing the battle returns and fully rests the party. Victories automatically deliver four loot rolls per player plus all six rare candidates across party inventories, then grant the next level threshold; losses and draws replay the full battle after five seconds. The run culminates in four level-12 Astral Exarch waves and a party-wide champion celebration. Existing saves at levels 5, 8, 10, or 12 resume at the matching tier.
 
 This mode awards real loot and XP. Read [docs/AI_PLAYTEST.md](docs/AI_PLAYTEST.md) before starting; `!aa_ai_reset` does not undo inventory or experience changes.
 
@@ -141,15 +141,15 @@ The deterministic Lua code runs outside BG3 with LuaJIT or Lua 5.1+:
 ```sh
 luajit tests/run.lua
 luajit scripts/simulate.lua
-./scripts/build-release.sh 0.3.2-alpha.8
+./scripts/build-release.sh 0.3.2-alpha.9
 ```
 
 Windows equivalents:
 
 ```powershell
 lua tests\run.lua
-.\scripts\Build-Pak.ps1 -Version 0.3.2-alpha.8
-.\scripts\Build-Release.ps1 -Version 0.3.2-alpha.8
+.\scripts\Build-Pak.ps1 -Version 0.3.2-alpha.9
+.\scripts\Build-Release.ps1 -Version 0.3.2-alpha.9
 ```
 
 `Build-Pak.ps1` combines the checked-in Toolkit level, the current Script Extender runtime, and the Toolkit-generated module artwork into the installable Adventure PAK. Run it after syncing/opening the project in the Toolkit. `Build-Release.ps1` then includes that PAK and the playtest documentation in the generated archive under `dist/`.

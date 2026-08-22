@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.2-alpha.9 — 2026-08-22
+
+- Added a true level-12 championship battle instead of crowning the party as soon as its final level-up completes.
+- Added four party-scaled Astral Exarch waves at Echelon Steps, with rotating frontline, support, caster, and striker orders.
+- Added a staged, party-wide championship celebration after the final loot bundle and full-rest restoration.
+- Allowed real level-12 arena saves to reconstruct directly into the championship bout.
+
 ## 0.3.2-alpha.8 — 2026-08-22
 
 - Turned every arena battle into a multi-wave event: two waves at levels 3 and 5, then three waves at levels 8 and 10.

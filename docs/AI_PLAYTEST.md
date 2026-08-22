@@ -2,16 +2,17 @@
 
 ## What this candidate tests
 
-Version `0.3.2-alpha.8` tests a continuous, non-blocking solo/co-op progression run with party-sized multi-wave battles, solid tactical scenery, native death saves, final-wave long rests and loot, save-tier recovery, and a level-3 initiation:
+Version `0.3.2-alpha.9` tests a continuous, non-blocking solo/co-op progression run with party-sized multi-wave battles, solid tactical scenery, native death saves, final-wave long rests and loot, save-tier recovery, a level-3 initiation, and a true level-12 championship:
 
 ```text
 2 waves at L3 -> long rest + loot for L5 -> native level-up
 2 waves at L5 -> long rest + loot for L8 -> native level-up
 3 waves at L8 -> long rest + loot for L10 -> native level-up
-3 waves at L10 -> long rest + loot for L12 -> native level-up -> champion
+3 waves at L10 -> long rest + loot for L12 -> native level-up
+4 waves at L12 -> long rest + final loot -> champion celebration
 ```
 
-The level-12 party is the completed championship build. There is no level-12 fight in this ruleset; a later exhibition or boss bout can be added separately.
+The level-12 party faces four rotating waves of Astral Exarchs at Echelon Steps. Clearing the last wave completes the run and triggers staged champion announcements for every player.
 
 The whole active party fights each wave against a matching number of temporary AI enemies. Reduced rosters rotate roles between waves while retaining melee and ranged or magical pressure. The level-3 fixture is capped at three enemies per wave; later fixtures are capped at four. This includes a solo avatar, online co-op players, or split-screen players cooperating against the AI.
 
@@ -19,9 +20,9 @@ The whole active party fights each wave against a matching number of temporary A
 
 This mode really awards inventory items and experience. `!aa_ai_reset` resets only session state; it cannot remove awarded XP or reliably identify every generated treasure item.
 
-1. Use a disposable non-Honour save with a fresh party, or a recovery save whose real custom characters are at level 5, 8, or 10.
+1. Use a disposable non-Honour save with a fresh party, or a recovery save whose real custom characters are at level 5, 8, 10, or 12.
 2. Create a named manual save such as `BEFORE ASTRAL AI TEST`.
-3. Do not save or reload during an active fight. Reloading in staging at level 5, 8, or 10 resumes from that tier.
+3. Do not save or reload during an active fight. Reloading in staging at level 5, 8, 10, or 12 resumes from that tier.
 4. Use vanilla experience progression. Disable level-curve, level-cap, automatic-level, and randomized-loot mods for the first test.
 5. Confirm the new game loaded `AA_Arena_Main`, then dismiss summons and temporary followers before starting.
 6. Reload `BEFORE ASTRAL AI TEST` to undo the entire experiment.
@@ -72,12 +73,13 @@ The whole party then receives enough vanilla experience to reach level 8. Comple
 
 ### Levels 8 and 10
 
-Repeat the same loop against Astral Bastion at level 8 in Crescent Ruin and Astral Judicators at level 10 on Echelon Steps. Rewards are generated at the next tier: level 10 after the second fight and level 12 after the final fight. Every cleanup should return the party to staging.
+Repeat the same loop against Astral Bastion at level 8 in Crescent Ruin and Astral Judicators at level 10 on Echelon Steps. Rewards are generated at the next tier: level 10 after the second fight and level 12 after the Judicators. Every cleanup should return the party to staging.
 
-After the final reward, finish every native level-up to 12. Completion is automatic. Expected:
+After the Judicator reward, finish every native level-up to 12. Four Astral Exarch waves should begin automatically. After clearing wave four, expected notifications include:
 
 ```text
-Astral Arena champion complete at level 12.
+FINAL WAVE CLEARED — THE ASTRAL EXARCHS HAVE FALLEN!
+THE ASTRAL ARENA ERUPTS — YOUR PARTY ARE THE CHAMPIONS!
 ```
 
 ## Recovery commands

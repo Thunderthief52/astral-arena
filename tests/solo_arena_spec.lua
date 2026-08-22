@@ -15,7 +15,7 @@ _G.Ext = previousExt
 
 local function fakeAdapter()
     local adapter = {
-        alive = {}, queue = {}, restored = {}, recovered = {}, deleted = {}, delivered = {}, experienceTargets = {}, layouts = {}, sites = {}, stagingReturns = 0, fullRests = 0, menus = {}, partySize = 2, spawnCalls = 0, interWaveRecoveries = 0,
+        alive = {}, queue = {}, restored = {}, recovered = {}, deleted = {}, delivered = {}, experienceTargets = {}, layouts = {}, sites = {}, notifications = {}, stagingReturns = 0, fullRests = 0, menus = {}, partySize = 2, spawnCalls = 0, interWaveRecoveries = 0,
     }
     function adapter.partyMembers()
         local ids = { "player-a", "player-b", "player-c", "player-d" }
@@ -67,7 +67,9 @@ local function fakeAdapter()
     end
     function adapter.deleteTemporary(member) table.insert(adapter.deleted, member.guid) end
     function adapter.schedule(_, callback) table.insert(adapter.queue, callback) end
-    function adapter.notify() end
+    function adapter.notify(guid, message)
+        table.insert(adapter.notifications, { guid = guid, message = message })
+    end
     function adapter.menuOwner() return "player-a" end
     function adapter.openYesNo(guid, key, message)
         table.insert(adapter.menus, { guid = guid, key = key, message = message })
@@ -174,10 +176,32 @@ H.test("AI fixture waves rotate roles while preserving party-size scaling", func
     H.equal(Fixtures.waveCount(5), 2)
     H.equal(Fixtures.waveCount(8), 3)
     H.equal(Fixtures.waveCount(10), 3)
+    H.equal(Fixtures.waveCount(12), 4)
     local secondWave = Fixtures.forWave(5, 2, 2)
     H.equal(#secondWave.members, 2)
     H.equal(secondWave.members[1].id, "gish")
     H.equal(secondWave.members[2].id, "devastator")
+end)
+
+H.test("level-twelve championship uses four waves and celebrates every player", function()
+    local adapter = fakeAdapter()
+    adapter.partyLevel = 12
+    local subject = arena(adapter)
+    subject:start({ countdownSeconds = 0 })
+    H.equal(subject.active.waveCount, 4)
+    H.equal(subject.active.site.id, "echelon-steps")
+    clearBout(subject, adapter)
+    H.equal(subject.run.phase, "completed")
+    H.equal(subject.run.completion, "champion")
+    H.equal(adapter.fullRests, 1)
+    H.equal(#adapter.experienceTargets, 0)
+    H.equal(#adapter.queue, 3)
+    local beforeCelebration = #adapter.notifications
+    while #adapter.queue > 0 do
+        table.remove(adapter.queue, 1)()
+    end
+    H.equal(#adapter.notifications - beforeCelebration, 6)
+    H.truthy(adapter.notifications[beforeCelebration + 3].message:find("CHAMPIONS", 1, true) ~= nil)
 end)
 
 H.test("higher-tier bouts use three waves without resting between them", function()

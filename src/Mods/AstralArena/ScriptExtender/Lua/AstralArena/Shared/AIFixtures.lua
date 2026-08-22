@@ -66,6 +66,24 @@ local BY_LEVEL = {
             { "fist-a", "cleric", "fist-b", "caster" },
         },
     },
+    [12] = {
+        id = "astral-exarchs",
+        displayName = "Astral Exarchs",
+        level = 12,
+        members = {
+            { id = "blade", displayName = "Exarch Blade", role = "frontline", templateId = "99361f29-697d-414e-b927-16d5fdff093b" },
+            { id = "oracle", displayName = "Exarch Oracle", role = "support", templateId = "2774a43e-db7a-49d4-90b2-e07097b0b531" },
+            { id = "weaver", displayName = "Exarch Weaver", role = "caster", templateId = "1a80541e-f990-4a07-ba08-008b9992f7be" },
+            { id = "executioner", displayName = "Exarch Executioner", role = "striker", templateId = "254d5482-1788-4f2c-8e07-e5357eb44719" },
+        },
+        selectionOrder = { "blade", "oracle", "weaver", "executioner" },
+        waveOrders = {
+            { "blade", "oracle", "weaver", "executioner" },
+            { "executioner", "weaver", "blade", "oracle" },
+            { "oracle", "blade", "executioner", "weaver" },
+            { "weaver", "executioner", "oracle", "blade" },
+        },
+    },
 }
 
 function Fixtures.get(level)
@@ -138,7 +156,7 @@ function Fixtures.waveCount(level)
 end
 
 function Fixtures.levels()
-    return { 3, 5, 8, 10 }
+    return { 3, 5, 8, 10, 12 }
 end
 
 return Fixtures

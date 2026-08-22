@@ -58,8 +58,8 @@ local function progressionFrom(startingLevel)
             table.insert(result, level)
         end
     end
-    if #result < 2 then
-        error("an AI arena run requires a party at level 3, 5, 8, or 10", 3)
+    if #result < 1 then
+        error("an AI arena run requires a party at level 3, 5, 8, 10, or 12", 3)
     end
     return result
 end
@@ -460,7 +460,7 @@ function SoloArena:_startBout(party, options)
     self.output(string.format(
         "Prepared AI bout %d/%d at L%d in %s: %d wave(s), with %d player(s) versus %d %s in wave 1%s.",
         self.run.battleIndex,
-        #self.run.levels - 1,
+        #self.run.levels,
         self.run.level,
         site and site.displayName or "the active arena",
         self.active.waveCount,
@@ -707,8 +707,12 @@ function SoloArena:_finish(resultSide)
         for _, offered in ipairs(offer.choices) do
             table.insert(self.recentOfferItemIds, offered.id)
         end
-        self.adapter.awardPartyToLevel(self.rewardRecipients.members, targetLevel)
         self.menu = nil
+        if self.run.phase == "completed" then
+            self:_celebrateChampions(self.rewardRecipients.members, delivered)
+            return selected
+        end
+        self.adapter.awardPartyToLevel(self.rewardRecipients.members, targetLevel)
         self.output(string.format(
             "AI arena victory. Delivered %d loot rolls and all %d rare candidates across the party; full-rest resources restored. Complete native level-ups to L%d for the next bout.",
             delivered.treasureRolls or 0,
@@ -745,6 +749,27 @@ function SoloArena:_finish(resultSide)
     end)
 end
 
+function SoloArena:_celebrateChampions(members, delivered)
+    local messages = {
+        "FINAL WAVE CLEARED — THE ASTRAL EXARCHS HAVE FALLEN!",
+        "THE ASTRAL ARENA ERUPTS — YOUR PARTY ARE THE CHAMPIONS!",
+        string.format(
+            "Championship spoils delivered: %d loot rolls and %d rare items. The champions are fully rested.",
+            delivered.treasureRolls or 0,
+            delivered.rareItems or 0
+        ),
+    }
+    self.output("=== ASTRAL ARENA CHAMPIONS ===")
+    for index, message in ipairs(messages) do
+        self.adapter.schedule((index - 1) * 1800, function()
+            for _, member in ipairs(members) do
+                self.adapter.notify(member.guid, message)
+            end
+        end)
+    end
+    self.output("The level-12 championship is complete. The party returns to staging with its final spoils and a full rest.")
+end
+
 function SoloArena:pick(choiceIndex, recipientIndex)
     if not self.run or self.run.phase ~= "awaiting_reward" then
         error("there is no open AI arena reward", 2)
@@ -772,8 +797,12 @@ function SoloArena:pick(choiceIndex, recipientIndex)
     for _, offered in ipairs(offer.choices) do
         table.insert(self.recentOfferItemIds, offered.id)
     end
-    self.adapter.awardPartyToLevel(self.rewardRecipients.members, targetLevel)
     self.menu = nil
+    if self.run.phase == "completed" then
+        self:_celebrateChampions(self.rewardRecipients.members, { treasureRolls = 1, rareItems = 1 })
+        return selected
+    end
+    self.adapter.awardPartyToLevel(self.rewardRecipients.members, targetLevel)
     self.output(string.format(
         "%s received %s and the automatic bundle. Complete native level-ups to L%d; the next bout will begin automatically.",
         recipient.name or recipient.guid,
@@ -798,13 +827,6 @@ function SoloArena:continue()
     end
     local party = self:_party()
     SoloRun.confirmPartyLevel(self.run, party.level)
-    if self.run.phase == "completed" then
-        self.output("Astral Arena champion complete at level 12.")
-        for _, member in ipairs(party.members) do
-            self.adapter.notify(member.guid, "Astral Arena complete: your party is champion at level 12.")
-        end
-        return self.run
-    end
     return self:_startBout(party)
 end
 
@@ -841,11 +863,9 @@ function SoloArena:autoAdvance()
         if party.level == 1 then
             self:bootstrapParty()
             return "bootstrapped"
-        elseif party.level == 3 or party.level == 5 or party.level == 8 or party.level == 10 then
+        elseif party.level == 3 or party.level == 5 or party.level == 8 or party.level == 10 or party.level == 12 then
             self:start()
             return "started"
-        elseif party.level == 12 then
-            return "completed"
         end
         return "waiting"
     end

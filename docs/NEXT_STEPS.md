@@ -45,7 +45,7 @@ Exit criteria:
 
 Goal: make matches repeatable enough to evaluate builds rather than setup accidents.
 
-The `0.3.2-alpha.8` candidate turns the party-sized, role-balanced level-3, level-5, level-8, and level-10 fixtures into two- and three-wave battles. Non-final waves recover downed allies without refreshing resources; the final wave triggers full restoration, abundant rewards, and progression. Explicit collision/click blocking for solid scenery, current-tier save recovery, and the perimeter wall pass remain intact.
+The `0.3.2-alpha.9` candidate turns the party-sized, role-balanced level-3, level-5, level-8, level-10, and level-12 fixtures into two-, three-, and four-wave battles. Non-final waves recover downed allies without refreshing resources; the final level-12 wave triggers full restoration, abundant rewards, and a staged champion celebration. Explicit collision/click blocking for solid scenery, current-tier save recovery, and the perimeter wall pass remain intact.
 
 `AA_Arena_Main` starts independently of vanilla campaign locations and provides a decorated staging area plus Astral Flats, Crescent Ruin, and Echelon Steps. The current pass has 96 shipped-asset objects and eight accent lights, including 30 oversized ruin arches around the active footprint. This playable foundation must pass new-game, solo, ordinary co-op, and split-screen engine playtests before the map expands.
 

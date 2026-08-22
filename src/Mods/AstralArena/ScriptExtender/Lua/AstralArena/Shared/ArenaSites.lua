@@ -60,6 +60,7 @@ function Sites.forLevel(level)
         [5] = COMBAT[1],
         [8] = COMBAT[2],
         [10] = COMBAT[3],
+        [12] = COMBAT[3],
     }
     return byLevel[tonumber(level)] or Sites.forBout(1)
 end

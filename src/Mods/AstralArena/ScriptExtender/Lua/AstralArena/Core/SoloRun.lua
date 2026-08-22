@@ -19,7 +19,7 @@ local function assertPhase(run, wanted)
 end
 
 local function battleCount(run)
-    return #run.levels - 1
+    return #run.levels
 end
 
 function SoloRun.new(options)
@@ -27,8 +27,8 @@ function SoloRun.new(options)
     Util.assertNonEmptyString(options.id, "solo run id")
     Util.assertNonEmptyString(options.partyId, "solo party id")
     local levels = Util.copy(options.levels or DEFAULT_LEVELS)
-    if #levels < 2 then
-        error("solo run needs at least one combat level and one reward level", 2)
+    if #levels < 1 then
+        error("solo run needs at least one combat level", 2)
     end
     for index, level in ipairs(levels) do
         if type(level) ~= "number" or level < 1 or level > 12 or level % 1 ~= 0 then
@@ -62,12 +62,7 @@ function SoloRun.confirmPartyLevel(run, level)
         error(string.format("party must be level %d", run.level), 2)
     end
 
-    if run.battleIndex > battleCount(run) then
-        run.phase = "completed"
-        run.completion = "champion"
-    else
-        run.phase = "seeking_opponent"
-    end
+    run.phase = "seeking_opponent"
     return run.phase
 end
 
@@ -105,7 +100,7 @@ function SoloRun.recordResult(run, result)
     local bout = {
         index = run.battleIndex,
         matchLevel = run.level,
-        rewardLevel = run.levels[run.battleIndex + 1],
+        rewardLevel = run.levels[run.battleIndex + 1] or run.level,
         opponentId = run.opponent.id,
         result = result,
     }
@@ -185,8 +180,13 @@ function SoloRun.claimReward(run, choiceId)
     local selected = Rewards.claim(pending.offer, choiceId)
     pending.status = "claimed"
     run.battleIndex = run.battleIndex + 1
-    run.level = run.levels[run.battleIndex]
-    run.phase = "awaiting_level_up"
+    if run.battleIndex > battleCount(run) then
+        run.phase = "completed"
+        run.completion = "champion"
+    else
+        run.level = run.levels[run.battleIndex]
+        run.phase = "awaiting_level_up"
+    end
     return selected, run.level
 end
 

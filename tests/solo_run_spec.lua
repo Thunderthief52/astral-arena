@@ -23,19 +23,17 @@ local function claim(run)
     return SoloRun.claimReward(run, offer.choices[1].id)
 end
 
-H.test("solo arena fights at five eight and ten then reaches twelve", function()
+H.test("solo arena fights through the level-twelve championship", function()
     local run = newRun()
-    for _, level in ipairs({ 5, 8, 10 }) do
+    for _, level in ipairs({ 5, 8, 10, 12 }) do
         local bout = winAt(run, level)
         H.equal(bout.matchLevel, level)
         claim(run)
     end
     H.equal(run.level, 12)
-    H.equal(run.phase, "awaiting_level_up")
-    SoloRun.confirmPartyLevel(run, 12)
     H.equal(run.phase, "completed")
     H.equal(run.completion, "champion")
-    H.equal(#run.bouts, 3)
+    H.equal(#run.bouts, 4)
 end)
 
 H.test("each victory offers loot for the next progression tier", function()
