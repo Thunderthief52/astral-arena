@@ -2,7 +2,7 @@
 
 ## What this candidate tests
 
-Version `0.3.2-alpha.10` tests a continuous, non-blocking solo/co-op progression run with party-sized multi-wave battles, validated clear combat lanes, 19–26 metre opening separation, a level-appropriate preparation armory, native death saves with immediate AI target exclusion, final-wave long rests and loot, save-tier recovery, a level-3 initiation, and a true level-12 championship:
+Version `0.3.2-alpha.11` tests a continuous solo/co-op progression run with party-sized multi-wave battles, validated clear combat lanes, 19–26 metre opening separation, a level-appropriate preparation armory, fully lethal native death saves, manual between-wave resurrection, final-wave automatic resurrection/rest/loot, save-tier recovery, a level-3 initiation, and a true level-12 championship:
 
 ```text
 2 waves at L3 -> long rest + loot for L5 -> native level-up
@@ -58,14 +58,15 @@ The Adventure PAK starts in the private `AA_Arena_Main` level. Read [ADVENTURE_P
 ### Level 5 tournament opener
 
 1. Confirm every active party member finishes leveling to 5 and is not already in combat.
-2. Confirm automatic validation moves the whole party from staging to Astral Flats, delivers the shared magic armory and six supply rolls per player, and starts a 30-second equip countdown.
+2. Confirm automatic validation moves the whole party from staging to Astral Flats, delivers the shared magic armory, six supply rolls and two Scrolls of Revivify per player, and starts a 30-second equip countdown.
 3. Fight both party-sized Astral Vanguard waves normally. A two-character split-screen party should face exactly two opponents per wave, beginning with Vanguard Warrior + Vanguard Raider and then Vanguard Gish + Vanguard Devastator.
 
 Expected after victory:
 
 - players and enemies enter BG3's native downed state at zero HP, make death saves while teammates remain active, and can recover through healing or a natural 20;
-- downed actors immediately become invalid AI targets; queued multiattacks should not continue as repeated zero-damage hits, and all protection is removed when they recover;
-- enemies from a cleared non-final wave disappear, downed allies recover at partial health, and the next wave arrives after three seconds without refreshing resources or delivering loot;
+- downed actors remain legal targets, further hits cause native death-save failures, and three failures allow real player or enemy death;
+- enemies from a cleared non-final wave disappear, but downed and dead players remain unchanged during a 30-second revival window without resource refresh or loot;
+- Help/healing can recover downed players, while actual death requires Revivify or a Scroll of Revivify before the next wave;
 - after the final wave, all temporary enemies disappear and the player party returns to staging with a full long-rest-equivalent resource restore;
 - every avatar receives four level-scaled treasure rolls and the six rare candidates are distributed round-robin across party inventories.
 
@@ -97,7 +98,7 @@ If combat cleanup, inventory, or progression looks wrong, stop immediately and r
 - One developer-authored AI team per combat level.
 - The playable-alpha fallback distributes all six rare candidates instead of enforcing one-of-six; a graphical controller-friendly selection screen remains planned.
 - The rare catalog is an intentionally conservative set of ten vanilla `+2` weapons; armor, jewelry, named build-defining items, and class-aware weighting come after catalog auditing.
-- Before the first bout, every player receives six calls to the vanilla `RewardMedium` table and the party shares up to 12 audited magic equipment pieces. Final-wave victory bundles still use four calls per player. These will become Astral Arena-owned treasure tables after balance reports.
+- Before the first bout, every player receives six calls to the vanilla `RewardMedium` table, two audited Scrolls of Revivify, and a share of up to 12 audited magic equipment pieces. Final-wave victory bundles still use four calls per player. These will become Astral Arena-owned treasure tables after balance reports.
 - Run details are session-only, but a party at level 5, 8, or 10 can reconstruct the remaining progression after reload.
 - The preparation armory is deliberately generous and shared, but is not class-aware yet; trade the audited equipment between player inventories before the countdown ends.
 - The dedicated map has a first shipped-asset visual pass, but final terrain materials, navigation around tactical props, spectator boundaries, camera bounds, and minimap data remain unfinished.

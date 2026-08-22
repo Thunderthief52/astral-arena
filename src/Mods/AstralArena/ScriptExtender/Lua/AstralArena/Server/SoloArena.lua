@@ -339,6 +339,13 @@ local function connectTeams(adapter, teams)
     end
 end
 
+local function reconnectCombatant(adapter, member, opponents)
+    for _, opponent in ipairs(opponents or {}) do
+        adapter.makeHostile(member.guid, opponent.guid)
+        adapter.enterCombat(member.guid, opponent.guid)
+    end
+end
+
 local function createWaveMatch(run, teams, waveIndex)
     local match = Match.new({
         id = string.format("%s-bout-%d-wave-%d", run.id, run.battleIndex, waveIndex),
@@ -401,7 +408,7 @@ function SoloArena:_startBout(party, options)
     end
     SoloRun.assignOpponent(self.run, fixture)
 
-    local preparation = { treasureRolls = 0, armoryItems = 0 }
+    local preparation = { treasureRolls = 0, armoryItems = 0, revivifyScrolls = 0 }
     if self.run.battleIndex == 1 and not self.preparationBundleDelivered
         and self.adapter.deliverPreparationBundle
     then
@@ -412,10 +419,11 @@ function SoloArena:_startBout(party, options)
         ) or preparation
         self.preparationBundleDelivered = true
         local supplyMessage = string.format(
-            "Arena armory delivered: %d guaranteed level-appropriate magic equipment pieces plus %d level-%d gear, scroll, potion, and utility rolls. Trade and equip before combat.",
+            "Arena armory delivered: %d magic equipment pieces, %d level-%d supply rolls, and %d Scrolls of Revivify. Trade and equip before combat.",
             preparation.armoryItems or 0,
             preparation.treasureRolls or 0,
-            self.run.level
+            self.run.level,
+            preparation.revivifyScrolls or 0
         )
         self.output(supplyMessage)
         for _, member in ipairs(party.members) do
@@ -462,6 +470,7 @@ function SoloArena:_startBout(party, options)
         teams = teams,
         match = match,
         defeated = {},
+        dead = {},
         countdownRemaining = countdown(
             options.countdownSeconds ~= nil and options.countdownSeconds
             or (((preparation.treasureRolls or 0) + (preparation.armoryItems or 0)) > 0 and 30 or 10)
@@ -576,6 +585,14 @@ function SoloArena:_poll()
     for _, side in ipairs({ "left", "right" }) do
         for _, member in ipairs(self.active.teams[side].members) do
             alive[member.guid] = self.adapter.isAlive(member.guid)
+            local dead = self.adapter.isDead and self.adapter.isDead(member.guid) or false
+            if dead and not self.active.dead[member.guid] then
+                self.active.dead[member.guid] = true
+                self.output((member.name or member.guid) .. " has died. Resurrection magic is required until the battle ends.")
+            elseif not dead and self.active.dead[member.guid] then
+                self.active.dead[member.guid] = nil
+                self.output((member.name or member.guid) .. " has been resurrected.")
+            end
             if not alive[member.guid] and not self.active.defeated[member.guid] then
                 self.active.defeated[member.guid] = true
                 self.adapter.markDefeated(member.guid)
@@ -585,6 +602,10 @@ function SoloArena:_poll()
                 if self.adapter.markRecovered then
                     self.adapter.markRecovered(member.guid)
                 end
+                local opponents = side == "left"
+                    and self.active.teams.right.members
+                    or self.active.teams.left.members
+                reconnectCombatant(self.adapter, member, opponents)
                 self.output((member.name or member.guid) .. " is back in the fight.")
             end
         end
@@ -609,7 +630,7 @@ function SoloArena:onStatusApplied(guid, status)
                 if not self.active.defeated[guid] then
                     self.active.defeated[guid] = true
                     self.adapter.markDefeated(guid)
-                    self.output((member.name or guid) .. " is down and protected from arena targeting while making death saves.")
+                    self.output((member.name or guid) .. " is down and making death saves; further attacks can cause failures or death.")
                 end
                 return true
             end
@@ -660,6 +681,7 @@ function SoloArena:_spawnNextWave(generation)
         }
         active.match = createWaveMatch(self.run, active.teams, nextWave)
         active.defeated = {}
+        active.dead = {}
         active.layout = layout
         active.waveIndex = nextWave
         connectTeams(self.adapter, active.teams)
@@ -691,7 +713,7 @@ function SoloArena:_advanceWave()
     active.transitioning = true
     self:_cleanupBetweenWaves(active)
     local message = string.format(
-        "Wave %d/%d cleared. Downed allies recovered at partial health; no long rest yet. Wave %d arrives in 3 seconds.",
+        "Wave %d/%d cleared. REVIVAL WINDOW: downed and dead allies remain as-is. Use Help, healing, Revivify, or a scroll. Wave %d arrives in 30 seconds; no rest is granted.",
         active.waveIndex,
         active.waveCount,
         active.waveIndex + 1
@@ -701,7 +723,7 @@ function SoloArena:_advanceWave()
         self.adapter.notify(member.guid, message)
     end
     local generation = active.generation
-    self.adapter.schedule(3000, function()
+    self.adapter.schedule(30000, function()
         self:_spawnNextWave(generation)
     end)
 end

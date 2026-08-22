@@ -110,20 +110,22 @@ H.test("arena menu opens a native localized yes-no prompt", function()
     H.equal(opened[2], "hmenu")
 end)
 
-H.test("arena downing preserves native death saves and blocks AI targeting", function()
+H.test("arena downing preserves native death saves without blocking lethal attacks", function()
     local previousExt = _G.Ext
     local previousOsi = _G.Osi
-    local calls = {}
+    local addedPassive
+    local applied = 0
     _G.Ext = { Utils = { PrintWarning = function() end } }
     _G.Osi = {
-        ApplyStatus = function(guid, status) table.insert(calls, "status:" .. guid .. ":" .. status) end,
+        HasPassive = function() return 0 end,
+        AddPassive = function(_, passive) addedPassive = passive end,
+        ApplyStatus = function() applied = applied + 1 end,
     }
     Adapter.markDefeated("fighter")
     _G.Ext = previousExt
     _G.Osi = previousOsi
-    H.equal(calls[1], "status:fighter:INVULNERABLE_NOT_SHOWN")
-    H.equal(calls[2], "status:fighter:SANCTUARY")
-    H.equal(#calls, 2)
+    H.equal(addedPassive, "DeathSavingThrows")
+    H.equal(applied, 0)
 end)
 
 H.test("arena preparation enables death saves and allows zero-hit-point downing", function()
@@ -163,22 +165,46 @@ H.test("one hit point still fights but zero hit points is downed", function()
     _G.Osi = previousOsi
 end)
 
-H.test("a recovered death-save combatant loses temporary protection", function()
+H.test("a recovered death-save combatant needs no arena protection cleanup", function()
     local previousExt = _G.Ext
     local previousOsi = _G.Osi
-    local removed = {}
+    local removed = 0
     _G.Ext = { Utils = { PrintWarning = function() end } }
     _G.Osi = {
-        RemoveStatus = function(guid, status)
-            table.insert(removed, guid .. ":" .. status)
-        end,
+        HasPassive = function() return 1 end,
+        RemoveStatus = function() removed = removed + 1 end,
     }
     Adapter.markRecovered("fighter")
     _G.Ext = previousExt
     _G.Osi = previousOsi
-    H.equal(removed[1], "fighter:INVULNERABLE_NOT_SHOWN")
-    H.equal(removed[2], "fighter:SANCTUARY")
-    H.equal(removed[3], "fighter:SANCTUARY_BLOCK")
+    H.equal(removed, 0)
+end)
+
+H.test("between-wave cleanup preserves a dead player for manual resurrection", function()
+    local previousExt = _G.Ext
+    local previousOsi = _G.Osi
+    local resurrected = 0
+    local healed = 0
+    local downedRemoved = 0
+    _G.Ext = { Utils = { PrintWarning = function() end } }
+    _G.Osi = {
+        LeaveCombat = function() end,
+        ClearIndividualRelation = function() end,
+        RemoveStatus = function() end,
+        IsDead = function() return 1 end,
+        Resurrect = function() resurrected = resurrected + 1 end,
+        SetHitpointsPercentage = function() healed = healed + 1 end,
+        RemoveStatusesWithType = function() downedRemoved = downedRemoved + 1 end,
+        HasPassive = function() return 1 end,
+    }
+    local result = Adapter.recoverBetweenWaves({ guid = "fighter" }, { enemy = true })
+    _G.Ext = previousExt
+    _G.Osi = previousOsi
+    H.truthy(result.dead)
+    H.equal(result.alive, false)
+    H.equal(resurrected, 0)
+    H.equal(healed, 0)
+    H.equal(downedRemoved, 0)
 end)
 
 H.test("between-round recovery invokes party restore and refreshes every avatar", function()
@@ -265,10 +291,13 @@ H.test("preparation bundle gives every avatar six level-scaled supply rolls", fu
     _G.Osi = previousOsi
     H.equal(delivered.treasureRolls, 12)
     H.equal(delivered.armoryItems, 2)
+    H.equal(delivered.revivifyScrolls, 4)
     H.equal(#generated, 12)
     H.equal(generated[1].tableId, "RewardMedium")
     H.equal(generated[1].level, 3)
     H.equal(generated[7].guid, "player-b")
-    H.equal(items[1], "armor-template:player-a")
-    H.equal(items[2], "weapon-template:player-b")
+    H.equal(items[1], "c1c3e4fb-d68c-4e10-afdc-d4550238d50e:player-a")
+    H.equal(items[2], "c1c3e4fb-d68c-4e10-afdc-d4550238d50e:player-b")
+    H.equal(items[3], "armor-template:player-a")
+    H.equal(items[4], "weapon-template:player-b")
 end)

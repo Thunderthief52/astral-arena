@@ -15,7 +15,7 @@ _G.Ext = previousExt
 
 local function fakeAdapter()
     local adapter = {
-        alive = {}, queue = {}, restored = {}, recovered = {}, deleted = {}, delivered = {}, experienceTargets = {}, layouts = {}, sites = {}, notifications = {}, defeatedMarks = {}, stagingReturns = 0, fullRests = 0, menus = {}, partySize = 2, spawnCalls = 0, interWaveRecoveries = 0, preparationCalls = 0,
+        alive = {}, dead = {}, queue = {}, restored = {}, recovered = {}, deleted = {}, delivered = {}, experienceTargets = {}, layouts = {}, sites = {}, notifications = {}, defeatedMarks = {}, stagingReturns = 0, fullRests = 0, menus = {}, partySize = 2, spawnCalls = 0, interWaveRecoveries = 0, preparationCalls = 0,
     }
     function adapter.partyMembers()
         local ids = { "player-a", "player-b", "player-c", "player-d" }
@@ -55,15 +55,17 @@ local function fakeAdapter()
     function adapter.makeHostile() end
     function adapter.enterCombat() end
     function adapter.isAlive(guid) return adapter.alive[guid] end
+    function adapter.isDead(guid) return adapter.dead[guid] == true end
     function adapter.markDefeated(guid) table.insert(adapter.defeatedMarks, guid) end
     function adapter.markRecovered(guid) table.insert(adapter.recovered, guid) end
-    function adapter.restoreCharacter(member) table.insert(adapter.restored, member.guid) end
+    function adapter.restoreCharacter(member)
+        adapter.alive[member.guid] = true
+        adapter.dead[member.guid] = nil
+        table.insert(adapter.restored, member.guid)
+    end
     function adapter.recoverBetweenWaves(member)
         adapter.interWaveRecoveries = adapter.interWaveRecoveries + 1
-        if not adapter.alive[member.guid] then
-            adapter.alive[member.guid] = true
-            table.insert(adapter.recovered, member.guid)
-        end
+        return { alive = adapter.alive[member.guid] == true, dead = adapter.dead[member.guid] == true }
     end
     function adapter.deleteTemporary(member) table.insert(adapter.deleted, member.guid) end
     function adapter.schedule(_, callback) table.insert(adapter.queue, callback) end
@@ -84,7 +86,7 @@ local function fakeAdapter()
         adapter.preparationCalls = adapter.preparationCalls + 1
         adapter.preparationLevel = level
         adapter.preparationCatalogSize = #catalog
-        return { treasureRolls = #members * 6, armoryItems = 12 }
+        return { treasureRolls = #members * 6, armoryItems = 12, revivifyScrolls = #members * 2 }
     end
     function adapter.awardPartyToLevel(_, target)
         table.insert(adapter.experienceTargets, target)
@@ -240,15 +242,31 @@ H.test("higher-tier bouts use three waves without resting between them", functio
     H.equal(#subject.active.teams.right.members, 2)
 end)
 
-H.test("a downed teammate recovers for the next wave without a full rest", function()
+H.test("a downed teammate remains down between waves without a full rest", function()
     local adapter = fakeAdapter()
     local subject = arena(adapter)
     subject:start({ countdownSeconds = 0 })
     adapter.alive["player-a"] = false
     defeatCurrentWave(subject, adapter)
     H.equal(adapter.fullRests, 0)
-    H.equal(adapter.alive["player-a"], true)
-    H.equal(adapter.recovered[1], "player-a")
+    H.equal(adapter.alive["player-a"], false)
+    H.equal(#adapter.recovered, 0)
+end)
+
+H.test("a dead teammate stays dead during intermission but can be resurrected before the next wave", function()
+    local adapter = fakeAdapter()
+    local subject = arena(adapter)
+    subject:start({ countdownSeconds = 0 })
+    adapter.alive["player-a"] = false
+    adapter.dead["player-a"] = true
+    defeatCurrentWave(subject, adapter)
+    H.equal(adapter.alive["player-a"], false)
+    H.truthy(adapter.dead["player-a"])
+    adapter.alive["player-a"] = true
+    adapter.dead["player-a"] = nil
+    table.remove(adapter.queue, 1)()
+    H.equal(subject.active.waveIndex, 2)
+    H.truthy(adapter.alive["player-a"])
 end)
 
 H.test("AI arena retains the full fixture for a four-character party", function()
@@ -275,6 +293,22 @@ H.test("defeat fully restores and schedules the same bout automatically", functi
     H.equal(subject.active.match.level, 5)
 end)
 
+H.test("battle defeat automatically resurrects dead players at the mission boundary", function()
+    local adapter = fakeAdapter()
+    local subject = arena(adapter)
+    subject:start({ countdownSeconds = 0 })
+    adapter.alive["player-a"] = false
+    adapter.alive["player-b"] = false
+    adapter.dead["player-a"] = true
+    adapter.dead["player-b"] = true
+    table.remove(adapter.queue, 1)()
+    H.truthy(adapter.alive["player-a"])
+    H.truthy(adapter.alive["player-b"])
+    H.equal(adapter.dead["player-a"], nil)
+    H.equal(adapter.dead["player-b"], nil)
+    H.equal(adapter.fullRests, 1)
+end)
+
 H.test("healing a downed combatant removes arena protection", function()
     local adapter = fakeAdapter()
     local subject = arena(adapter)
@@ -288,7 +322,7 @@ H.test("healing a downed combatant removes arena protection", function()
     H.equal(adapter.recovered[1], "player-a")
 end)
 
-H.test("the native downed event applies target protection before the next poll", function()
+H.test("the native downed event records death-save state without target protection", function()
     local adapter = fakeAdapter()
     local subject = arena(adapter)
     subject:start({ countdownSeconds = 0 })

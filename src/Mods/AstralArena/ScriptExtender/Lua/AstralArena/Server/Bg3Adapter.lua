@@ -1,5 +1,7 @@
 local Adapter = {}
 
+local REVIVIFY_SCROLL_TEMPLATE = "c1c3e4fb-d68c-4e10-afdc-d4550238d50e"
+
 local ENEMY_FACTION = "64321d50-d516-b1b2-cfac-2eb773de1ff6"
 local TOTAL_EXPERIENCE = {
     [3] = 900,
@@ -163,12 +165,23 @@ function Adapter.makeHostile(leftGuid, rightGuid)
 end
 
 function Adapter.enterCombat(leftGuid, rightGuid)
-    Osi.EnterCombat(leftGuid, rightGuid)
-    Osi.EnterCombat(rightGuid, leftGuid)
+    -- A player may still be dead when a later wave arrives. Establishing the
+    -- relationship is safe, but EnterCombat itself may reject a corpse; a
+    -- successful resurrection is connected again by the arena poll.
+    safely(function()
+        Osi.EnterCombat(leftGuid, rightGuid)
+    end)
+    safely(function()
+        Osi.EnterCombat(rightGuid, leftGuid)
+    end)
+end
+
+function Adapter.isDead(guid)
+    return Osi.IsDead(guid) == 1
 end
 
 function Adapter.isAlive(guid)
-    if Osi.IsDead(guid) == 1 then
+    if Adapter.isDead(guid) then
         return false
     end
     local hitpoints = Osi.GetHitpoints(guid)
@@ -177,29 +190,13 @@ end
 
 function Adapter.markDefeated(guid)
     -- Native zero-hit-point handling supplies the downed pose, initiative turn,
-    -- and DeathSavingThrows rolls. Hidden protection prevents the AI from farming
-    -- automatic failures while allies still have a chance to help the actor up.
-    safely(function()
-        Osi.ApplyStatus(guid, "INVULNERABLE_NOT_SHOWN", -1.0, 1, guid)
-    end)
-    -- Sanctuary changes AI target legality instead of merely reducing queued
-    -- attacks to zero damage. This stops multiattack routines from continuing
-    -- to pummel a downed combatant while native death saves remain active.
-    safely(function()
-        Osi.ApplyStatus(guid, "SANCTUARY", -1.0, 1, guid)
-    end)
+    -- death-saving throws, attack-driven failures, and eventual death. Arena
+    -- rules deliberately add no invulnerability or target exclusion here.
+    ensureDeathSavingThrows(guid)
 end
 
 function Adapter.markRecovered(guid)
-    safely(function()
-        Osi.RemoveStatus(guid, "INVULNERABLE_NOT_SHOWN", guid)
-    end)
-    safely(function()
-        Osi.RemoveStatus(guid, "SANCTUARY", guid)
-    end)
-    safely(function()
-        Osi.RemoveStatus(guid, "SANCTUARY_BLOCK", guid)
-    end)
+    ensureDeathSavingThrows(guid)
 end
 
 function Adapter.restoreCharacter(member, opposingFactions)
@@ -255,7 +252,6 @@ function Adapter.restoreCharacter(member, opposingFactions)
 end
 
 function Adapter.recoverBetweenWaves(member, opposingFactions)
-    local wasDown = not Adapter.isAlive(member.guid)
     safely(function()
         Osi.LeaveCombat(member.guid)
     end)
@@ -264,47 +260,25 @@ function Adapter.recoverBetweenWaves(member, opposingFactions)
             Osi.ClearIndividualRelation(member.guid, faction)
         end)
     end
-    safely(function()
-        Osi.RemoveStatus(member.guid, "KNOCKED_OUT", member.guid)
-    end)
-    safely(function()
-        Osi.RemoveStatus(member.guid, "FORCE_KNOCKED_OUT_TEMPORARILY", member.guid)
-    end)
-    safely(function()
-        Osi.RemoveStatusesWithType(member.guid, "DOWNED", member.guid)
-    end)
-    safely(function()
-        Osi.RemoveStatus(member.guid, "INVULNERABLE_NOT_SHOWN", member.guid)
-    end)
-    safely(function()
-        Osi.RemoveStatus(member.guid, "SANCTUARY", member.guid)
-    end)
-    safely(function()
-        Osi.RemoveStatus(member.guid, "SANCTUARY_BLOCK", member.guid)
-    end)
-    if Osi.IsDead(member.guid) == 1 then
+    -- Preserve native DOWNED/KNOCKED_OUT, hit points, death state, buffs,
+    -- spell slots, and class resources. Teammates must use Help, healing,
+    -- Revivify, or a scroll during intermission.
+    if Adapter.isAlive(member.guid) then
         safely(function()
-            Osi.Resurrect(member.guid)
+            Osi.SetCanFight(member.guid, 1)
+        end)
+        safely(function()
+            Osi.SetCanJoinCombat(member.guid, 1)
+        end)
+        safely(function()
+            Osi.SetImmortal(member.guid, 0)
         end)
     end
-    safely(function()
-        Osi.SetCanFight(member.guid, 1)
-    end)
-    safely(function()
-        Osi.SetCanJoinCombat(member.guid, 1)
-    end)
-    safely(function()
-        Osi.SetImmortal(member.guid, 0)
-    end)
     ensureDeathSavingThrows(member.guid)
-    if wasDown then
-        -- A wave transition cannot leave a player stranded at zero HP, but it
-        -- is intentionally not a short or long rest. Surviving characters keep
-        -- their current health, spell slots, class resources, and cooldowns.
-        safely(function()
-            Osi.SetHitpointsPercentage(member.guid, 50)
-        end)
-    end
+    return {
+        alive = Adapter.isAlive(member.guid),
+        dead = Adapter.isDead(member.guid),
+    }
 end
 
 function Adapter.fullRestParty(members)
@@ -484,13 +458,21 @@ function Adapter.deliverPreparationBundle(members, level, catalog)
         error("unsupported preparation level: " .. tostring(level), 2)
     end
 
-    local delivered = { treasureRolls = 0, armoryItems = 0 }
+    local delivered = { treasureRolls = 0, armoryItems = 0, revivifyScrolls = 0 }
     for _, member in ipairs(members) do
         -- Six level-scaled rolls give a fresh or reconstructed party weapons,
         -- armor, consumables, scrolls, and utility options before its first bout.
         for _ = 1, 6 do
             Osi.GenerateTreasure(member.guid, "RewardMedium", level, member.guid)
             delivered.treasureRolls = delivered.treasureRolls + 1
+        end
+        if Adapter.validateItemTemplate(REVIVIFY_SCROLL_TEMPLATE) then
+            local ok = pcall(function()
+                Osi.TemplateAddTo(REVIVIFY_SCROLL_TEMPLATE, member.guid, 2, 1)
+            end)
+            if ok then
+                delivered.revivifyScrolls = delivered.revivifyScrolls + 2
+            end
         end
     end
 

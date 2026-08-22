@@ -45,7 +45,7 @@ Exit criteria:
 
 Goal: make matches repeatable enough to evaluate builds rather than setup accidents.
 
-The `0.3.2-alpha.10` candidate turns the party-sized, role-balanced level-3, level-5, level-8, level-10, and level-12 fixtures into two-, three-, and four-wave battles. Non-final waves recover downed allies without refreshing resources; the final level-12 wave triggers full restoration, abundant rewards, and a staged champion celebration. Opening formations now use 19–26 metres of separation, downed actors are removed from AI target selection immediately, and a once-per-run armory closes the early-game equipment gap.
+The `0.3.2-alpha.11` candidate turns the party-sized, role-balanced level-3, level-5, level-8, level-10, and level-12 fixtures into two-, three-, and four-wave battles. Downed actors remain vulnerable to native death-save failures and real death. Non-final waves preserve dead/downed states for a 30-second manual revival window; only the battle boundary automatically resurrects and fully restores the party. Opening formations use 19–26 metres of separation, and a once-per-run armory with Revivify scrolls closes the early-game equipment gap.
 
 `AA_Arena_Main` starts independently of vanilla campaign locations and provides a decorated staging area plus Astral Flats, Crescent Ruin, and Echelon Steps. The current pass has 87 shipped-asset objects and eight accent lights, including 30 oversized ruin arches around the active footprint. All nine loose rocks were removed and the validator now enforces three scenery-free combat approach lanes. This playable foundation must pass new-game, solo, ordinary co-op, and split-screen engine playtests before the map expands.
 

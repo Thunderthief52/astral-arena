@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.2-alpha.11 — 2026-08-22
+
+- Removed arena invulnerability and Sanctuary from downed players and enemies; native follow-up attacks can now inflict death-save failures and combatants can genuinely die.
+- Preserved downed and dead player states between waves instead of healing or resurrecting them automatically.
+- Expanded the inter-wave gap to a 30-second revival window for Help, healing, Revivify, and resurrection scroll use without granting a rest or restoring resources.
+- Added two audited Scrolls of Revivify per player to the opening armory.
+- Kept full automatic resurrection and long-rest restoration at the battle boundary after final-wave victory, defeat, draw, or abort.
+
 ## 0.3.2-alpha.10 — 2026-08-22
 
 - Removed all nine loose rocks and boulders from the active sites, moved remaining solid ruins outside three validated player-to-enemy clear lanes, and extended the eastern perimeter to contain the longer formations.

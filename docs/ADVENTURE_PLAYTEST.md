@@ -2,12 +2,12 @@
 
 ## Build under test
 
-- Version: `0.3.2-alpha.10`
+- Version: `0.3.2-alpha.11`
 - Adventure UUID: `29c48c80-8777-f7b5-6bb8-376c1c5d8db6`
 - Character flow: BG3 system character creator → `AA_Arena_Main`
-- PAK: `dist\AstralArena-0.3.2-alpha.10.pak`
+- PAK: `dist\AstralArena-0.3.2-alpha.11.pak`
 
-This candidate makes every party-scaled battle a multi-wave event: two waves at levels 3 and 5, three waves at levels 8 and 10, then a four-wave level-12 championship. The first bout supplies a shared magic armory plus randomized consumables and provides 30 seconds to equip. Enemy formations begin 19–26 metres away in scenery-free approach lanes. Downed allies are excluded from AI targeting while they make death saves, recover at partial health during a three-second intermission without a rest, and receive the full long rest, loot, and progression only after the final wave.
+This candidate makes every party-scaled battle a multi-wave event: two waves at levels 3 and 5, three waves at levels 8 and 10, then a four-wave level-12 championship. The first bout supplies a shared magic armory, randomized consumables, and two Scrolls of Revivify per player. Enemy formations begin 19–26 metres away in scenery-free approach lanes. Downed players and enemies receive no arena protection: attacks can inflict death-save failures and actual death. Downed and dead players persist into a 30-second between-wave revival window; automatic resurrection and a full long rest occur only when the entire battle ends.
 
 ## Install
 
@@ -17,7 +17,7 @@ This candidate makes every party-scaled battle a multi-wave event: two waves at 
 
    ```powershell
    Set-ExecutionPolicy -Scope Process Bypass
-   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.2-alpha.10.pak"
+   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.2-alpha.11.pak"
    ```
 
 4. Confirm this file exists:
@@ -32,7 +32,7 @@ This candidate makes every party-scaled battle a multi-wave event: two waves at 
 
 ## Discard placeholder-party saves
 
-Do not continue a save containing four naked, classless, immobile characters at one HP. Those entities are BG3's temporary system character-creation placeholders, not recoverable player builds. Delete or ignore that playtest save and begin a fresh New Game with `0.3.2-alpha.10` enabled. Saves containing real custom arena characters at levels 3, 5, 8, 10, or 12 can resume at their current tier; mixed-level split-screen parties receive missing XP repair.
+Do not continue a save containing four naked, classless, immobile characters at one HP. Those entities are BG3's temporary system character-creation placeholders, not recoverable player builds. Delete or ignore that playtest save and begin a fresh New Game with `0.3.2-alpha.11` enabled. Saves containing real custom arena characters at levels 3, 5, 8, 10, or 12 can resume at their current tier; mixed-level split-screen parties receive missing XP repair.
 
 ## Start a clean Adventure
 
@@ -40,10 +40,10 @@ Do not continue a save containing four naked, classless, immobile characters at 
 2. Create one character for solo, join the ordinary online lobby before finalizing characters for co-op, or connect the second controller before completing split-screen character creation.
 3. Finish the supported BG3 system character creator normally. This system scene is expected; it is not a campaign location. Do not use Honour Mode for this alpha.
 4. Confirm the finished custom party transfers into `AA_Arena_Main`, not a Nautiloid or Act 1 campaign location. A naked character-creation dummy must not remain active.
-5. Make a named manual save such as `AA 0.3.2-alpha.10 BEFORE AUTO START`.
+5. Make a named manual save such as `AA 0.3.2-alpha.11 BEFORE AUTO START`.
 6. Confirm Astral Arena automatically awards the vanilla level-3 XP threshold and displays a notification. No console command is required.
 7. Complete every ordinary BG3 level-up through level 3. In co-op or split-screen, both players should receive XP and complete their own choices.
-8. Confirm every inventory receives six randomized level-3 supply rolls and the party collectively receives up to 12 audited `+1` magic weapons and armour pieces. Trade and equip during the 30-second opening countdown.
+8. Confirm every inventory receives six randomized level-3 supply rolls and two Scrolls of Revivify, while the party collectively receives up to 12 audited `+1` magic weapons and armour pieces. Trade and equip during the 30-second opening countdown.
 9. Confirm the party moves to Astral Flats against wave 1/2 of the party-sized Astral Initiate roster (up to three enemies per wave), with every enemy initially 19–26 metres from the player origin.
 
 If automatic onboarding pauses, `!aa_ai_status` and `!aa_ai_doctor` remain available as diagnostics. `!aa_ai_bootstrap`, `!aa_ai_start`, and `!aa_ai_continue` are recovery commands, not normal play steps.
@@ -64,9 +64,9 @@ For each bout:
 2. Confirm the site's surrounding arches, pillars, rubble, vegetation, or steps render normally instead of as missing or black placeholder geometry.
 3. Confirm the direct lane from every player spawn to every enemy spawn contains no rocks or solid props. Party members should stop at solid perimeter pillars and arches, while decorative grass remains passable.
 4. Confirm the expected number of temporary enemies matches the active player-character count (subject to the fixture caps), appears 19–26 metres ahead of the party on valid ground, and the countdown completes. The opening armory countdown is 30 seconds; later bout countdowns are 10 seconds.
-5. Fight normally. At zero HP, a player or enemy should enter BG3's native downed pose and keep its death-save turn in initiative. While another teammate remains active, confirm enemies stop selecting or continuing multiattacks against the downed actor—there should be no repeated zero-damage hits. The actor should still roll death saves and accept help or healing; recovery should remove protection and restore normal targeting.
-6. After every non-final wave, confirm cleared enemies disappear, downed allies return at partial health, no loot or XP arrives, spell slots and class resources remain spent, and the next wave appears after three seconds.
-7. After the final wave, confirm temporary enemies disappear and every player returns to staging with long-rest resources restored.
+5. Fight normally. At zero HP, a player or enemy should enter BG3's native downed pose and keep its death-save turn in initiative. Confirm later attacks inflict normal death-save failures instead of zero-damage protection, and that three failures cause actual death. Help and healing should recover a downed actor; Revivify or a scroll should resurrect a dead actor.
+6. After every non-final wave, confirm cleared enemies disappear and a 30-second revival window begins. Downed allies must remain downed and dead allies must remain dead. No health, spell slots, class resources, loot, or XP should be granted. Use Help, healing, Revivify, or a scroll before the next wave if desired.
+7. After the final wave, confirm temporary enemies disappear and every player—including dead players—is automatically resurrected, returned to staging, and given long-rest resources.
 8. Check every party inventory. Each player should receive four level-scaled loot rolls, and the six rare candidates should be distributed round-robin across the party.
 9. For bouts 1–4, complete native level-ups to the next target; the next bout starts automatically when every player is ready. The fifth victory completes the run.
 
