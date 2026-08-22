@@ -10,6 +10,7 @@ local BY_LEVEL = {
             { id = "raider", displayName = "Initiate Archer", role = "ranged", templateId = "74672dc8-497c-4d9c-92b7-7347ab643e43" },
             { id = "warrior", displayName = "Initiate Warrior", role = "frontline", templateId = "814b1e10-eafc-4739-9b17-7a8a4e99be9f" },
         },
+        selectionOrder = { "warrior", "raider", "gish" },
     },
     [5] = {
         id = "astral-vanguard",
@@ -21,6 +22,7 @@ local BY_LEVEL = {
             { id = "raider", displayName = "Vanguard Raider", role = "ranged", templateId = "74672dc8-497c-4d9c-92b7-7347ab643e43" },
             { id = "warrior", displayName = "Vanguard Warrior", role = "frontline", templateId = "814b1e10-eafc-4739-9b17-7a8a4e99be9f" },
         },
+        selectionOrder = { "warrior", "raider", "gish", "devastator" },
     },
     [8] = {
         id = "astral-bastion",
@@ -32,6 +34,7 @@ local BY_LEVEL = {
             { id = "attacker", displayName = "Bastion Attacker", role = "striker", templateId = "254d5482-1788-4f2c-8e07-e5357eb44719" },
             { id = "defender-b", displayName = "Bastion Shield", role = "frontline", templateId = "3423bf45-3295-43d7-843b-fe0be417dc31" },
         },
+        selectionOrder = { "defender-a", "ranger", "attacker", "defender-b" },
     },
     [10] = {
         id = "astral-judicators",
@@ -43,11 +46,61 @@ local BY_LEVEL = {
             { id = "cleric", displayName = "Judicator Cleric", role = "support", templateId = "2774a43e-db7a-49d4-90b2-e07097b0b531" },
             { id = "caster", displayName = "Judicator Caster", role = "caster", templateId = "1a80541e-f990-4a07-ba08-008b9992f7be" },
         },
+        selectionOrder = { "fist-a", "caster", "cleric", "fist-b" },
     },
 }
 
 function Fixtures.get(level)
     return BY_LEVEL[level]
+end
+
+function Fixtures.forPartySize(level, partySize)
+    local fixture = BY_LEVEL[level]
+    if not fixture then
+        return nil
+    end
+
+    partySize = math.max(1, math.floor(tonumber(partySize) or 1))
+    local memberCount = math.min(#fixture.members, partySize)
+    local byId = {}
+    for _, member in ipairs(fixture.members) do
+        byId[member.id] = member
+    end
+
+    local members = {}
+    for _, memberId in ipairs(fixture.selectionOrder or {}) do
+        if #members >= memberCount then
+            break
+        end
+        if byId[memberId] then
+            table.insert(members, byId[memberId])
+        end
+    end
+    if #members < memberCount then
+        for _, member in ipairs(fixture.members) do
+            if #members >= memberCount then
+                break
+            end
+            local alreadySelected = false
+            for _, selected in ipairs(members) do
+                alreadySelected = alreadySelected or selected.id == member.id
+            end
+            if not alreadySelected then
+                table.insert(members, member)
+            end
+        end
+    end
+
+    local scaled = {}
+    for key, value in pairs(fixture) do
+        if key ~= "members" then
+            scaled[key] = value
+        end
+    end
+    scaled.members = members
+    scaled.fullMemberCount = #fixture.members
+    scaled.partySize = partySize
+    return scaled
 end
 
 function Fixtures.levels()

@@ -2,7 +2,7 @@
 
 ## What this candidate tests
 
-Version `0.3.2-alpha.6` tests a continuous, non-blocking solo/co-op progression run with native death saves, full between-round recovery, automatic generous loot, save-tier recovery, and a new level-3 initiation:
+Version `0.3.2-alpha.7` tests a continuous, non-blocking solo/co-op progression run with party-sized enemy rosters, solid tactical scenery, native death saves, full between-round recovery, automatic generous loot, save-tier recovery, and a level-3 initiation:
 
 ```text
 fight at L3 -> loot for L5 -> native level-up
@@ -13,7 +13,7 @@ fight at L10 -> loot for L12 -> native level-up -> champion
 
 The level-12 party is the completed championship build. There is no level-12 fight in this ruleset; a later exhibition or boss bout can be added separately.
 
-The whole active party fights together against four temporary AI enemies. That includes an ordinary solo party, online co-op players on the same party, or two split-screen players cooperating against the AI. The current maximum is four active party members.
+The whole active party fights against a matching number of temporary AI enemies. Reduced rosters deliberately retain a frontline and a ranged or magical threat. The level-3 fixture is capped at three enemies; later fixtures are capped at four. This includes a solo avatar, online co-op players, or split-screen players cooperating against the AI.
 
 ## Important safety boundary
 
@@ -52,13 +52,13 @@ The Adventure PAK starts in the private `AA_Arena_Main` level. Read [ADVENTURE_P
 
 1. Confirm every active party member finishes leveling to 3.
 2. Confirm the party moves from staging to Astral Flats and starts the countdown.
-3. Fight the three Astral Initiates. After victory, confirm the full restore, automatic loot delivery, and XP target for level 5.
+3. Fight the party-sized Astral Initiate roster (up to three enemies). After victory, confirm the full restore, automatic loot delivery, and XP target for level 5.
 
 ### Level 5 tournament opener
 
 1. Confirm every active party member finishes leveling to 5 and is not already in combat.
 2. Confirm automatic validation moves the whole party from staging to Astral Flats and starts the three-second countdown.
-3. Fight the four-member Astral Vanguard normally.
+3. Fight the party-sized Astral Vanguard roster normally. A two-character split-screen party should face exactly two opponents: a Vanguard Warrior and Vanguard Raider.
 
 Expected after victory:
 

@@ -15,13 +15,21 @@ _G.Ext = previousExt
 
 local function fakeAdapter()
     local adapter = {
-        alive = {}, queue = {}, restored = {}, recovered = {}, deleted = {}, delivered = {}, experienceTargets = {}, layouts = {}, sites = {}, stagingReturns = 0, fullRests = 0, menus = {},
+        alive = {}, queue = {}, restored = {}, recovered = {}, deleted = {}, delivered = {}, experienceTargets = {}, layouts = {}, sites = {}, stagingReturns = 0, fullRests = 0, menus = {}, partySize = 2,
     }
     function adapter.partyMembers()
-        return {
-            { guid = "player-a", name = "Player A", userId = 0, level = adapter.partyLevels and adapter.partyLevels[1] or adapter.partyLevel or 5, faction = "player" },
-            { guid = "player-b", name = "Player B", userId = 1, level = adapter.partyLevels and adapter.partyLevels[2] or adapter.partyLevel or 5, faction = "player" },
-        }
+        local ids = { "player-a", "player-b", "player-c", "player-d" }
+        local members = {}
+        for index = 1, adapter.partySize do
+            table.insert(members, {
+                guid = ids[index],
+                name = "Player " .. tostring(index),
+                userId = index - 1,
+                level = adapter.partyLevels and adapter.partyLevels[index] or adapter.partyLevel or 5,
+                faction = "player",
+            })
+        end
+        return members
     end
     function adapter.validateCharacterTemplate() return true end
     function adapter.validateItemTemplate() return true end
@@ -34,8 +42,9 @@ local function fakeAdapter()
             adapter.alive[guid] = true
             table.insert(values, { guid = guid, name = member.displayName, faction = "enemy", temporary = true })
         end
-        adapter.alive["player-a"] = true
-        adapter.alive["player-b"] = true
+        for _, member in ipairs(adapter.partyMembers()) do
+            adapter.alive[member.guid] = true
+        end
         return values
     end
     function adapter.prepareCharacter() end
@@ -90,13 +99,15 @@ H.test("AI bootstrap refuses an already leveled party", function()
     H.raises(function() subject:bootstrapParty() end, "level 1")
 end)
 
-H.test("AI arena spawns a four-member level-five fixture", function()
+H.test("AI arena scales a level-five fixture to a two-character party", function()
     local adapter = fakeAdapter()
     local subject = arena(adapter)
     local match = subject:start({ countdownSeconds = 0 })
     H.equal(match.phase, "combat")
     H.equal(match.level, 5)
-    H.equal(#subject.active.teams.right.members, 4)
+    H.equal(#subject.active.teams.right.members, 2)
+    H.equal(subject.active.teams.right.members[1].name, "Vanguard Warrior")
+    H.equal(subject.active.teams.right.members[2].name, "Vanguard Raider")
     H.truthy(adapter.layouts[1] ~= nil)
     H.equal(adapter.sites[1].id, "astral-flats")
 end)
@@ -115,10 +126,10 @@ H.test("AI victory restores the party, delivers loot, and advances without a pro
     local adapter = fakeAdapter()
     local subject = arena(adapter)
     subject:start({ countdownSeconds = 0 })
-    for index = 1, 4 do adapter.alive["enemy-" .. index] = false end
+    for index = 1, 2 do adapter.alive["enemy-" .. index] = false end
     table.remove(adapter.queue, 1)()
     H.equal(subject.active, nil)
-    H.equal(#adapter.deleted, 4)
+    H.equal(#adapter.deleted, 2)
     H.equal(adapter.stagingReturns, 1)
     H.equal(adapter.fullRests, 1)
     H.equal(adapter.delivered[1], "bundle:2")
@@ -126,6 +137,14 @@ H.test("AI victory restores the party, delivers loot, and advances without a pro
     H.equal(subject.run.phase, "awaiting_level_up")
     H.equal(subject.menu, nil)
     H.equal(#adapter.menus, 0)
+end)
+
+H.test("AI arena retains the full fixture for a four-character party", function()
+    local adapter = fakeAdapter()
+    adapter.partySize = 4
+    local subject = arena(adapter)
+    subject:start({ countdownSeconds = 0 })
+    H.equal(#subject.active.teams.right.members, 4)
 end)
 
 H.test("defeat fully restores and schedules the same bout automatically", function()
@@ -161,7 +180,7 @@ H.test("continue refuses until every party member reaches the expected level", f
     local adapter = fakeAdapter()
     local subject = arena(adapter)
     subject:start({ countdownSeconds = 0 })
-    for index = 1, 4 do adapter.alive["enemy-" .. index] = false end
+    for index = 1, 2 do adapter.alive["enemy-" .. index] = false end
     table.remove(adapter.queue, 1)()
     H.raises(function() subject:continue() end, "level 8")
     adapter.partyLevel = 8
@@ -177,7 +196,7 @@ H.test("AI arena abort restores players and deletes temporary enemies", function
     subject:abort("test")
     H.equal(subject.active, nil)
     H.equal(#adapter.restored, 2)
-    H.equal(#adapter.deleted, 4)
+    H.equal(#adapter.deleted, 2)
     H.equal(subject.run.phase, "seeking_opponent")
 end)
 
@@ -209,7 +228,7 @@ H.test("automatic onboarding validates and starts when every player reaches leve
     H.equal(subject:autoAdvance(), "started")
     H.equal(subject.bootstrapState.phase, "completed")
     H.equal(subject.active.match.level, 3)
-    H.equal(#subject.active.teams.right.members, 3)
+    H.equal(#subject.active.teams.right.members, 2)
 end)
 
 H.test("automatic onboarding repairs a split-screen avatar missed by the XP award", function()
@@ -227,7 +246,7 @@ H.test("automatic progression starts the next bout after reward level-up", funct
     local adapter = fakeAdapter()
     local subject = arena(adapter)
     subject:start({ countdownSeconds = 0 })
-    for index = 1, 4 do adapter.alive["enemy-" .. index] = false end
+    for index = 1, 2 do adapter.alive["enemy-" .. index] = false end
     table.remove(adapter.queue, 1)()
     adapter.partyLevel = 8
     H.equal(subject:autoAdvance(), "started")

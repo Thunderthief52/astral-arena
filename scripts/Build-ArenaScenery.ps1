@@ -172,6 +172,10 @@ $generated = New-Object Collections.Generic.List[string]
 foreach ($object in $manifest.objects) {
     $mapKey = New-DeterministicGuid "scenery/$($object.id)"
     $outputPath = Join-Path $sceneryRoot "$mapKey.lsf"
+    $walkThrough = $object.walkThrough -eq $true
+    $walkOn = $object.walkOn -eq $true
+    $decorative = $object.decorative -eq $true
+    $canClickThrough = $walkThrough -or $decorative
     Write-Resource $outputPath {
         param($writer)
         Add-Attribute $writer 'MapKey' 'FixedString' $mapKey
@@ -180,11 +184,11 @@ foreach ($object in $manifest.objects) {
         Add-Attribute $writer 'Type' 'FixedString' 'scenery'
         Add-Attribute $writer 'TemplateName' 'FixedString' ([string]$object.template)
         Add-Attribute $writer 'Flag' 'uint8' '1'
-        Add-Attribute $writer 'CanClickThrough' 'bool' 'True'
+        Add-Attribute $writer 'CanClickThrough' 'bool' $(if ($canClickThrough) { 'True' } else { 'False' })
         if ($null -ne $object.cover) { Add-Attribute $writer 'CoverAmount' 'uint8' ([string]$object.cover) }
-        if ($object.walkOn -eq $true) { Add-Attribute $writer 'WalkOn' 'bool' 'True' }
-        if ($object.walkThrough -eq $true) { Add-Attribute $writer 'WalkThrough' 'bool' 'True' }
-        if ($object.decorative -eq $true) { Add-Attribute $writer 'IsDecorative' 'bool' 'True' }
+        Add-Attribute $writer 'WalkOn' 'bool' $(if ($walkOn) { 'True' } else { 'False' })
+        Add-Attribute $writer 'WalkThrough' 'bool' $(if ($walkThrough) { 'True' } else { 'False' })
+        Add-Attribute $writer 'IsDecorative' 'bool' $(if ($decorative) { 'True' } else { 'False' })
         Add-Attribute $writer '_OriginalFileVersion_' 'int64' '144115207403209026'
         $writer.WriteStartElement('children')
         Write-Transform $writer $object.position (Get-YawQuaternion ([double]$object.yaw)) ([double]$object.scale)

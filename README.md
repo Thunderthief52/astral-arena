@@ -1,6 +1,6 @@
 # Astral Arena
 
-Astral Arena is an experimental Baldur's Gate 3 arena Adventure for Windows. Version `0.3.2-alpha.6` makes the cooperative AI run continuous: fighters use BG3's native downed state and death saves, every bout ends with a full party restore, victories deliver abundant loot and advance automatically, and defeats replay without a hidden prompt. A gentler level-3 initiation leads into the 5 → 8 → 10 → 12 tournament.
+Astral Arena is an experimental Baldur's Gate 3 arena Adventure for Windows. Version `0.3.2-alpha.7` scales each enemy roster to the active player-character count and rebuilds solid scenery so pillars and cover block movement and click-through destinations. The cooperative AI run remains continuous with native death saves, full party restoration, abundant loot, and automatic progression.
 
 > **Alpha safety note:** use a separate manual save, remove story NPCs from the area, and do not save during an active match. The mod restores combat relationships and characters after a bout, but this is the first engine playtest build.
 
@@ -17,6 +17,7 @@ Astral Arena is an experimental Baldur's Gate 3 arena Adventure for Windows. Ver
 - A deterministic eight-entrant tournament simulator and a tested 1–12 asynchronous run model.
 - A tested deterministic reward engine for level-banded automatic bundles and one-of-six equipment offers.
 - A player-party-versus-AI run with a level-3 initiation, fights at levels 5, 8, and 10, and native progression to 5, 8, 10, and 12.
+- Party-sized AI rosters: one to four player characters face the same number of deliberately selected opponents, capped by the three-member initiation fixture and four-member tournament fixtures.
 - Automatic post-character-creation onboarding that grants the vanilla level-3 XP threshold, waits for every player-authored level-up choice, validates fixtures and rewards internally, and starts each ready bout.
 - A Toolkit-authored Adventure module that starts in the isolated `AA_Arena_Main` level rather than a vanilla campaign location.
 - A decorated safe staging area plus three visually distinct runtime-selected combat sites: Astral Flats, Crescent Ruin, and Echelon Steps.
@@ -37,14 +38,14 @@ The level now uses shipped BG3 stonework, ruins, rocks, vegetation, cover, eleva
 
 ## Install the Adventure PAK
 
-The Toolkit build is `dist\AstralArena-0.3.2-alpha.6.pak`.
+The Toolkit build is `dist\AstralArena-0.3.2-alpha.7.pak`.
 
 1. Close Baldur's Gate 3.
 2. Install Norbyte's Script Extender if it is not already present.
 3. From the repository root, install the PAK:
 
    ```powershell
-   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.2-alpha.6.pak"
+   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.2-alpha.7.pak"
    ```
 
    Manual alternative: copy the PAK to:
@@ -58,7 +59,7 @@ The Toolkit build is `dist\AstralArena-0.3.2-alpha.6.pak`.
 6. Choose **New Game**, select **Astral Arena Adventure** if BG3 displays an Adventure choice, and create the player characters.
 7. For ordinary online co-op, install the identical PAK and Script Extender version on every PC. Split-screen needs one installation.
 
-The installer backs up a previous canonical Adventure PAK under `%LOCALAPPDATA%\AstralArena\PakBackups`. Saves containing temporary 1-HP character-creation dummies remain invalid and should be discarded. Real custom-character arena saves at levels 5, 8, or 10 can resume at their current tier with `0.3.2-alpha.6`; mixed-level split-screen parties receive missing XP repair. Follow [docs/ADVENTURE_PLAYTEST.md](docs/ADVENTURE_PLAYTEST.md).
+The installer backs up a previous canonical Adventure PAK under `%LOCALAPPDATA%\AstralArena\PakBackups`. Saves containing temporary 1-HP character-creation dummies remain invalid and should be discarded. Real custom-character arena saves at levels 5, 8, or 10 can resume at their current tier with `0.3.2-alpha.7`; mixed-level split-screen parties receive missing XP repair. Follow [docs/ADVENTURE_PLAYTEST.md](docs/ADVENTURE_PLAYTEST.md).
 
 ## Run the first match
 
@@ -139,15 +140,15 @@ The deterministic Lua code runs outside BG3 with LuaJIT or Lua 5.1+:
 ```sh
 luajit tests/run.lua
 luajit scripts/simulate.lua
-./scripts/build-release.sh 0.3.2-alpha.6
+./scripts/build-release.sh 0.3.2-alpha.7
 ```
 
 Windows equivalents:
 
 ```powershell
 lua tests\run.lua
-.\scripts\Build-Pak.ps1 -Version 0.3.2-alpha.6
-.\scripts\Build-Release.ps1 -Version 0.3.2-alpha.6
+.\scripts\Build-Pak.ps1 -Version 0.3.2-alpha.7
+.\scripts\Build-Release.ps1 -Version 0.3.2-alpha.7
 ```
 
 `Build-Pak.ps1` combines the checked-in Toolkit level, the current Script Extender runtime, and the Toolkit-generated module artwork into the installable Adventure PAK. Run it after syncing/opening the project in the Toolkit. `Build-Release.ps1` then includes that PAK and the playtest documentation in the generated archive under `dist/`.

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.2-alpha.7 — 2026-08-22
+
+- Scaled each AI bout to the active player-character count instead of always spawning the full four-enemy fixture; each reduced roster deliberately keeps a frontline and ranged threat.
+- Kept full four-enemy fixtures for four-character parties, with the three-member initiation fixture remaining capped at three.
+- Rebuilt all arena scenery with explicit solid movement, click-through, walk-on, and decorative flags so pillars, arches, rocks, and cover no longer behave like pass-through decoration.
+
 ## 0.3.2-alpha.6 — 2026-08-15
 
 - Replaced one-hit-point arena elimination with BG3's native zero-hit-point downed state and `DeathSavingThrows` passive for both player and AI combatants.

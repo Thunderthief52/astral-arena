@@ -373,7 +373,9 @@ end
 function SoloArena:_startBout(party, options)
     options = options or {}
     self.menu = nil
-    local fixture = self.fixtures.get(self.run.level)
+    local fixture = self.fixtures.forPartySize
+        and self.fixtures.forPartySize(self.run.level, #party.members)
+        or self.fixtures.get(self.run.level)
     if not fixture then
         error("no AI fixture exists for level " .. tostring(self.run.level), 2)
     end
@@ -445,11 +447,13 @@ function SoloArena:_startBout(party, options)
     end
 
     self.output(string.format(
-        "Prepared AI bout %d/%d at L%d in %s: Player Party versus %s%s.",
+        "Prepared AI bout %d/%d at L%d in %s: %d player(s) versus %d %s%s.",
         self.run.battleIndex,
         #self.run.levels - 1,
         self.run.level,
         site and site.displayName or "the active arena",
+        #party.members,
+        #spawned,
         fixture.displayName,
         layout and (" using " .. layout.displayName .. " formation") or ""
     ))
