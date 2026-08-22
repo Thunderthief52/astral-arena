@@ -367,10 +367,10 @@ function Adapter.spawnFixtureTeam(fixture, anchorGuid, layout)
         error("could not read the player party position", 2)
     end
     local offsets = layout and layout.enemyOffsets or {
-        { 20, -6 },
-        { 22, -2 },
-        { 22, 2 },
-        { 20, 6 },
+        { 30, -6 },
+        { 32, -2 },
+        { 32, 2 },
+        { 30, 6 },
     }
     local spawned = {}
     local ok, err = pcall(function()

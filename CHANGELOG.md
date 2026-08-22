@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.2-alpha.12 — 2026-08-22
+
+- Increased all twelve enemy formations to 30–34 metres from the player line, beyond a standard 9-metre move or 18-metre dash into melee range.
+- Extended every validated scenery-free approach lane to cover the longer starts.
+- Moved Crescent Ruin's central arch and Selûnite statue behind the new enemy line so they cannot block the expanded combat lane.
+
 ## 0.3.2-alpha.11 — 2026-08-22
 
 - Removed arena invulnerability and Sanctuary from downed players and enemies; native follow-up attacks can now inflict death-save failures and combatants can genuinely die.

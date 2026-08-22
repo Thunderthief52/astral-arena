@@ -3,9 +3,9 @@
   "sceneryLayer": "40f7d665-4d7d-2792-d7b9-dca1434bc8df",
   "lightingLayer": "faf5a7d1-fa23-3785-2b99-825cda606c58",
   "combatClearZones": [
-    { "id": "astral-flats-lane", "minimum": [-6, 19], "maximum": [28, 37] },
-    { "id": "crescent-ruin-lane", "minimum": [42, -9], "maximum": [76, 9] },
-    { "id": "echelon-steps-lane", "minimum": [74, 19], "maximum": [108, 37] }
+    { "id": "astral-flats-lane", "minimum": [-6, 19], "maximum": [36, 37] },
+    { "id": "crescent-ruin-lane", "minimum": [42, -9], "maximum": [84, 9] },
+    { "id": "echelon-steps-lane", "minimum": [74, 19], "maximum": [114.5, 37] }
   ],
   "objects": [
     { "id": "staging-platform", "name": "AA_Staging_Circle_Platform", "template": "c042d831-baae-4a0b-91ca-131e90a9c3f3", "position": [0, 0.02, 0], "yaw": 0, "scale": 1.0, "cover": 0, "walkOn": true },
@@ -37,14 +37,14 @@
 
     { "id": "crescent-floor", "name": "AA_Crescent_Semicircle", "template": "bcfff06c-6ae2-4642-90d3-b6594fd4d23a", "position": [50, 0.02, 0], "yaw": 90, "scale": 1.0, "cover": 0, "walkOn": true },
     { "id": "crescent-arch-north", "name": "AA_Crescent_Arch_North", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [65, 0, 16], "yaw": -55, "scale": 1.0, "cover": 1 },
-    { "id": "crescent-arch-center", "name": "AA_Crescent_Arch_Center", "template": "d15b5391-c80f-464b-8016-609ea1d2d463", "position": [82, 0, 0], "yaw": -90, "scale": 0.95, "cover": 1 },
+    { "id": "crescent-arch-center", "name": "AA_Crescent_Arch_Center", "template": "d15b5391-c80f-464b-8016-609ea1d2d463", "position": [90, 0, 0], "yaw": -90, "scale": 0.95, "cover": 1 },
     { "id": "crescent-arch-south", "name": "AA_Crescent_Arch_South", "template": "66d3db11-0c68-4275-a744-0d0fe170292c", "position": [65, 0, -16], "yaw": -125, "scale": 1.0, "cover": 1 },
     { "id": "crescent-pillar-nw", "name": "AA_Crescent_Pillar_NW", "template": "3dabf802-61a8-4358-9019-e611cafef552", "position": [54, 0, 17], "yaw": 15, "scale": 0.95, "cover": 1 },
     { "id": "crescent-pillar-sw", "name": "AA_Crescent_Pillar_SW", "template": "8ce790ba-759d-467f-b7db-fdb3b5171d07", "position": [54, 0, -17], "yaw": 165, "scale": 0.95, "cover": 1 },
     { "id": "crescent-rubble-north", "name": "AA_Crescent_Rubble_North", "template": "18f6421e-f2cc-4786-afd6-4cb915eb085f", "position": [58, 0.02, 20], "yaw": -35, "scale": 1.0, "cover": 1 },
     { "id": "crescent-rubble-south", "name": "AA_Crescent_Rubble_South", "template": "77146318-1aa2-49fd-b0c8-5018447dc897", "position": [58, 0.02, -20], "yaw": -145, "scale": 1.0, "cover": 1 },
     { "id": "crescent-rubble-center", "name": "AA_Crescent_Rubble_Center", "template": "6d0a084a-8988-4629-b46a-00bcee469b4b", "position": [80, 0.03, 11], "yaw": 70, "scale": 1.1, "cover": 1 },
-    { "id": "crescent-statue", "name": "AA_Crescent_Selune_Statue", "template": "024209a6-569b-4a28-aac1-2a125d52c14e", "position": [86, 0, 0], "yaw": -90, "scale": 0.85, "cover": 1 },
+    { "id": "crescent-statue", "name": "AA_Crescent_Selune_Statue", "template": "024209a6-569b-4a28-aac1-2a125d52c14e", "position": [98, 0, 0], "yaw": -90, "scale": 0.85, "cover": 1 },
     { "id": "crescent-grass-1", "name": "AA_Crescent_Bluegrass_01", "template": "c255905c-5b6a-4c6f-af5c-bbffbc990c65", "position": [43, 0.02, 9], "yaw": 12, "scale": 1.4, "cover": 0, "walkThrough": true, "decorative": true },
     { "id": "crescent-grass-2", "name": "AA_Crescent_Bluegrass_02", "template": "1afe4a17-0883-4439-be1c-65e5356d4436", "position": [43, 0.02, -9], "yaw": -12, "scale": 1.4, "cover": 0, "walkThrough": true, "decorative": true },
     { "id": "crescent-grass-3", "name": "AA_Crescent_Bluegrass_03", "template": "c255905c-5b6a-4c6f-af5c-bbffbc990c65", "position": [62, 0.02, 12], "yaw": 85, "scale": 1.3, "cover": 0, "walkThrough": true, "decorative": true },
@@ -109,7 +109,7 @@
     { "id": "light-flats-key", "name": "AA_Light_Flats_Key", "position": [5, 7, 28], "color": [0.28, 0.52, 1.0], "intensity": 7500, "radius": 25, "gain": 0.6, "scattering": 0.45 },
     { "id": "light-flats-rim", "name": "AA_Light_Flats_Rim", "position": [-5, 3.5, 28], "color": [0.48, 0.9, 1.0], "intensity": 3800, "radius": 13, "gain": 0.5, "scattering": 0.35 },
     { "id": "light-crescent-key", "name": "AA_Light_Crescent_Key", "position": [54, 7, 0], "color": [0.7, 0.78, 1.0], "intensity": 8200, "radius": 24, "gain": 0.6, "scattering": 0.5 },
-    { "id": "light-crescent-statue", "name": "AA_Light_Crescent_Statue", "position": [66, 4, 0], "color": [0.55, 0.35, 1.0], "intensity": 4600, "radius": 13, "gain": 0.5, "scattering": 0.4 },
+    { "id": "light-crescent-statue", "name": "AA_Light_Crescent_Statue", "position": [98, 4, 0], "color": [0.55, 0.35, 1.0], "intensity": 4600, "radius": 13, "gain": 0.5, "scattering": 0.4 },
     { "id": "light-echelon-key", "name": "AA_Light_Echelon_Key", "position": [82, 8, 28], "color": [0.42, 0.35, 1.0], "intensity": 8500, "radius": 27, "gain": 0.6, "scattering": 0.5 },
     { "id": "light-echelon-high", "name": "AA_Light_Echelon_High", "position": [92, 7, 42], "color": [1.0, 0.48, 0.22], "intensity": 5000, "radius": 16, "gain": 0.5, "scattering": 0.35 }
   ]

@@ -2,7 +2,7 @@
 
 ## What this candidate tests
 
-Version `0.3.2-alpha.11` tests a continuous solo/co-op progression run with party-sized multi-wave battles, validated clear combat lanes, 19–26 metre opening separation, a level-appropriate preparation armory, fully lethal native death saves, manual between-wave resurrection, final-wave automatic resurrection/rest/loot, save-tier recovery, a level-3 initiation, and a true level-12 championship:
+Version `0.3.2-alpha.12` tests a continuous solo/co-op progression run with party-sized multi-wave battles, validated clear combat lanes, 30–34 metre opening separation, a level-appropriate preparation armory, fully lethal native death saves, manual between-wave resurrection, final-wave automatic resurrection/rest/loot, save-tier recovery, a level-3 initiation, and a true level-12 championship:
 
 ```text
 2 waves at L3 -> long rest + loot for L5 -> native level-up
