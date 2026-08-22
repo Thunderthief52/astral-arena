@@ -45,9 +45,9 @@ Exit criteria:
 
 Goal: make matches repeatable enough to evaluate builds rather than setup accidents.
 
-The `0.3.2-alpha.9` candidate turns the party-sized, role-balanced level-3, level-5, level-8, level-10, and level-12 fixtures into two-, three-, and four-wave battles. Non-final waves recover downed allies without refreshing resources; the final level-12 wave triggers full restoration, abundant rewards, and a staged champion celebration. Explicit collision/click blocking for solid scenery, current-tier save recovery, and the perimeter wall pass remain intact.
+The `0.3.2-alpha.10` candidate turns the party-sized, role-balanced level-3, level-5, level-8, level-10, and level-12 fixtures into two-, three-, and four-wave battles. Non-final waves recover downed allies without refreshing resources; the final level-12 wave triggers full restoration, abundant rewards, and a staged champion celebration. Opening formations now use 19–26 metres of separation, downed actors are removed from AI target selection immediately, and a once-per-run armory closes the early-game equipment gap.
 
-`AA_Arena_Main` starts independently of vanilla campaign locations and provides a decorated staging area plus Astral Flats, Crescent Ruin, and Echelon Steps. The current pass has 96 shipped-asset objects and eight accent lights, including 30 oversized ruin arches around the active footprint. This playable foundation must pass new-game, solo, ordinary co-op, and split-screen engine playtests before the map expands.
+`AA_Arena_Main` starts independently of vanilla campaign locations and provides a decorated staging area plus Astral Flats, Crescent Ruin, and Echelon Steps. The current pass has 87 shipped-asset objects and eight accent lights, including 30 oversized ruin arches around the active footprint. All nine loose rocks were removed and the validator now enforces three scenery-free combat approach lanes. This playable foundation must pass new-game, solo, ordinary co-op, and split-screen engine playtests before the map expands.
 
 Planned work:
 
@@ -55,12 +55,12 @@ Planned work:
 - add and validate the remaining nine combat sites;
 - replace the generous all-six fallback with a graphical one-of-six item grid and tooltips;
 - validate the new standardized full restore across every class resource and add equipment-budget enforcement;
-- no-surprise start and deterministic initiative policy experiments;
+- validate the 19–26 metre start spacing across melee, ranged, and caster parties, then evaluate deterministic initiative policy experiments;
 - configurable preparation time and hard-control guardrails;
 - expand each existing level-5, level-8, and level-10 fixture into a seedable opponent pool;
 - seedable encounter selection using the existing match controller;
 - ruleset fingerprints included in every result;
-- expand the initial audited `+2` weapon catalog to armor, jewelry, and class-aware choices;
+- expand the audited `+1` weapon/armour and `+2` weapon catalog to jewelry and class-aware choices;
 - replace `RewardMedium` with Astral Arena-owned level-banded utility tables;
 - add crash-safe reward-delivery recovery without duplicating items.
 

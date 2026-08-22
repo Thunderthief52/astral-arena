@@ -9,6 +9,10 @@ H.test("arena supplies twelve distinct encounter layouts", function()
         H.equal(#layout.enemyOffsets, 4)
         H.truthy(not seen[layout.id], "layout IDs must be unique")
         seen[layout.id] = true
+        for _, offset in ipairs(layout.enemyOffsets) do
+            H.truthy(offset[1] >= 19, "enemy formations must begin at least 19 metres from the player line")
+            H.truthy(math.abs(offset[2]) <= 8, "enemy formations must remain inside the audited clear lane")
+        end
     end
 end)
 

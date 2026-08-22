@@ -132,6 +132,27 @@ foreach ($Object in $SceneryManifest.objects) {
     }
 }
 
+$ClearZones = @($SceneryManifest.combatClearZones)
+if ($ClearZones.Count -ne 3) {
+    throw "Arena scenery manifest must define three combat-clear approach zones."
+}
+foreach ($Zone in $ClearZones) {
+    if (@($Zone.minimum).Count -ne 2 -or @($Zone.maximum).Count -ne 2) {
+        throw "Combat-clear zone '$($Zone.id)' has invalid bounds."
+    }
+    foreach ($Object in $SceneryManifest.objects) {
+        $Position = @($Object.position)
+        $BlocksTravel = $Object.decorative -ne $true -and $Object.walkOn -ne $true
+        $Inside = $Position[0] -ge $Zone.minimum[0] -and $Position[0] -le $Zone.maximum[0] -and $Position[2] -ge $Zone.minimum[1] -and $Position[2] -le $Zone.maximum[1]
+        if ($BlocksTravel -and $Inside) {
+            throw "Solid scenery '$($Object.id)' intrudes into combat-clear zone '$($Zone.id)'."
+        }
+    }
+}
+if (@($SceneryManifest.objects | Where-Object { $_.id -match '(rock|boulder)' }).Count -gt 0) {
+    throw "Collision-unsafe planted rocks or boulders remain in the arena scenery manifest."
+}
+
 $ExpectedSceneryCount = @($SceneryManifest.objects).Count
 $ExpectedLightCount = @($SceneryManifest.lights).Count
 $ActualSceneryFiles = @(Get-ChildItem -LiteralPath (Join-Path $ArenaLevelRoot "Scenery") -Filter *.lsf -File)
@@ -159,5 +180,6 @@ Write-Host "Toolkit project validation passed:" -ForegroundColor Green
 Write-Host "  Adventure UUID: $ModuleUuid"
 Write-Host "  Character flow: inherited system CC -> AA_Arena_Main"
 Write-Host "  Combat sites:   Astral Flats, Crescent Ruin, Echelon Steps"
+Write-Host "  Clear lanes:    $($ClearZones.Count) scenery-free player-to-enemy approaches"
 Write-Host "  Visual pass:    $ExpectedSceneryCount scenery objects, $ExpectedLightCount lights"
 Write-Host "  Players:        1-4"

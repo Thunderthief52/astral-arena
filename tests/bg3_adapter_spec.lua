@@ -110,7 +110,7 @@ H.test("arena menu opens a native localized yes-no prompt", function()
     H.equal(opened[2], "hmenu")
 end)
 
-H.test("arena downing preserves native death saves and blocks AI farming", function()
+H.test("arena downing preserves native death saves and blocks AI targeting", function()
     local previousExt = _G.Ext
     local previousOsi = _G.Osi
     local calls = {}
@@ -122,7 +122,8 @@ H.test("arena downing preserves native death saves and blocks AI farming", funct
     _G.Ext = previousExt
     _G.Osi = previousOsi
     H.equal(calls[1], "status:fighter:INVULNERABLE_NOT_SHOWN")
-    H.equal(#calls, 1)
+    H.equal(calls[2], "status:fighter:SANCTUARY")
+    H.equal(#calls, 2)
 end)
 
 H.test("arena preparation enables death saves and allows zero-hit-point downing", function()
@@ -165,17 +166,19 @@ end)
 H.test("a recovered death-save combatant loses temporary protection", function()
     local previousExt = _G.Ext
     local previousOsi = _G.Osi
-    local removed
+    local removed = {}
     _G.Ext = { Utils = { PrintWarning = function() end } }
     _G.Osi = {
         RemoveStatus = function(guid, status)
-            removed = guid .. ":" .. status
+            table.insert(removed, guid .. ":" .. status)
         end,
     }
     Adapter.markRecovered("fighter")
     _G.Ext = previousExt
     _G.Osi = previousOsi
-    H.equal(removed, "fighter:INVULNERABLE_NOT_SHOWN")
+    H.equal(removed[1], "fighter:INVULNERABLE_NOT_SHOWN")
+    H.equal(removed[2], "fighter:SANCTUARY")
+    H.equal(removed[3], "fighter:SANCTUARY_BLOCK")
 end)
 
 H.test("between-round recovery invokes party restore and refreshes every avatar", function()
@@ -231,4 +234,41 @@ H.test("victory bundle gives four loot rolls per avatar and distributes six rare
     H.equal(items[1], "item-1:player-a")
     H.equal(items[2], "item-2:player-b")
     H.equal(items[6], "item-6:player-b")
+end)
+
+H.test("preparation bundle gives every avatar six level-scaled supply rolls", function()
+    local previousExt = _G.Ext
+    local previousOsi = _G.Osi
+    local generated = {}
+    local items = {}
+    _G.Ext = {
+        Template = {
+            GetRootTemplate = function()
+                return { TemplateType = "item" }
+            end,
+        },
+    }
+    _G.Osi = {
+        GenerateTreasure = function(guid, tableId, level)
+            table.insert(generated, { guid = guid, tableId = tableId, level = level })
+        end,
+        TemplateAddTo = function(templateId, guid)
+            table.insert(items, templateId .. ":" .. guid)
+        end,
+    }
+    local delivered = Adapter.deliverPreparationBundle(members, 3, {
+        { id = "weapon", templateId = "weapon-template", minimumLevel = 3, maximumLevel = 8 },
+        { id = "armor", templateId = "armor-template", minimumLevel = 3, maximumLevel = 8 },
+        { id = "too-late", templateId = "late-template", minimumLevel = 8 },
+    })
+    _G.Ext = previousExt
+    _G.Osi = previousOsi
+    H.equal(delivered.treasureRolls, 12)
+    H.equal(delivered.armoryItems, 2)
+    H.equal(#generated, 12)
+    H.equal(generated[1].tableId, "RewardMedium")
+    H.equal(generated[1].level, 3)
+    H.equal(generated[7].guid, "player-b")
+    H.equal(items[1], "armor-template:player-a")
+    H.equal(items[2], "weapon-template:player-b")
 end)

@@ -66,6 +66,17 @@ H.test("a solo arena loss ends the run without loot", function()
     H.equal(run.pendingReward, nil)
 end)
 
+H.test("the initiation produces six level-five equipment candidates", function()
+    local run = SoloRun.new({ id = "initiation-test", partyId = "party-1", levels = { 3, 5 } })
+    winAt(run, 3)
+    local offer = SoloRun.createRewardOffer(run, Catalog, { treasureTableId = "RewardMedium" })
+    H.equal(offer.level, 5)
+    H.equal(#offer.choices, 6)
+    for _, choice in ipairs(offer.choices) do
+        H.equal(choice.rarity, "uncommon")
+    end
+end)
+
 H.test("a defeated solo arena can retry the same level", function()
     local run = newRun()
     SoloRun.confirmPartyLevel(run, 5)

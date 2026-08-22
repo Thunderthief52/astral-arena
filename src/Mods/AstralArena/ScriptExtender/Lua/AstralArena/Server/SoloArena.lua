@@ -23,7 +23,7 @@ end
 
 local function countdown(value)
     value = tonumber(value) or 3
-    return math.max(0, math.min(10, math.floor(value)))
+    return math.max(0, math.min(30, math.floor(value)))
 end
 
 function SoloArena.new(adapter, output, fixtures, rewardCatalog, arenaLayouts, arenaSites)
@@ -42,6 +42,7 @@ function SoloArena.new(adapter, output, fixtures, rewardCatalog, arenaLayouts, a
         rewardRecipients = nil,
         repairNoticeTarget = nil,
         menu = nil,
+        preparationBundleDelivered = false,
     }, SoloArena)
 end
 
@@ -382,6 +383,7 @@ function SoloArena:start(options)
         levels = levels,
     })
     self.recentOfferItemIds = {}
+    self.preparationBundleDelivered = false
     SoloRun.confirmPartyLevel(self.run, party.level)
     return self:_startBout(party, options)
 end
@@ -398,6 +400,28 @@ function SoloArena:_startBout(party, options)
         error("no AI fixture exists for level " .. tostring(self.run.level), 2)
     end
     SoloRun.assignOpponent(self.run, fixture)
+
+    local preparation = { treasureRolls = 0, armoryItems = 0 }
+    if self.run.battleIndex == 1 and not self.preparationBundleDelivered
+        and self.adapter.deliverPreparationBundle
+    then
+        preparation = self.adapter.deliverPreparationBundle(
+            party.members,
+            self.run.level,
+            self.rewardCatalog
+        ) or preparation
+        self.preparationBundleDelivered = true
+        local supplyMessage = string.format(
+            "Arena armory delivered: %d guaranteed level-appropriate magic equipment pieces plus %d level-%d gear, scroll, potion, and utility rolls. Trade and equip before combat.",
+            preparation.armoryItems or 0,
+            preparation.treasureRolls or 0,
+            self.run.level
+        )
+        self.output(supplyMessage)
+        for _, member in ipairs(party.members) do
+            self.adapter.notify(member.guid, supplyMessage)
+        end
+    end
 
     local layout = self.arenaLayouts and self.arenaLayouts.select(
         self.run.id .. "-bout-" .. tostring(self.run.battleIndex) .. "-wave-1"
@@ -438,7 +462,10 @@ function SoloArena:_startBout(party, options)
         teams = teams,
         match = match,
         defeated = {},
-        countdownRemaining = countdown(options.countdownSeconds),
+        countdownRemaining = countdown(
+            options.countdownSeconds ~= nil and options.countdownSeconds
+            or (((preparation.treasureRolls or 0) + (preparation.armoryItems or 0)) > 0 and 30 or 10)
+        ),
         layout = layout,
         site = site,
         waveIndex = 1,
@@ -570,6 +597,25 @@ function SoloArena:_poll()
             self:_finish(side)
         end
     end
+end
+
+function SoloArena:onStatusApplied(guid, status)
+    if status ~= "DOWNED" or not self.active then
+        return false
+    end
+    for _, side in ipairs({ "left", "right" }) do
+        for _, member in ipairs(self.active.teams[side].members) do
+            if member.guid == guid then
+                if not self.active.defeated[guid] then
+                    self.active.defeated[guid] = true
+                    self.adapter.markDefeated(guid)
+                    self.output((member.name or guid) .. " is down and protected from arena targeting while making death saves.")
+                end
+                return true
+            end
+        end
+    end
+    return false
 end
 
 function SoloArena:_cleanupBetweenWaves(active)
@@ -904,6 +950,7 @@ function SoloArena:reset()
     self.recentOfferItemIds = {}
     self.repairNoticeTarget = nil
     self.menu = nil
+    self.preparationBundleDelivered = false
     self.output("AI arena session state reset. Awarded XP and items are not removed; reload the pre-test save for a clean reset.")
 end
 

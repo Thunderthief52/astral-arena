@@ -227,6 +227,12 @@ function Controller.Register()
         end)
     end)
 
+    Ext.Osiris.RegisterListener("StatusApplied", 4, "after", function(object, status)
+        safely(function()
+            soloArena:onStatusApplied(object, status)
+        end)
+    end)
+
     Ext.RegisterConsoleCommand("aa_demo", function()
         safely(Controller.API.CreateDemo)
     end)

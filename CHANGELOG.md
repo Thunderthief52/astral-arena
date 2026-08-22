@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.2-alpha.10 — 2026-08-22
+
+- Removed all nine loose rocks and boulders from the active sites, moved remaining solid ruins outside three validated player-to-enemy clear lanes, and extended the eastern perimeter to contain the longer formations.
+- Increased every enemy formation to 19–26 metres of opening separation with no more than eight metres of lateral spread, preventing immediate point-blank initiative swings.
+- Added a once-per-run preparation armory: up to 12 audited level-appropriate magic equipment pieces plus six native level-scaled supply rolls per avatar and a 30-second equip window.
+- Added 12 audited uncommon `+1` weapons and armour pieces so the level-3 initiation can always produce its six level-5 reward candidates.
+- Reacted to BG3's native `DOWNED` event immediately and applied AI target exclusion alongside hidden invulnerability, preventing queued attacks from repeatedly striking a downed actor for zero damage.
+
 ## 0.3.2-alpha.9 — 2026-08-22
 
 - Added a true level-12 championship battle instead of crowning the party as soon as its final level-up completes.

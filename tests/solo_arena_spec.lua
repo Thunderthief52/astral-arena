@@ -15,7 +15,7 @@ _G.Ext = previousExt
 
 local function fakeAdapter()
     local adapter = {
-        alive = {}, queue = {}, restored = {}, recovered = {}, deleted = {}, delivered = {}, experienceTargets = {}, layouts = {}, sites = {}, notifications = {}, stagingReturns = 0, fullRests = 0, menus = {}, partySize = 2, spawnCalls = 0, interWaveRecoveries = 0,
+        alive = {}, queue = {}, restored = {}, recovered = {}, deleted = {}, delivered = {}, experienceTargets = {}, layouts = {}, sites = {}, notifications = {}, defeatedMarks = {}, stagingReturns = 0, fullRests = 0, menus = {}, partySize = 2, spawnCalls = 0, interWaveRecoveries = 0, preparationCalls = 0,
     }
     function adapter.partyMembers()
         local ids = { "player-a", "player-b", "player-c", "player-d" }
@@ -55,7 +55,7 @@ local function fakeAdapter()
     function adapter.makeHostile() end
     function adapter.enterCombat() end
     function adapter.isAlive(guid) return adapter.alive[guid] end
-    function adapter.markDefeated() end
+    function adapter.markDefeated(guid) table.insert(adapter.defeatedMarks, guid) end
     function adapter.markRecovered(guid) table.insert(adapter.recovered, guid) end
     function adapter.restoreCharacter(member) table.insert(adapter.restored, member.guid) end
     function adapter.recoverBetweenWaves(member)
@@ -79,6 +79,12 @@ local function fakeAdapter()
     function adapter.deliverVictoryBundle(_, members)
         table.insert(adapter.delivered, "bundle:" .. tostring(#members))
         return { treasureRolls = #members * 4, rareItems = 6 }
+    end
+    function adapter.deliverPreparationBundle(members, level, catalog)
+        adapter.preparationCalls = adapter.preparationCalls + 1
+        adapter.preparationLevel = level
+        adapter.preparationCatalogSize = #catalog
+        return { treasureRolls = #members * 6, armoryItems = 12 }
     end
     function adapter.awardPartyToLevel(_, target)
         table.insert(adapter.experienceTargets, target)
@@ -141,6 +147,21 @@ H.test("AI arena scales a level-five fixture to a two-character party", function
     H.equal(subject.active.teams.right.members[2].name, "Vanguard Raider")
     H.truthy(adapter.layouts[1] ~= nil)
     H.equal(adapter.sites[1].id, "astral-flats")
+    H.equal(adapter.preparationCalls, 1)
+    H.equal(adapter.preparationLevel, 5)
+    H.equal(adapter.preparationCatalogSize, #Catalog)
+end)
+
+H.test("arena preparation supplies are delivered once and retries cannot duplicate them", function()
+    local adapter = fakeAdapter()
+    local subject = arena(adapter)
+    subject:start({ countdownSeconds = 0 })
+    H.equal(adapter.preparationCalls, 1)
+    adapter.alive["player-a"] = false
+    adapter.alive["player-b"] = false
+    table.remove(adapter.queue, 1)()
+    table.remove(adapter.queue, 1)()
+    H.equal(adapter.preparationCalls, 1)
 end)
 
 H.test("AI arena returns the party to staging when fixture setup fails", function()
@@ -265,6 +286,16 @@ H.test("healing a downed combatant removes arena protection", function()
     table.remove(adapter.queue, 1)()
     H.equal(subject.active.defeated["player-a"], nil)
     H.equal(adapter.recovered[1], "player-a")
+end)
+
+H.test("the native downed event applies target protection before the next poll", function()
+    local adapter = fakeAdapter()
+    local subject = arena(adapter)
+    subject:start({ countdownSeconds = 0 })
+    H.truthy(subject:onStatusApplied("player-a", "DOWNED"))
+    H.truthy(subject.active.defeated["player-a"])
+    H.equal(adapter.defeatedMarks[1], "player-a")
+    H.equal(subject:onStatusApplied("outside-combatant", "DOWNED"), false)
 end)
 
 H.test("continue refuses until every party member reaches the expected level", function()

@@ -137,6 +137,12 @@ function Adapter.prepareCharacter(guid)
     safely(function()
         Osi.RemoveStatus(guid, "INVULNERABLE_NOT_SHOWN", guid)
     end)
+    safely(function()
+        Osi.RemoveStatus(guid, "SANCTUARY", guid)
+    end)
+    safely(function()
+        Osi.RemoveStatus(guid, "SANCTUARY_BLOCK", guid)
+    end)
     Osi.SetCanFight(guid, 1)
     Osi.SetCanJoinCombat(guid, 1)
     Osi.SetImmortal(guid, 0)
@@ -176,11 +182,23 @@ function Adapter.markDefeated(guid)
     safely(function()
         Osi.ApplyStatus(guid, "INVULNERABLE_NOT_SHOWN", -1.0, 1, guid)
     end)
+    -- Sanctuary changes AI target legality instead of merely reducing queued
+    -- attacks to zero damage. This stops multiattack routines from continuing
+    -- to pummel a downed combatant while native death saves remain active.
+    safely(function()
+        Osi.ApplyStatus(guid, "SANCTUARY", -1.0, 1, guid)
+    end)
 end
 
 function Adapter.markRecovered(guid)
     safely(function()
         Osi.RemoveStatus(guid, "INVULNERABLE_NOT_SHOWN", guid)
+    end)
+    safely(function()
+        Osi.RemoveStatus(guid, "SANCTUARY", guid)
+    end)
+    safely(function()
+        Osi.RemoveStatus(guid, "SANCTUARY_BLOCK", guid)
     end)
 end
 
@@ -204,6 +222,12 @@ function Adapter.restoreCharacter(member, opposingFactions)
     end)
     safely(function()
         Osi.RemoveStatus(member.guid, "INVULNERABLE_NOT_SHOWN", member.guid)
+    end)
+    safely(function()
+        Osi.RemoveStatus(member.guid, "SANCTUARY", member.guid)
+    end)
+    safely(function()
+        Osi.RemoveStatus(member.guid, "SANCTUARY_BLOCK", member.guid)
     end)
     safely(function()
         Osi.SetCanFight(member.guid, 1)
@@ -251,6 +275,12 @@ function Adapter.recoverBetweenWaves(member, opposingFactions)
     end)
     safely(function()
         Osi.RemoveStatus(member.guid, "INVULNERABLE_NOT_SHOWN", member.guid)
+    end)
+    safely(function()
+        Osi.RemoveStatus(member.guid, "SANCTUARY", member.guid)
+    end)
+    safely(function()
+        Osi.RemoveStatus(member.guid, "SANCTUARY_BLOCK", member.guid)
     end)
     if Osi.IsDead(member.guid) == 1 then
         safely(function()
@@ -363,10 +393,10 @@ function Adapter.spawnFixtureTeam(fixture, anchorGuid, layout)
         error("could not read the player party position", 2)
     end
     local offsets = layout and layout.enemyOffsets or {
-        { 8, -3 },
-        { 10, -1 },
-        { 10, 1 },
-        { 8, 3 },
+        { 20, -6 },
+        { 22, -2 },
+        { 22, 2 },
+        { 20, 6 },
     }
     local spawned = {}
     local ok, err = pcall(function()
@@ -443,6 +473,60 @@ function Adapter.deliverAutomaticReward(offer, recipientGuid)
     for _ = 1, automatic.rolls do
         Osi.GenerateTreasure(recipientGuid, automatic.treasureTableId, offer.level, recipientGuid)
     end
+end
+
+function Adapter.deliverPreparationBundle(members, level, catalog)
+    if type(members) ~= "table" or not members[1] then
+        error("arena preparation supplies require a player party", 2)
+    end
+    level = math.floor(tonumber(level) or 0)
+    if not TOTAL_EXPERIENCE[level] then
+        error("unsupported preparation level: " .. tostring(level), 2)
+    end
+
+    local delivered = { treasureRolls = 0, armoryItems = 0 }
+    for _, member in ipairs(members) do
+        -- Six level-scaled rolls give a fresh or reconstructed party weapons,
+        -- armor, consumables, scrolls, and utility options before its first bout.
+        for _ = 1, 6 do
+            Osi.GenerateTreasure(member.guid, "RewardMedium", level, member.guid)
+            delivered.treasureRolls = delivered.treasureRolls + 1
+        end
+    end
+
+    -- A random table alone cannot guarantee that every class sees a usable
+    -- weapon or armour piece. Build a shared, tradeable armory from the audited
+    -- reward catalog as well, preferring the newest tier when an advanced save
+    -- starts directly at level 8 or later.
+    local armory = {}
+    for _, item in ipairs(catalog or {}) do
+        local minimumLevel = tonumber(item.minimumLevel) or 1
+        local maximumLevel = tonumber(item.maximumLevel) or 12
+        if level >= minimumLevel and level <= maximumLevel then
+            table.insert(armory, item)
+        end
+    end
+    table.sort(armory, function(left, right)
+        local leftLevel = tonumber(left.minimumLevel) or 1
+        local rightLevel = tonumber(right.minimumLevel) or 1
+        if leftLevel ~= rightLevel then
+            return leftLevel > rightLevel
+        end
+        return tostring(left.id) < tostring(right.id)
+    end)
+    for index = 1, math.min(12, #armory) do
+        local item = armory[index]
+        local recipient = members[((index - 1) % #members) + 1]
+        if Adapter.validateItemTemplate(item.templateId) then
+            local ok = pcall(function()
+                Osi.TemplateAddTo(item.templateId, recipient.guid, 1, 1)
+            end)
+            if ok then
+                delivered.armoryItems = delivered.armoryItems + 1
+            end
+        end
+    end
+    return delivered
 end
 
 function Adapter.deliverVictoryBundle(offer, members)
