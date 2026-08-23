@@ -1,5 +1,10 @@
 local Adapter = {}
-local PreparationLoadout = Ext.Require("AstralArena/Shared/PreparationLoadout.lua")
+local PreparationLoadout
+if Ext and Ext.Require then
+    PreparationLoadout = Ext.Require("AstralArena/Shared/PreparationLoadout.lua")
+else
+    PreparationLoadout = require("AstralArena.Shared.PreparationLoadout")
+end
 
 local REVIVIFY_SCROLL_TEMPLATE = "c1c3e4fb-d68c-4e10-afdc-d4550238d50e"
 
