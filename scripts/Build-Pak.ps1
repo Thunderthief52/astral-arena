@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$Version = "0.3.2-alpha.15",
+    [string]$Version = "0.3.2-alpha.16",
     [string]$Bg3DataPath,
     [string]$DivinePath
 )
@@ -89,6 +89,8 @@ if ($LASTEXITCODE -ne 0) {
 foreach ($RequiredEntry in @(
     "Mods/$ModuleFolder/meta.lsx",
     "Mods/$ModuleFolder/Levels/AA_Arena_Main/meta.lsf",
+    "Mods/$ModuleFolder/Levels/AA_Arena_Main/Scenery/_merged.lsf",
+    "Mods/$ModuleFolder/Levels/AA_Arena_Main/Lights/_merged.lsf",
     "Mods/$ModuleFolder/ScriptExtender/Lua/AstralArena/Server/Controller.lua",
     "Mods/$ModuleFolder/ScriptExtender/Lua/AstralArena/Server/Bg3Adapter.lua",
     "Localization/English/AstralArena_English.loca"
@@ -96,6 +98,13 @@ foreach ($RequiredEntry in @(
     if (-not ($Listing | Where-Object { $_ -like "$RequiredEntry`t*" })) {
         throw "Created PAK is missing required entry: $RequiredEntry"
     }
+}
+
+$LooseLevelResources = $Listing | Where-Object {
+    $_ -match "Mods/$ModuleFolder/Levels/AA_Arena_Main/(Scenery|Lights)/(?!_merged\.lsf)[^`t]+\.lsf`t"
+}
+if ($LooseLevelResources) {
+    throw "Created PAK contains loose scenery/light resources that BG3 will ignore; only _merged.lsf is allowed."
 }
 
 Write-Host "Astral Arena Adventure PAK built:" -ForegroundColor Green

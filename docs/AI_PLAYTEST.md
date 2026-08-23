@@ -2,7 +2,7 @@
 
 ## What this candidate tests
 
-Version `0.3.2-alpha.15` tests a continuous solo/co-op progression run with a 300-gold-per-avatar automatic Withers hireling onboarding, approved roster expansion to four, equipped level-matched followers, party-sized multi-wave battles, validated combat and camp routes, 30–34 metre opening separation, a level-appropriate preparation armory, fully lethal native death saves, manual between-wave resurrection, final-wave automatic resurrection/rest/loot, save-tier recovery, a level-3 initiation, and a true level-12 championship. The menu does not spawn campaign-linked Withers or book entities:
+Version `0.3.2-alpha.16` tests a continuous solo/co-op progression run with a 300-gold-per-avatar automatic Withers hireling onboarding, approved roster expansion to four, equipped level-matched followers, party-sized multi-wave battles, validated combat and camp routes, 30–34 metre opening separation, guaranteed personal magic kits, fully lethal native death saves, player-controlled wave starts, living-party resource refreshes between waves, final-wave automatic resurrection/rest/loot, save-tier recovery, a level-3 initiation, and a true level-12 championship. The menu does not spawn campaign-linked Withers or book entities:
 
 ```text
 2 waves at L3 -> long rest + loot for L5 -> native level-up
@@ -53,20 +53,20 @@ The Adventure PAK starts in the private `AA_Arena_Main` level. Read [ADVENTURE_P
 ### Level 3 initiation
 
 1. Confirm every active party member finishes leveling to 3.
-2. Confirm the party moves from staging to Astral Flats and starts the countdown.
-3. Clear both party-sized Astral Initiate waves (up to three enemies per wave). Confirm there is no rest or loot after wave 1, then confirm the full restore, automatic loot delivery, and XP target for level 5 after wave 2.
+2. Confirm the party moves from staging to Astral Flats and opens a ready prompt. Take as long as needed to equip and position, then choose Yes.
+3. Clear both party-sized Astral Initiate waves (up to three enemies per wave). Confirm living characters fully refresh after wave 1 but receive no loot or XP, then confirm the full battle-boundary restore, automatic loot delivery, and XP target for level 5 after wave 2.
 
 ### Level 5 tournament opener
 
 1. Confirm every active party member finishes leveling to 5 and is not already in combat.
-2. Confirm automatic validation moves the whole party from staging to Astral Flats, delivers the shared magic armory, six supply rolls and two Scrolls of Revivify per player, and starts a 30-second equip countdown.
+2. Confirm automatic validation moves the whole party from staging to Astral Flats, gives every character the eleven-piece personal magic kit, six supply rolls and two Scrolls of Revivify, and opens a ready prompt without starting combat.
 3. Fight both party-sized Astral Vanguard waves normally. A two-character split-screen party should face exactly two opponents per wave, beginning with Vanguard Warrior + Vanguard Raider and then Vanguard Gish + Vanguard Devastator.
 
 Expected after victory:
 
 - players and enemies enter BG3's native downed state at zero HP, make death saves while teammates remain active, and can recover through healing or a natural 20;
 - downed actors remain legal targets, further hits cause native death-save failures, and three failures allow real player or enemy death;
-- enemies from a cleared non-final wave disappear, but downed and dead players remain unchanged during a 30-second revival window without resource refresh or loot;
+- enemies from a cleared non-final wave disappear; living and downed players refresh fully, dead players remain dead, and the next wave waits indefinitely for player confirmation without granting loot or XP;
 - Help/healing can recover downed players, while actual death requires Revivify or a Scroll of Revivify before the next wave;
 - after the final wave, all temporary enemies disappear and the player party returns to staging with a full long-rest-equivalent resource restore;
 - every avatar receives four level-scaled treasure rolls and the six rare candidates are distributed round-robin across party inventories.
@@ -77,7 +77,7 @@ The whole party then receives enough vanilla experience to reach level 8. Comple
 
 Repeat the same loop against Astral Bastion at level 8 in Crescent Ruin and Astral Judicators at level 10 on Echelon Steps. Rewards are generated at the next tier: level 10 after the second fight and level 12 after the Judicators. Every cleanup should return the party to staging.
 
-After the Judicator reward, finish every native level-up to 12. Four Astral Exarch waves should begin automatically. After clearing wave four, expected notifications include:
+After the Judicator reward, finish every native level-up to 12. Four Astral Exarch waves should be prepared in sequence, with a ready confirmation before each one. After clearing wave four, expected notifications include:
 
 ```text
 FINAL WAVE CLEARED — THE ASTRAL EXARCHS HAVE FALLEN!
@@ -99,9 +99,9 @@ If combat cleanup, inventory, or progression looks wrong, stop immediately and r
 - One developer-authored AI team per combat level.
 - The playable-alpha fallback distributes all six rare candidates instead of enforcing one-of-six; a graphical controller-friendly selection screen remains planned.
 - The rare catalog is an intentionally conservative set of ten vanilla `+2` weapons; armor, jewelry, named build-defining items, and class-aware weighting come after catalog auditing.
-- Before the first bout, every player receives six calls to the vanilla `RewardMedium` table, two audited Scrolls of Revivify, and a share of up to 12 audited magic equipment pieces. Final-wave victory bundles still use four calls per player. These will become Astral Arena-owned treasure tables after balance reports.
+- Before the first bout, every player receives six calls to the vanilla `RewardMedium` table, two audited Scrolls of Revivify, and eleven guaranteed magic equipment pieces covering weapons, armour weights, and every accessory slot. Final-wave victory bundles still use four calls per player. These will become Astral Arena-owned treasure tables after balance reports.
 - Run details are session-only, but a party at level 5, 8, or 10 can reconstruct the remaining progression after reload.
-- The preparation armory is deliberately generous and shared, but is not class-aware yet; trade the audited equipment between player inventories before the countdown ends.
+- The preparation armory is deliberately generous but is not class-aware yet. Every character receives the same complete eleven-piece kit; equip a proficient weapon and armour weight before accepting the ready prompt, and trade extras if desired.
 - The dedicated map has a first shipped-asset visual pass, but final terrain materials, navigation around tactical props, spectator boundaries, camera bounds, and minimap data remain unfinished.
 - Vanilla cumulative XP thresholds are required.
 

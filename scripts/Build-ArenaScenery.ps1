@@ -127,10 +127,10 @@ function Write-Transform {
     $Writer.WriteEndElement()
 }
 
-function Write-Resource {
+function Write-MergedResource {
     param(
         [Parameter(Mandatory)][string]$OutputPath,
-        [Parameter(Mandatory)][scriptblock]$WriteGameObject
+        [Parameter(Mandatory)][scriptblock]$WriteGameObjects
     )
 
     $tempPath = [IO.Path]::ChangeExtension($OutputPath, '.lsx')
@@ -152,9 +152,7 @@ function Write-Resource {
         $writer.WriteStartElement('region'); $writer.WriteAttributeString('id', 'Templates')
         $writer.WriteStartElement('node'); $writer.WriteAttributeString('id', 'Templates')
         $writer.WriteStartElement('children')
-        $writer.WriteStartElement('node'); $writer.WriteAttributeString('id', 'GameObjects')
-        & $WriteGameObject $writer
-        $writer.WriteEndElement()
+        & $WriteGameObjects $writer
         $writer.WriteEndElement()
         $writer.WriteEndElement()
         $writer.WriteEndElement()
@@ -174,21 +172,22 @@ function Write-Resource {
 
 $generated = New-Object Collections.Generic.List[string]
 
-foreach ($object in $manifest.objects) {
-    $mapKey = New-DeterministicGuid "scenery/$($object.id)"
-    $outputPath = Join-Path $sceneryRoot "$mapKey.lsf"
-    $walkThrough = $object.walkThrough -eq $true
-    $walkOn = $object.walkOn -eq $true
-    $decorative = $object.decorative -eq $true
-    $canClickThrough = $walkThrough -or $decorative
-    Write-Resource $outputPath {
-        param($writer)
+$sceneryOutputPath = Join-Path $sceneryRoot '_merged.lsf'
+Write-MergedResource $sceneryOutputPath {
+    param($writer)
+    foreach ($object in $manifest.objects) {
+        $mapKey = New-DeterministicGuid "scenery/$($object.id)"
+        $walkThrough = $object.walkThrough -eq $true
+        $walkOn = $object.walkOn -eq $true
+        $decorative = $object.decorative -eq $true
+        $canClickThrough = $walkThrough -or $decorative
+        $writer.WriteStartElement('node'); $writer.WriteAttributeString('id', 'GameObjects')
         Add-Attribute $writer 'MapKey' 'FixedString' $mapKey
         Add-Attribute $writer 'Name' 'LSString' ([string]$object.name)
         Add-Attribute $writer 'LevelName' 'FixedString' ([string]$manifest.levelName)
         Add-Attribute $writer 'Type' 'FixedString' 'scenery'
         Add-Attribute $writer 'TemplateName' 'FixedString' ([string]$object.template)
-        Add-Attribute $writer 'Flag' 'uint8' '1'
+        Add-Attribute $writer 'Flag' 'int32' '1'
         Add-Attribute $writer 'CanClickThrough' 'bool' $(if ($canClickThrough) { 'True' } else { 'False' })
         if ($null -ne $object.cover) { Add-Attribute $writer 'CoverAmount' 'uint8' ([string]$object.cover) }
         Add-Attribute $writer 'WalkOn' 'bool' $(if ($walkOn) { 'True' } else { 'False' })
@@ -199,16 +198,18 @@ foreach ($object in $manifest.objects) {
         Write-Transform $writer $object.position (Get-YawQuaternion ([double]$object.yaw)) ([double]$object.scale)
         Write-LayerList $writer ([string]$manifest.levelName) ([string]$manifest.sceneryLayer)
         $writer.WriteEndElement()
+        $writer.WriteEndElement()
     }
-    $generated.Add((Resolve-Path -LiteralPath $outputPath).Path.Substring($RepoRoot.Length + 1))
 }
+$generated.Add((Resolve-Path -LiteralPath $sceneryOutputPath).Path.Substring($RepoRoot.Length + 1))
 
 $pointLightTemplate = 'ae8105f5-0490-4d85-9ef7-b6beeedea3a3'
-foreach ($light in $manifest.lights) {
-    $mapKey = New-DeterministicGuid "light/$($light.id)"
-    $outputPath = Join-Path $lightsRoot "$mapKey.lsf"
-    Write-Resource $outputPath {
-        param($writer)
+$lightsOutputPath = Join-Path $lightsRoot '_merged.lsf'
+Write-MergedResource $lightsOutputPath {
+    param($writer)
+    foreach ($light in $manifest.lights) {
+        $mapKey = New-DeterministicGuid "light/$($light.id)"
+        $writer.WriteStartElement('node'); $writer.WriteAttributeString('id', 'GameObjects')
         Add-Attribute $writer 'Enabled' 'bool' 'True'
         Add-Attribute $writer 'Flag' 'int32' '1'
         Add-Attribute $writer 'Color' 'fvec3' (@($light.color | ForEach-Object { Convert-ToInvariant $_ }) -join ' ')
@@ -226,9 +227,10 @@ foreach ($light in $manifest.lights) {
         Write-LayerList $writer ([string]$manifest.levelName) ([string]$manifest.lightingLayer)
         Write-Transform $writer $light.position '0 0 0 1' 1.0
         $writer.WriteEndElement()
+        $writer.WriteEndElement()
     }
-    $generated.Add((Resolve-Path -LiteralPath $outputPath).Path.Substring($RepoRoot.Length + 1))
 }
+$generated.Add((Resolve-Path -LiteralPath $lightsOutputPath).Path.Substring($RepoRoot.Length + 1))
 
 $previous = [string[]]@()
 if (Test-Path -LiteralPath $indexPath -PathType Leaf) {

@@ -15,7 +15,7 @@ _G.Ext = previousExt
 
 local function fakeAdapter()
     local adapter = {
-        alive = {}, dead = {}, queue = {}, restored = {}, recovered = {}, deleted = {}, delivered = {}, experienceTargets = {}, layouts = {}, sites = {}, notifications = {}, defeatedMarks = {}, stagingReturns = 0, fullRests = 0, menus = {}, partySize = 2, spawnCalls = 0, interWaveRecoveries = 0, preparationCalls = 0,
+        alive = {}, dead = {}, queue = {}, restored = {}, recovered = {}, deleted = {}, delivered = {}, experienceTargets = {}, layouts = {}, sites = {}, notifications = {}, defeatedMarks = {}, stagingReturns = 0, fullRests = 0, waveRests = 0, menus = {}, partySize = 2, spawnCalls = 0, interWaveRecoveries = 0, preparationCalls = 0,
     }
     function adapter.partyMembers()
         local ids = { "player-a", "player-b", "player-c", "player-d" }
@@ -52,6 +52,14 @@ local function fakeAdapter()
     function adapter.prepareArenaSite(_, site) table.insert(adapter.sites, site) end
     function adapter.returnPartyToStaging() adapter.stagingReturns = adapter.stagingReturns + 1 end
     function adapter.fullRestParty() adapter.fullRests = adapter.fullRests + 1 end
+    function adapter.restoreWaveResources(members)
+        adapter.waveRests = adapter.waveRests + 1
+        for _, member in ipairs(members) do
+            if not adapter.dead[member.guid] then
+                adapter.alive[member.guid] = true
+            end
+        end
+    end
     function adapter.makeHostile() end
     function adapter.enterCombat() end
     function adapter.isAlive(guid) return adapter.alive[guid] end
@@ -113,7 +121,8 @@ local function clearBout(subject, adapter)
         if waveIndex < waveCount then
             H.truthy(subject.active.transitioning)
             H.equal(adapter.fullRests, 0)
-            table.remove(adapter.queue, 1)()
+            H.equal(subject.menu.kind, "wave_start")
+            subject:handleMenuResponse("player-a", subject.menu.messageKey, true)
         end
     end
 end
@@ -195,7 +204,7 @@ H.test("AI arena returns the party to staging when fixture setup fails", functio
     H.equal(subject.run.phase, "seeking_opponent")
 end)
 
-H.test("AI victory restores the party, delivers loot, and advances without a prompt", function()
+H.test("AI victory restores the party, delivers loot, and advances without a reward prompt", function()
     local adapter = fakeAdapter()
     local subject = arena(adapter)
     subject:start({ countdownSeconds = 0 })
@@ -210,7 +219,7 @@ H.test("AI victory restores the party, delivers loot, and advances without a pro
     H.equal(adapter.experienceTargets[1], 8)
     H.equal(subject.run.phase, "awaiting_level_up")
     H.equal(subject.menu, nil)
-    H.equal(#adapter.menus, 0)
+    H.equal(#adapter.menus, 1)
 end)
 
 H.test("AI fixture waves rotate roles while preserving party-size scaling", function()
@@ -246,7 +255,7 @@ H.test("level-twelve championship uses four waves and celebrates every player", 
     H.truthy(adapter.notifications[beforeCelebration + 3].message:find("CHAMPIONS", 1, true) ~= nil)
 end)
 
-H.test("higher-tier bouts use three waves without resting between them", function()
+H.test("higher-tier bouts fully refresh resources and wait for player confirmation between waves", function()
     local adapter = fakeAdapter()
     adapter.partyLevel = 8
     local subject = arena(adapter)
@@ -254,21 +263,24 @@ H.test("higher-tier bouts use three waves without resting between them", functio
     H.equal(subject.active.waveCount, 3)
     defeatCurrentWave(subject, adapter)
     H.equal(adapter.fullRests, 0)
+    H.equal(adapter.waveRests, 1)
     H.equal(subject.active.waveIndex, 1)
     H.truthy(subject.active.transitioning)
-    table.remove(adapter.queue, 1)()
+    H.equal(subject.menu.kind, "wave_start")
+    subject:handleMenuResponse("player-a", subject.menu.messageKey, true)
     H.equal(subject.active.waveIndex, 2)
     H.equal(#subject.active.teams.right.members, 2)
 end)
 
-H.test("a downed teammate remains down between waves without a full rest", function()
+H.test("a downed teammate recovers during the between-wave resource refresh", function()
     local adapter = fakeAdapter()
     local subject = arena(adapter)
     subject:start({ countdownSeconds = 0 })
     adapter.alive["player-a"] = false
     defeatCurrentWave(subject, adapter)
     H.equal(adapter.fullRests, 0)
-    H.equal(adapter.alive["player-a"], false)
+    H.equal(adapter.waveRests, 1)
+    H.truthy(adapter.alive["player-a"])
     H.equal(#adapter.recovered, 0)
 end)
 
@@ -283,9 +295,23 @@ H.test("a dead teammate stays dead during intermission but can be resurrected be
     H.truthy(adapter.dead["player-a"])
     adapter.alive["player-a"] = true
     adapter.dead["player-a"] = nil
-    table.remove(adapter.queue, 1)()
+    subject:handleMenuResponse("player-a", subject.menu.messageKey, true)
     H.equal(subject.active.waveIndex, 2)
     H.truthy(adapter.alive["player-a"])
+end)
+
+H.test("declining a wave prompt never forces combat and offers it again after one minute", function()
+    local adapter = fakeAdapter()
+    local subject = arena(adapter)
+    subject:start()
+    H.equal(subject.active.match.phase, "preparation")
+    H.equal(subject.menu.kind, "wave_start")
+    subject:handleMenuResponse("player-a", subject.menu.messageKey, false)
+    H.equal(subject.active.match.phase, "preparation")
+    H.equal(#adapter.queue, 1)
+    table.remove(adapter.queue, 1)()
+    H.equal(#adapter.menus, 2)
+    H.equal(subject.active.match.phase, "preparation")
 end)
 
 H.test("AI arena retains the full fixture for a four-character party", function()

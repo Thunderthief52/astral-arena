@@ -2,12 +2,12 @@
 
 ## Build under test
 
-- Version: `0.3.2-alpha.15`
+- Version: `0.3.2-alpha.16`
 - Adventure UUID: `29c48c80-8777-f7b5-6bb8-376c1c5d8db6`
 - Character flow: BG3 system character creator → `AA_Arena_Main`
-- PAK: `dist\AstralArena-0.3.2-alpha.15.pak`
+- PAK: `dist\AstralArena-0.3.2-alpha.16.pak`
 
-This candidate fixes the alpha.13 crash after character creation by keeping the polished Jergal-themed camp while removing runtime campaign-NPC and book clones. The controller-safe Withers menu opens automatically; each avatar receives 300 gold once, and followers cost 100 gold and match the current party level. The first bout supplies a shared magic armory, randomized consumables, and two Scrolls of Revivify per player. Enemy formations begin 30–34 metres away in validated walk-through approach lanes. Downed and dead players persist into a 30-second between-wave revival window; automatic resurrection and a full long rest occur only when the entire battle ends.
+This candidate fixes the grey-island presentation by compiling all arena scenery and lights into BG3's required merged level resources. The controller-safe Withers menu opens automatically; each avatar receives 300 gold once, and followers cost 100 gold and match the current party level. Every character receives a guaranteed personal magic kit, randomized consumables, and two Scrolls of Revivify. Enemy formations begin 30–34 metres away in validated approach lanes. The first wave and every later wave wait for explicit player confirmation. Living allies fully refresh between waves; dead allies still require Revivify until the battle ends.
 
 ## Install
 
@@ -17,7 +17,7 @@ This candidate fixes the alpha.13 crash after character creation by keeping the 
 
    ```powershell
    Set-ExecutionPolicy -Scope Process Bypass
-   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.2-alpha.15.pak"
+   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.2-alpha.16.pak"
    ```
 
 4. Confirm this file exists:
@@ -32,7 +32,7 @@ This candidate fixes the alpha.13 crash after character creation by keeping the 
 
 ## Discard placeholder-party saves
 
-Do not continue a save containing four naked, classless, immobile characters at one HP. Those entities are BG3's temporary system character-creation placeholders, not recoverable player builds. Also discard the session that crashed under alpha.13 after character creation. Begin a fresh New Game with `0.3.2-alpha.15` enabled. Real custom-character staging saves from earlier stable builds at levels 3, 5, 8, 10, or 12 can resume at their current tier; mixed-level split-screen parties receive missing XP repair.
+Do not continue a save containing four naked, classless, immobile characters at one HP. Those entities are BG3's temporary system character-creation placeholders, not recoverable player builds. Also discard the session that crashed under alpha.13 after character creation. Begin a fresh New Game with `0.3.2-alpha.16` enabled so the corrected scenery and one-time personal kits are present. Real custom-character staging saves from earlier stable builds at levels 3, 5, 8, 10, or 12 can resume at their current tier; mixed-level split-screen parties receive missing XP repair.
 
 ## Start a clean Adventure
 
@@ -40,11 +40,11 @@ Do not continue a save containing four naked, classless, immobile characters at 
 2. Create one character for solo, join the ordinary online lobby before finalizing characters for co-op, or connect the second controller before completing split-screen character creation.
 3. Finish the supported BG3 system character creator normally. This system scene is expected; it is not a campaign location. Do not use Honour Mode for this alpha.
 4. Confirm the finished custom party transfers into `AA_Arena_Main`, not a Nautiloid or Act 1 campaign location. A naked character-creation dummy must not remain active.
-5. Make a named manual save such as `AA 0.3.2-alpha.15 BEFORE AUTO START`.
+5. Make a named manual save such as `AA 0.3.2-alpha.16 BEFORE WAVE 1`.
 6. Confirm Astral Arena automatically awards the vanilla level-3 XP threshold and displays a notification. No console command is required.
 7. Complete every ordinary BG3 level-up through level 3. In co-op or split-screen, both players should receive XP and complete their own choices.
 8. Confirm each player-created avatar receives 300 gold once. The automatic Withers menu should offer Eldra the Fighter, Zenith the Cleric, then additional classes for 100 gold each. Hire up to the four-person cap or decline through the list; followers must arrive at party level and remain controllable. There should be no spawned Withers NPC or interactive book—the static Jergal court is intentional in this crash-hotfix build.
-9. Confirm every inventory receives six randomized level-3 supply rolls and two Scrolls of Revivify, while the party collectively receives up to 12 audited `+1` magic weapons and armour pieces. Trade and equip during the 30-second opening countdown.
+9. Confirm every inventory receives six randomized level-3 supply rolls, two Scrolls of Revivify, three magic weapon choices, three armour-weight choices, and one magic helmet, gloves, boots, amulet, and ring. Equip at leisure; wave 1 must not start until the host chooses Yes on the ready prompt.
 10. Confirm the party moves to Astral Flats against wave 1/2 of the party-sized Astral Initiate roster (up to three enemies per wave), with every enemy initially 30–34 metres from the player origin.
 
 If automatic onboarding pauses, `!aa_ai_status` and `!aa_ai_doctor` remain available as diagnostics. `!aa_ai_bootstrap`, `!aa_ai_start`, and `!aa_ai_continue` are recovery commands, not normal play steps.
@@ -64,14 +64,14 @@ For each bout:
 1. Confirm the party moves together from staging to the named site during setup and every character stands on solid terrain.
 2. Confirm the site's surrounding arches, pillars, rubble, vegetation, or steps render normally instead of as missing or black placeholder geometry.
 3. Confirm the direct lane from every player spawn to every enemy spawn contains no rocks or solid props. Decorative grass and banners must be passable; solid perimeter pillars and arches should remain outside the approach. Also walk both staging routes without snagging on the Jergal monument or court dressing.
-4. Confirm the expected number of temporary enemies matches the active player-character count (subject to the fixture caps), appears 30–34 metres ahead of the party on valid ground, and the countdown completes. A standard 9-metre move or 18-metre dash should not bring an ordinary combatant into melee range. The opening armory countdown is 30 seconds; later bout countdowns are 10 seconds.
+4. Confirm the expected number of temporary enemies matches the active player-character count (subject to the fixture caps) and appears 30–34 metres ahead of the party on valid ground. A standard 9-metre move or 18-metre dash should not bring an ordinary combatant into melee range. Combat must remain paused until the host confirms the ready prompt.
 5. Fight normally. At zero HP, a player or enemy should enter BG3's native downed pose and keep its death-save turn in initiative. Confirm later attacks inflict normal death-save failures instead of zero-damage protection, and that three failures cause actual death. Help and healing should recover a downed actor; Revivify or a scroll should resurrect a dead actor.
-6. After every non-final wave, confirm cleared enemies disappear and a 30-second revival window begins. Downed allies must remain downed and dead allies must remain dead. No health, spell slots, class resources, loot, or XP should be granted. Use Help, healing, Revivify, or a scroll before the next wave if desired.
+6. After every non-final wave, confirm cleared enemies disappear and an unlimited ready intermission begins. Living allies should regain full health, spell slots, class resources, and cooldowns. Dead allies must remain dead until Revivified. No loot or XP is granted until the final wave, and the next wave must wait for the host's confirmation.
 7. After the final wave, confirm temporary enemies disappear and every player—including dead players—is automatically resurrected, returned to staging, and given long-rest resources.
 8. Check every party inventory. Each player should receive four level-scaled loot rolls, and the six rare candidates should be distributed round-robin across the party.
 9. For bouts 1–4, complete native level-ups to the next target; the next bout starts automatically when every player is ready. The fifth victory completes the run.
 
-After a defeat or draw in any wave, confirm the party returns to staging, fully restores, and the same tier restarts from wave 1 automatically after a 30-second camp window.
+After a defeat or draw in any wave, confirm the party returns to staging and fully restores. After the 30-second camp window, the same tier may be prepared again, but wave 1 must still wait for the ready confirmation.
 
 After the fourth reward, finish leveling to 12. The four-wave championship starts automatically. After the fifth reward, confirm every player sees the final-wave, arena-eruption, and championship-spoils announcements.
 

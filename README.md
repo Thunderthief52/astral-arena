@@ -1,6 +1,6 @@
 # Astral Arena
 
-Astral Arena is an experimental Baldur's Gate 3 arena Adventure for Windows. Version `0.3.2-alpha.15` fixes the four-person onboarding deadlock: followers hired during the Withers menu are now accepted into the initiating roster, leveled without avatar-XP assumptions, and equipped with class-appropriate +1 weapons and armour. The whole party receives a level-appropriate preparation armory before combat. The standalone arena now uses shipped Underdark cliff and mushroom scenery outside solid perimeter architecture, removes reachable planted rubble, and places a larger illuminated Jergal monument on the staging centerline. Party-scaled multi-wave battles use two waves at levels 3 and 5, three at levels 8 and 10, and a four-wave level-12 championship. Clear combat lanes separate the teams by 30–34 metres. Downed players and enemies make native death saves, can die normally, and are automatically resurrected and long-rested only when the complete battle ends.
+Astral Arena is an experimental Baldur's Gate 3 arena Adventure for Windows. Version `0.3.2-alpha.16` gives players explicit control over every wave start, fully refreshes living party members between waves, and guarantees every character a personal level-3 magic kit with weapons, armour, helmet, gloves, boots, amulet, and ring choices. It also fixes the grey-island visual regression by packaging the authored Underdark scenery and lighting in BG3's required merged level resources. Party-scaled multi-wave battles use two waves at levels 3 and 5, three at levels 8 and 10, and a four-wave level-12 championship. Clear combat lanes separate the teams by 30–34 metres. Downed players and enemies make native death saves and can die normally; dead party members still require resurrection magic between waves and are automatically restored when the complete battle ends.
 
 > **Alpha safety note:** use a separate manual save, remove story NPCs from the area, and do not save during an active match. The mod restores combat relationships and characters after a bout, but this is the first engine playtest build.
 
@@ -11,7 +11,7 @@ Astral Arena is an experimental Baldur's Gate 3 arena Adventure for Windows. Ver
 - Automatic team discovery from BG3's multiplayer character assignments.
 - Temporary cross-team hostility and automatic combat entry.
 - Native zero-HP downing and death saves for players and AI; further attacks can inflict failures and actual death, while Help and healing remain available.
-- A 30-second no-rest revival window between waves. Downed and dead allies remain as-is until helped, healed, or resurrected.
+- An unlimited player-controlled intermission between waves. Living allies recover full health, spell slots, class resources, and cooldowns; dead allies still require resurrection magic.
 - Automatic win/draw detection, relationship cleanup, and a full post-battle restore of health, spell slots, class resources, and cooldowns.
 - Manual forfeit and emergency abort commands.
 - Three-second start countdown and automatic team rescan for rematches.
@@ -19,9 +19,9 @@ Astral Arena is an experimental Baldur's Gate 3 arena Adventure for Windows. Ver
 - A tested deterministic reward engine for level-banded automatic bundles and one-of-six equipment offers.
 - A player-party-versus-AI run with a level-3 initiation, fights at levels 5, 8, and 10, and a four-wave level-12 championship.
 - Party-sized AI rosters: one to four player characters face the same number of deliberately selected opponents, capped by the three-member initiation fixture and four-member tournament fixtures.
-- Multi-wave battles: two waves at levels 3 and 5, three waves at levels 8 and 10, and four championship waves at level 12, with no automatic recovery between waves.
+- Multi-wave battles: two waves at levels 3 and 5, three waves at levels 8 and 10, and four championship waves at level 12, with a full living-party resource refresh and explicit ready confirmation between waves.
 - Automatic post-character-creation onboarding that grants the vanilla level-3 XP threshold, waits for every player-authored level-up choice, validates fixtures and rewards internally, and starts each ready bout.
-- A once-per-run preparation armory with up to 12 audited magic equipment pieces, six level-scaled utility/consumable rolls and two Scrolls of Revivify per player, and a 30-second first-bout equip window.
+- A once-per-run personal armory for every character: three magic weapon options, three armour-weight options, magic helmet, gloves, boots, amulet, and ring, plus six level-scaled utility/consumable rolls and two Scrolls of Revivify. The first wave waits until the player confirms readiness.
 - A Toolkit-authored Adventure module that starts in the isolated `AA_Arena_Main` level rather than a vanilla campaign location.
 - A decorated safe staging area plus three visually distinct runtime-selected combat sites: Astral Flats, Crescent Ruin, and Echelon Steps, with all loose rocks removed from validated player-to-enemy lanes.
 - A custom controller-safe Withers camp service: each player-created avatar receives 300 gold once, hirelings cost 100 gold, and a solo or co-op party may optionally fill the normal four-person cap. The menu opens automatically before the first bout without spawning campaign-linked world entities.
@@ -29,7 +29,7 @@ Astral Arena is an experimental Baldur's Gate 3 arena Adventure for Windows. Ver
 - Non-blocking post-bout flow: four level-scaled loot rolls per player plus all six rare candidates distributed across the party after wins, and automatic rematches after losses or draws.
 - A 30-piece oversized ruin-arch perimeter around the active arena footprint.
 
-The level now uses shipped BG3 stonework, ruins, vegetation, banners, cover, elevation, a Jergal monument, and sixteen colored accent lights. Final terrain polish, graphical bracket/reward UI, player-authored AI ghosts, Eddard matchmaking coordinator, and public rankings are **not** in this alpha.
+The level now loads its shipped BG3 Underdark cliff shell, giant mushroom silhouettes, stonework, ruins, vegetation, banners, elevation, Jergal monument, and sixteen colored accent lights from the engine-required merged resources. Final terrain polish, graphical bracket/reward UI, player-authored AI ghosts, Eddard matchmaking coordinator, and public rankings are **not** in this alpha.
 
 ## Requirements
 
@@ -42,14 +42,14 @@ The level now uses shipped BG3 stonework, ruins, vegetation, banners, cover, ele
 
 ## Install the Adventure PAK
 
-The Toolkit build is `dist\AstralArena-0.3.2-alpha.15.pak`.
+The Toolkit build is `dist\AstralArena-0.3.2-alpha.16.pak`.
 
 1. Close Baldur's Gate 3.
 2. Install Norbyte's Script Extender if it is not already present.
 3. From the repository root, install the PAK:
 
    ```powershell
-   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.2-alpha.15.pak"
+   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.2-alpha.16.pak"
    ```
 
    Manual alternative: copy the PAK to:
@@ -63,7 +63,7 @@ The Toolkit build is `dist\AstralArena-0.3.2-alpha.15.pak`.
 6. Choose **New Game**, select **Astral Arena Adventure** if BG3 displays an Adventure choice, and create the player characters.
 7. For ordinary online co-op, install the identical PAK and Script Extender version on every PC. Split-screen needs one installation.
 
-The installer backs up a previous canonical Adventure PAK under `%LOCALAPPDATA%\AstralArena\PakBackups`. Discard saves containing temporary 1-HP character-creation dummies or saves made by the crashing alpha.13 startup. Begin alpha.15 from a fresh Astral Arena new game. Real custom-character staging saves from earlier stable builds at levels 3, 5, 8, 10, or 12 can resume at their current tier; mixed-level split-screen parties receive missing XP repair. Follow [docs/ADVENTURE_PLAYTEST.md](docs/ADVENTURE_PLAYTEST.md).
+The installer backs up a previous canonical Adventure PAK under `%LOCALAPPDATA%\AstralArena\PakBackups`. Discard saves containing temporary 1-HP character-creation dummies or saves made by the crashing alpha.13 startup. Begin alpha.16 from a fresh Astral Arena new game so the corrected merged scenery and one-time personal loadouts are guaranteed. Real custom-character staging saves from earlier stable builds at levels 3, 5, 8, 10, or 12 can resume at their current tier; mixed-level split-screen parties receive missing XP repair. Follow [docs/ADVENTURE_PLAYTEST.md](docs/ADVENTURE_PLAYTEST.md).
 
 ## Run the first match
 
@@ -109,7 +109,7 @@ For the PvP test matrix, expected results, logs, and bug-report checklist, read 
 
 ## Run the AI progression playtest
 
-Start a disposable Astral Arena Adventure new game with one to four player-created characters. Each avatar receives 300 gold, then the party may hire level-matched followers from Withers for 100 gold each or decline and continue. The Adventure grants the level-3 XP threshold, waits until everyone finishes native level-up choices, then gives the party a shared magic armory, six supply rolls, and two Scrolls of Revivify per player with 30 seconds to equip. The initiation begins at Astral Flats with enemies 30–34 metres away. A cleared non-final wave opens a 30-second revival window, but downed and dead allies, health, spell slots, and resources remain unchanged. Completing the final wave automatically resurrects, returns, and fully rests the party. Victories deliver four loot rolls per player plus all six rare candidates, then grant the next level threshold.
+Start a disposable Astral Arena Adventure new game with one to four player-created characters. Each avatar receives 300 gold, then the party may hire level-matched followers from Withers for 100 gold each or decline and continue. The Adventure grants the level-3 XP threshold, waits until everyone finishes native level-up choices, then gives every party member eleven guaranteed magic gear pieces, six supply rolls, and two Scrolls of Revivify. The initiation waits at Astral Flats until the host confirms readiness, with enemies 30–34 metres away. After a non-final wave, living allies regain full health, spell slots, class resources, and cooldowns; dead allies still need Revivify. The next wave begins only after another ready confirmation. Completing the final wave automatically resurrects, returns, and fully rests the party. Victories deliver four loot rolls per player plus all six rare candidates, then grant the next level threshold.
 
 This mode awards real loot and XP. Read [docs/AI_PLAYTEST.md](docs/AI_PLAYTEST.md) before starting; `!aa_ai_reset` does not undo inventory or experience changes.
 
@@ -144,15 +144,15 @@ The deterministic Lua code runs outside BG3 with LuaJIT or Lua 5.1+:
 ```sh
 luajit tests/run.lua
 luajit scripts/simulate.lua
-./scripts/build-release.sh 0.3.2-alpha.15
+./scripts/build-release.sh 0.3.2-alpha.16
 ```
 
 Windows equivalents:
 
 ```powershell
 lua tests\run.lua
-.\scripts\Build-Pak.ps1 -Version 0.3.2-alpha.15
-.\scripts\Build-Release.ps1 -Version 0.3.2-alpha.15
+.\scripts\Build-Pak.ps1 -Version 0.3.2-alpha.16
+.\scripts\Build-Release.ps1 -Version 0.3.2-alpha.16
 ```
 
 `Build-Pak.ps1` combines the checked-in Toolkit level, the current Script Extender runtime, and the Toolkit-generated module artwork into the installable Adventure PAK. Run it after syncing/opening the project in the Toolkit. `Build-Release.ps1` then includes that PAK and the playtest documentation in the generated archive under `dist/`.

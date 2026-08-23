@@ -45,9 +45,9 @@ Exit criteria:
 
 Goal: make matches repeatable enough to evaluate builds rather than setup accidents.
 
-The `0.3.2-alpha.15` candidate turns the party-sized, role-balanced level-3, level-5, level-8, level-10, and level-12 fixtures into two-, three-, and four-wave battles. Downed actors remain vulnerable to native death-save failures and real death. Non-final waves preserve dead/downed states for a 30-second manual revival window; only the battle boundary automatically resurrects and fully restores the party. Opening formations use 30–34 metres of separation, a once-per-run armory with Revivify scrolls closes the early-game equipment gap, and an automatic Withers menu offers optional level-matched, equipped followers for undersized parties without spawning campaign-linked world entities. Approved hires may expand the bootstrap roster without triggering the party-swap safety gate.
+The `0.3.2-alpha.16` candidate turns the party-sized, role-balanced level-3, level-5, level-8, level-10, and level-12 fixtures into two-, three-, and four-wave battles. Downed actors remain vulnerable to native death-save failures and real death. Non-final waves fully refresh living characters, preserve actual death for resurrection magic, and wait indefinitely for explicit player confirmation. Opening formations use 30–34 metres of separation, an eleven-piece personal armory plus Revivify scrolls closes the early-game equipment gap, and an automatic Withers menu offers optional level-matched, equipped followers for undersized parties without spawning campaign-linked world entities. Approved hires may expand the bootstrap roster without triggering the party-swap safety gate.
 
-`AA_Arena_Main` starts independently of vanilla campaign locations and provides a Jergal-themed staging court plus Astral Flats, Crescent Ruin, and Echelon Steps. The current pass has 103 shipped-asset objects and sixteen accent lights, including 30 oversized ruin arches around the active footprint. All loose rocks remain removed and the validator now enforces three combat approach lanes plus two staging routes. This playable foundation must pass new-game, solo, ordinary co-op, and split-screen engine playtests before the map expands.
+`AA_Arena_Main` starts independently of vanilla campaign locations and provides a Jergal-themed staging court plus Astral Flats, Crescent Ruin, and Echelon Steps. The current pass has 96 shipped-asset objects and sixteen accent lights, including 30 oversized ruin arches plus an Underdark vista shell. These are now compiled into BG3's required merged level resources. All loose rocks remain removed and the validator enforces three combat approach lanes plus two staging routes. This playable foundation must pass new-game, solo, ordinary co-op, and split-screen engine playtests before the map expands.
 
 Planned work:
 
@@ -56,7 +56,7 @@ Planned work:
 - replace the generous all-six fallback with a graphical one-of-six item grid and tooltips;
 - validate the new standardized full restore across every class resource and add equipment-budget enforcement;
 - validate the 30–34 metre start spacing across melee, ranged, and caster parties, then evaluate deterministic initiative policy experiments;
-- configurable preparation time and hard-control guardrails;
+- hard-control guardrails around the unlimited player-controlled preparation window;
 - expand each existing level-5, level-8, and level-10 fixture into a seedable opponent pool;
 - seedable encounter selection using the existing match controller;
 - ruleset fingerprints included in every result;

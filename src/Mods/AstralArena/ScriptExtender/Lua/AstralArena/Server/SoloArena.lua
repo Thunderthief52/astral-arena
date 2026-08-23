@@ -3,6 +3,7 @@ local Roster = Ext.Require("AstralArena/Core/Roster.lua")
 local SoloRun = Ext.Require("AstralArena/Core/SoloRun.lua")
 local ArenaBootstrap = Ext.Require("AstralArena/Core/ArenaBootstrap.lua")
 local Constants = Ext.Require("AstralArena/Shared/Constants.lua")
+local PreparationLoadout = Ext.Require("AstralArena/Shared/PreparationLoadout.lua")
 
 local SoloArena = {}
 SoloArena.__index = SoloArena
@@ -85,7 +86,22 @@ function SoloArena:_showMenu()
 
     local key
     local message
-    if menu.kind == "defeat" then
+    if menu.kind == "wave_start" then
+        key = Constants.MenuMessages.waveStart
+        if menu.isInitial then
+            message = string.format(
+                "ARENA READY — Begin wave 1/%d now? Choose Yes only when every player has finished equipping and positioning. Choose No for more preparation time; this prompt returns in one minute.",
+                self.active and self.active.waveCount or 1
+            )
+        else
+            message = string.format(
+                "WAVE %d CLEARED — Begin wave %d/%d now? Living allies have full health, spell slots, and class resources. Dead allies still require Revivify. Choose No for more preparation time; this prompt returns in one minute.",
+                menu.clearedWave or 1,
+                menu.nextWave or 2,
+                self.active and self.active.waveCount or 2
+            )
+        end
+    elseif menu.kind == "defeat" then
         key = Constants.MenuMessages.defeat
         message = string.format(
             "Astral Arena defeat at level %d. Retry this bout now? Choose No to remain safely in staging.",
@@ -150,6 +166,40 @@ function SoloArena:handleMenuResponse(characterGuid, messageKey, result)
     end
 
     local accepted = menuResultIsYes(result)
+    if menu.kind == "wave_start" then
+        local active = self.active
+        if not active then
+            self.menu = nil
+            return true
+        end
+        if accepted then
+            local generation = active.generation
+            local startsNextWave = active.transitioning
+            self.menu = nil
+            if startsNextWave then
+                self:_spawnNextWave(generation)
+            else
+                self:_beginCombat(generation)
+            end
+        else
+            menu.dismissed = true
+            local message = "Arena paused safely. Prepare for as long as you need; the ready prompt will return in one minute."
+            self.output(message)
+            for _, member in ipairs(active.teams.left.members) do
+                self.adapter.notify(member.guid, message)
+            end
+            local expectedMenu = menu
+            local generation = active.generation
+            self.adapter.schedule(60000, function()
+                if self.active and self.active.generation == generation and self.menu == expectedMenu then
+                    expectedMenu.dismissed = nil
+                    self:_showMenu()
+                end
+            end)
+        end
+        return true
+    end
+
     if menu.kind == "defeat" or menu.kind == "draw" then
         if accepted then
             if menu.kind == "defeat" then
@@ -193,6 +243,18 @@ function SoloArena:handleMenuResponse(characterGuid, messageKey, result)
     return false
 end
 
+function SoloArena:_openWaveStartMenu(members, options)
+    options = options or {}
+    self.menu = {
+        kind = "wave_start",
+        ownerGuid = self:_menuOwner(members),
+        isInitial = options.isInitial == true,
+        clearedWave = options.clearedWave,
+        nextWave = options.nextWave,
+    }
+    return self:_showMenu()
+end
+
 function SoloArena:bootstrapParty()
     if self.active or (self.run and self.run.phase ~= "completed") then
         error("an AI arena run is already in progress", 2)
@@ -213,11 +275,11 @@ function SoloArena:bootstrapParty()
     self.adapter.awardPartyToLevel(party.members, targetLevel)
     ArenaBootstrap.markExperienceAwarded(state)
     self.output(string.format(
-        "Arena bootstrap awarded the level-3 XP threshold to %d character(s). Complete every native level-up; the initiation bout will begin automatically.",
+        "Arena bootstrap awarded the level-3 XP threshold to %d character(s). Complete every native level-up; the initiation ready prompt will appear automatically.",
         #party.members
     ))
     for _, member in ipairs(party.members) do
-        self.adapter.notify(member.guid, "Astral Arena: finish leveling to 3. The initiation bout will begin automatically.")
+        self.adapter.notify(member.guid, "Astral Arena: finish leveling to 3. The initiation ready prompt will appear automatically.")
     end
     return state
 end
@@ -315,8 +377,15 @@ function SoloArena:_validateParty(party, verbose)
             error(string.format("reward %s is invalid: %s", item.id, reason), 2)
         end
     end
+    for _, item in ipairs(PreparationLoadout) do
+        local valid, reason = self.adapter.validateItemTemplate(item.templateId)
+        if not valid then
+            error(string.format("preparation item %s is invalid: %s", item.displayName, reason), 2)
+        end
+    end
     if verbose then
         self.output(string.format("  Reward catalog validated: %d items.", #self.rewardCatalog))
+        self.output(string.format("  Personal preparation loadout validated: %d items per character.", #PreparationLoadout))
     end
     return party
 end
@@ -423,7 +492,7 @@ function SoloArena:_startBout(party, options)
         ) or preparation
         self.preparationBundleDelivered = true
         local supplyMessage = string.format(
-            "Arena armory delivered: %d magic equipment pieces, %d level-%d supply rolls, and %d Scrolls of Revivify. Trade and equip before combat.",
+            "Arena armory delivered: %d guaranteed personal gear pieces, %d level-%d supply rolls, and %d Scrolls of Revivify. Every character has weapon and armour choices plus a helmet, gloves, boots, amulet, and ring. Equip before confirming combat.",
             preparation.armoryItems or 0,
             preparation.treasureRolls or 0,
             self.run.level,
@@ -475,10 +544,7 @@ function SoloArena:_startBout(party, options)
         match = match,
         defeated = {},
         dead = {},
-        countdownRemaining = countdown(
-            options.countdownSeconds ~= nil and options.countdownSeconds
-            or (((preparation.treasureRolls or 0) + (preparation.armoryItems or 0)) > 0 and 30 or 10)
-        ),
+        countdownRemaining = options.countdownSeconds ~= nil and countdown(options.countdownSeconds) or nil,
         layout = layout,
         site = site,
         waveIndex = 1,
@@ -509,7 +575,13 @@ function SoloArena:_startBout(party, options)
         fixture.displayName,
         layout and (" using " .. layout.displayName .. " formation") or ""
     ))
-    if self.active.countdownRemaining == 0 then
+    if self.active.countdownRemaining == nil then
+        self:_openWaveStartMenu(party.members, { isInitial = true, nextWave = 1 })
+        local readyMessage = "Astral Arena is ready. Equip and position the whole party, then choose Yes on the ready prompt to begin wave 1."
+        for _, member in ipairs(party.members) do
+            self.adapter.notify(member.guid, readyMessage)
+        end
+    elseif self.active.countdownRemaining == 0 then
         self:_beginCombat(self.generation)
     else
         self:_countdown(self.generation, self.active.countdownRemaining)
@@ -655,6 +727,11 @@ function SoloArena:_cleanupBetweenWaves(active)
     for _, member in ipairs(active.teams.right.members) do
         self.adapter.deleteTemporary(member)
     end
+    if self.adapter.restoreWaveResources then
+        self.adapter.restoreWaveResources(active.teams.left.members)
+    elseif self.adapter.fullRestParty then
+        self.adapter.fullRestParty(active.teams.left.members)
+    end
 end
 
 function SoloArena:_spawnNextWave(generation)
@@ -717,7 +794,7 @@ function SoloArena:_advanceWave()
     active.transitioning = true
     self:_cleanupBetweenWaves(active)
     local message = string.format(
-        "Wave %d/%d cleared. REVIVAL WINDOW: downed and dead allies remain as-is. Use Help, healing, Revivify, or a scroll. Wave %d arrives in 30 seconds; no rest is granted.",
+        "Wave %d/%d cleared. Living allies are fully restored, including spell slots and class resources. Dead allies still require Revivify. Prepare for as long as needed, then confirm when wave %d should begin.",
         active.waveIndex,
         active.waveCount,
         active.waveIndex + 1
@@ -726,10 +803,10 @@ function SoloArena:_advanceWave()
     for _, member in ipairs(active.teams.left.members) do
         self.adapter.notify(member.guid, message)
     end
-    local generation = active.generation
-    self.adapter.schedule(30000, function()
-        self:_spawnNextWave(generation)
-    end)
+    self:_openWaveStartMenu(active.teams.left.members, {
+        clearedWave = active.waveIndex,
+        nextWave = active.waveIndex + 1,
+    })
 end
 
 function SoloArena:_cleanup(active)
@@ -806,7 +883,7 @@ function SoloArena:_finish(resultSide)
     end
     local generation = self.generation
     for _, member in ipairs(active.teams.left.members) do
-        self.adapter.notify(member.guid, "Party fully rested. The arena rematch begins from wave 1 in 30 seconds.")
+        self.adapter.notify(member.guid, "Party fully rested. The wave-1 ready prompt returns in 30 seconds; combat still waits for confirmation.")
     end
     self.adapter.schedule(30000, function()
         if self.generation ~= generation or self.active or not self.run or self.run.phase ~= "seeking_opponent" then
@@ -876,7 +953,7 @@ function SoloArena:pick(choiceIndex, recipientIndex)
     end
     self.adapter.awardPartyToLevel(self.rewardRecipients.members, targetLevel)
     self.output(string.format(
-        "%s received %s and the automatic bundle. Complete native level-ups to L%d; the next bout will begin automatically.",
+        "%s received %s and the automatic bundle. Complete native level-ups to L%d; the next bout's ready prompt will appear automatically.",
         recipient.name or recipient.guid,
         selected.displayName,
         targetLevel

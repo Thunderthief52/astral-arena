@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.2-alpha.16 — 2026-08-23
+
+- Replaced the forced 30-second first-wave and inter-wave countdowns with controller-safe ready prompts; players may prepare indefinitely and explicitly choose when each wave begins.
+- Added a full health, spell-slot, class-resource, and cooldown refresh for living party members after every cleared non-final wave. Characters who died still require Revivify before the next wave.
+- Replaced the shared 12-item armory with an eleven-piece personal kit for every party member: three proficient weapon options, three armour-weight options, a magic helmet, gloves, boots, amulet, and ring, plus the existing supply rolls and Revivify scrolls.
+- Fixed the grey-island visual regression by compiling all 96 scenery objects and 16 lights into BG3's engine-loaded `Scenery/_merged.lsf` and `Lights/_merged.lsf` resources. The previous per-object files passed repository validation but were ignored by the game.
+- Updated Toolkit validation to require the two merged resources so this packaging failure cannot recur.
+
 ## 0.3.2-alpha.15 — 2026-08-22
 
 - Fixed automatic onboarding freezing after a two-player party hired two followers: bootstrap now preserves the original avatars while accepting only followers recorded by the Withers service.

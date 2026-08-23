@@ -25,6 +25,7 @@ $Required = @(
     (Join-Path $RepositoryRoot "src\Mods\AstralArena\ScriptExtender\Lua\BootstrapServer.lua"),
     (Join-Path $RepositoryRoot "src\Mods\AstralArena\ScriptExtender\Lua\AstralArena\Shared\AdventureHandoff.lua"),
     (Join-Path $RepositoryRoot "src\Mods\AstralArena\ScriptExtender\Lua\AstralArena\Shared\ArenaSites.lua"),
+    (Join-Path $RepositoryRoot "src\Mods\AstralArena\ScriptExtender\Lua\AstralArena\Shared\PreparationLoadout.lua"),
     $SceneryManifestPath,
     $GeneratedSceneryIndexPath
 )
@@ -45,7 +46,7 @@ if ($Values.Type -ne "Adventure") { throw "Module type must be Adventure." }
 if ($Values.StartupLevelName -ne "AA_Arena_Main") { throw "Startup level is not AA_Arena_Main." }
 if ($Values.CharacterCreationLevelName -ne "") { throw "Character creation must inherit BG3's system character creator." }
 if ($Values.NumPlayers -ne "4") { throw "Adventure must support four players." }
-if ($Values.Version64 -ne "36028797018963983") { throw "Adventure module version is not alpha.15 build 15." }
+if ($Values.Version64 -ne "36028797018963984") { throw "Adventure module version is not alpha.16 build 16." }
 if ((Get-Content -LiteralPath $MetaPath -Raw) -match 'WLD_|BGO_|CRE_|END_|TUT_') {
     throw "Adventure metadata references a vanilla campaign level."
 }
@@ -116,6 +117,18 @@ $SoloArenaPath = Join-Path $RepositoryRoot "src\Mods\AstralArena\ScriptExtender\
 $SoloArenaText = Get-Content -LiteralPath $SoloArenaPath -Raw
 if ($SoloArenaText -notmatch '_repairMixedLevelParty' -or $SoloArenaText -notmatch '"repairing"') {
     throw "Automatic onboarding cannot recover a mixed-level split-screen party."
+}
+if ($SoloArenaText -notmatch 'kind = "wave_start"' -or $SoloArenaText -notmatch 'Constants\.MenuMessages\.waveStart') {
+    throw "Arena waves are not gated by the controller-safe ready prompt."
+}
+if ($AdapterText -notmatch 'restoreWaveResources' -or $AdapterText -notmatch 'Osi\.RestoreParty') {
+    throw "Between-wave recovery does not restore spell slots and class resources."
+}
+$PreparationLoadoutText = Get-Content -LiteralPath (Join-Path $RepositoryRoot "src\Mods\AstralArena\ScriptExtender\Lua\AstralArena\Shared\PreparationLoadout.lua") -Raw
+foreach ($RequiredSlot in @("light-armour", "medium-armour", "heavy-armour", "helmet", "gloves", "boots", "amulet", "ring")) {
+    if ($PreparationLoadoutText -notmatch [regex]::Escape('slot = "' + $RequiredSlot + '"')) {
+        throw "Personal preparation loadout is missing required slot: $RequiredSlot"
+    }
 }
 
 Add-Type -AssemblyName System.Drawing
@@ -203,13 +216,13 @@ $ExpectedSceneryCount = @($SceneryManifest.objects).Count
 $ExpectedLightCount = @($SceneryManifest.lights).Count
 $ActualSceneryFiles = @(Get-ChildItem -LiteralPath (Join-Path $ArenaLevelRoot "Scenery") -Filter *.lsf -File)
 $ActualLightFiles = @(Get-ChildItem -LiteralPath (Join-Path $ArenaLevelRoot "Lights") -Filter *.lsf -File)
-if ($ActualSceneryFiles.Count -ne $ExpectedSceneryCount) {
-    throw "Expected $ExpectedSceneryCount scenery files, found $($ActualSceneryFiles.Count)."
+if ($ActualSceneryFiles.Count -ne 1 -or $ActualSceneryFiles[0].Name -ne "_merged.lsf") {
+    throw "Arena scenery must be compiled into the engine-loaded Scenery/_merged.lsf resource."
 }
-if ($ActualLightFiles.Count -ne $ExpectedLightCount) {
-    throw "Expected $ExpectedLightCount light files, found $($ActualLightFiles.Count)."
+if ($ActualLightFiles.Count -ne 1 -or $ActualLightFiles[0].Name -ne "_merged.lsf") {
+    throw "Arena lights must be compiled into the engine-loaded Lights/_merged.lsf resource."
 }
-if ($GeneratedSceneryIndex.Count -ne ($ExpectedSceneryCount + $ExpectedLightCount)) {
+if ($GeneratedSceneryIndex.Count -ne 2) {
     throw "Generated scenery index does not match the manifest."
 }
 foreach ($RelativePath in $GeneratedSceneryIndex) {

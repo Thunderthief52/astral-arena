@@ -1,4 +1,5 @@
 local Adapter = {}
+local PreparationLoadout = Ext.Require("AstralArena/Shared/PreparationLoadout.lua")
 
 local REVIVIFY_SCROLL_TEMPLATE = "c1c3e4fb-d68c-4e10-afdc-d4550238d50e"
 
@@ -300,6 +301,31 @@ function Adapter.fullRestParty(members)
     end
 end
 
+function Adapter.restoreWaveResources(members)
+    if type(members) ~= "table" or not members[1] then
+        return
+    end
+    -- RestoreParty replenishes spell slots and class resources. It does not
+    -- replace the explicit resurrection step used at the battle boundary, so
+    -- a character who actually died still needs Revivify between waves.
+    safely(function()
+        Osi.RestoreParty(members[1].guid)
+    end)
+    for _, member in ipairs(members) do
+        if not Adapter.isDead(member.guid) then
+            safely(function()
+                Osi.SetHitpointsPercentage(member.guid, 100)
+            end)
+            safely(function()
+                Osi.PROC_CharacterFullRestore(member.guid)
+            end)
+            safely(function()
+                Osi.ResetCooldowns(member.guid)
+            end)
+        end
+    end
+end
+
 function Adapter.schedule(delayMilliseconds, callback)
     Ext.Timer.WaitFor(delayMilliseconds, callback)
 end
@@ -527,35 +553,19 @@ function Adapter.deliverPreparationBundle(members, level, catalog)
         end
     end
 
-    -- A random table alone cannot guarantee that every class sees a usable
-    -- weapon or armour piece. Build a shared, tradeable armory from the audited
-    -- reward catalog as well, preferring the newest tier when an advanced save
-    -- starts directly at level 8 or later.
-    local armory = {}
-    for _, item in ipairs(catalog or {}) do
-        local minimumLevel = tonumber(item.minimumLevel) or 1
-        local maximumLevel = tonumber(item.maximumLevel) or 12
-        if level >= minimumLevel and level <= maximumLevel then
-            table.insert(armory, item)
-        end
-    end
-    table.sort(armory, function(left, right)
-        local leftLevel = tonumber(left.minimumLevel) or 1
-        local rightLevel = tonumber(right.minimumLevel) or 1
-        if leftLevel ~= rightLevel then
-            return leftLevel > rightLevel
-        end
-        return tostring(left.id) < tostring(right.id)
-    end)
-    for index = 1, math.min(12, #armory) do
-        local item = armory[index]
-        local recipient = members[((index - 1) % #members) + 1]
-        if Adapter.validateItemTemplate(item.templateId) then
-            local ok = pcall(function()
-                Osi.TemplateAddTo(item.templateId, recipient.guid, 1, 1)
-            end)
-            if ok then
-                delivered.armoryItems = delivered.armoryItems + 1
+    -- Give every character a complete personal kit instead of distributing a
+    -- shared random armory. The three weapons and three armour weights let each
+    -- build choose a proficient option; every inventory is also guaranteed a
+    -- helmet, gloves, boots, amulet, and ring.
+    for _, member in ipairs(members) do
+        for _, item in ipairs(PreparationLoadout) do
+            if Adapter.validateItemTemplate(item.templateId) then
+                local ok = pcall(function()
+                    Osi.TemplateAddTo(item.templateId, member.guid, 1, 1)
+                end)
+                if ok then
+                    delivered.armoryItems = delivered.armoryItems + 1
+                end
             end
         end
     end

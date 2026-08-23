@@ -1,6 +1,6 @@
 return {
     ModuleUUID = "29c48c80-8777-f7b5-6bb8-376c1c5d8db6",
-    DisplayVersion = "0.3.2-alpha.15",
+    DisplayVersion = "0.3.2-alpha.16",
     ArenaLevel = "AA_Arena_Main",
     SchemaVersion = 1,
     EntrantCount = 8,
@@ -11,6 +11,7 @@ return {
         reward = "h0621de70c9aa4efba27b86b471d34682",
         recipient = "h91755f48cd8d485b8d15e756b1e224d7",
         hireling = "h93ba8d19ef074e7eb7c59686bbc9fbb5",
+        waveStart = "h4b7ad31ee2074bfab4a21407db48a032",
     },
     Levels = {
         quarterfinal = 5,
