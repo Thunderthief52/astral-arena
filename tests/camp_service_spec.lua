@@ -78,6 +78,8 @@ H.test("Withers onboarding hires level-matched followers and stops at four", fun
     H.equal(#members, 4)
     H.equal(gold["player-a"], 100)
     H.truthy(getState().onboardingComplete)
+    H.truthy(service:recruitedCharacters()[Catalog[1].characterGuid])
+    H.truthy(service:recruitedCharacters()[Catalog[2].characterGuid])
 end)
 
 H.test("declining Withers candidates eventually releases automatic progression", function()

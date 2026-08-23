@@ -11,9 +11,14 @@ $levelRoot = Join-Path $RepoRoot "toolkit\Data\Mods\AstralArenaAdventure_29c48c8
 $sceneryRoot = Join-Path $levelRoot 'Scenery'
 $lightsRoot = Join-Path $levelRoot 'Lights'
 $indexPath = Join-Path $RepoRoot 'toolkit\scenery\AA_Arena_Main.generated-files.json'
+$levelMetaSource = Join-Path $RepoRoot 'toolkit\levels\AA_Arena_Main.meta.lsx'
+$levelMetaOutput = Join-Path $levelRoot 'meta.lsf'
 
 if (-not (Test-Path -LiteralPath $DivinePath -PathType Leaf)) {
     throw "Divine.exe was not found at '$DivinePath'. Install LSLib or pass -DivinePath explicitly."
+}
+if (-not (Test-Path -LiteralPath $levelMetaSource -PathType Leaf)) {
+    throw "Arena level metadata source was not found at '$levelMetaSource'."
 }
 
 $allEntries = @($manifest.objects) + @($manifest.lights)
@@ -241,4 +246,8 @@ foreach ($relativePath in $previous) {
 }
 
 ConvertTo-Json -InputObject $current | Set-Content -LiteralPath $indexPath -Encoding utf8
+& $DivinePath -g bg3 -a convert-resource -s $levelMetaSource -d $levelMetaOutput -i lsx -o lsf | Out-Null
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $levelMetaOutput -PathType Leaf)) {
+    throw "Divine failed to build arena level metadata."
+}
 Write-Host "Built $($manifest.objects.Count) scenery object(s) and $($manifest.lights.Count) light(s) for $($manifest.levelName)."

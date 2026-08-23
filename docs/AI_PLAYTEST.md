@@ -2,7 +2,7 @@
 
 ## What this candidate tests
 
-Version `0.3.2-alpha.14` tests a continuous solo/co-op progression run with a 300-gold-per-avatar automatic Withers hireling onboarding, party-sized multi-wave battles, validated combat and camp routes, 30–34 metre opening separation, a level-appropriate preparation armory, fully lethal native death saves, manual between-wave resurrection, final-wave automatic resurrection/rest/loot, save-tier recovery, a level-3 initiation, and a true level-12 championship. The menu does not spawn campaign-linked Withers or book entities:
+Version `0.3.2-alpha.15` tests a continuous solo/co-op progression run with a 300-gold-per-avatar automatic Withers hireling onboarding, approved roster expansion to four, equipped level-matched followers, party-sized multi-wave battles, validated combat and camp routes, 30–34 metre opening separation, a level-appropriate preparation armory, fully lethal native death saves, manual between-wave resurrection, final-wave automatic resurrection/rest/loot, save-tier recovery, a level-3 initiation, and a true level-12 championship. The menu does not spawn campaign-linked Withers or book entities:
 
 ```text
 2 waves at L3 -> long rest + loot for L5 -> native level-up

@@ -22,3 +22,35 @@ H.test("arena bootstrap rejects party membership changes", function()
     Bootstrap.markExperienceAwarded(state)
     H.raises(function() Bootstrap.confirmPartyLevel(state, 5, 1) end, "membership changed")
 end)
+
+H.test("arena bootstrap accepts only followers recruited during onboarding", function()
+    local state = Bootstrap.new({ id = "bootstrap-4", targetLevel = 3 })
+    Bootstrap.begin(state, 1, {
+        { guid = "avatar-a" },
+        { guid = "avatar-b" },
+    })
+    Bootstrap.markExperienceAwarded(state)
+    Bootstrap.confirmPartyLevel(state, 3, {
+        { guid = "avatar-a" },
+        { guid = "avatar-b" },
+        { guid = "hireling-fighter" },
+        { guid = "hireling-cleric" },
+    }, {
+        ["hireling-fighter"] = true,
+        ["hireling-cleric"] = true,
+    })
+    H.equal(state.partySize, 4)
+    H.equal(state.phase, "ready")
+end)
+
+H.test("arena bootstrap still rejects an unapproved replacement", function()
+    local state = Bootstrap.new({ id = "bootstrap-5", targetLevel = 3 })
+    Bootstrap.begin(state, 1, { { guid = "avatar-a" }, { guid = "avatar-b" } })
+    Bootstrap.markExperienceAwarded(state)
+    H.raises(function()
+        Bootstrap.confirmPartyLevel(state, 3, {
+            { guid = "avatar-a" },
+            { guid = "unexpected" },
+        }, { ["hireling-fighter"] = true })
+    end, "membership changed")
+end)

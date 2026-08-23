@@ -38,8 +38,8 @@ local function withExperienceMode(mode, test)
 end
 
 local members = {
-    { guid = "player-a", name = "Player A" },
-    { guid = "player-b", name = "Player B" },
+    { guid = "player-a", name = "Player A", isAvatar = true },
+    { guid = "player-b", name = "Player B", isAvatar = true },
 }
 
 H.test("party XP award reaches independently owned split-screen avatars", function()
@@ -72,6 +72,25 @@ H.test("party XP award does not multiply ordinary party-wide experience", functi
         H.equal(#calls, 1)
         H.equal(awarded, 1)
     end)
+end)
+
+H.test("party XP award levels a recruited follower without avatar experience data", function()
+    local previousExt = _G.Ext
+    local previousOsi = _G.Osi
+    local setLevel
+    _G.Ext = { Entity = { Get = function() return nil end } }
+    _G.Osi = {
+        GetLevel = function() return 1 end,
+        SetLevel = function(guid, level) setLevel = { guid, level } end,
+    }
+    local awarded = Adapter.awardPartyToLevel({
+        { guid = "hireling", name = "Hireling", level = 1, isAvatar = false },
+    }, 3)
+    _G.Ext = previousExt
+    _G.Osi = previousOsi
+    H.equal(awarded, 1)
+    H.equal(setLevel[1], "hireling")
+    H.equal(setLevel[2], 3)
 end)
 
 H.test("arena menu targets the host avatar when it is in the party", function()

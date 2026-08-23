@@ -95,8 +95,8 @@ local function fakeAdapter()
     return adapter
 end
 
-local function arena(adapter)
-    return SoloArena.new(adapter, function() end, Fixtures, Catalog, Layouts, Sites)
+local function arena(adapter, campService)
+    return SoloArena.new(adapter, function() end, Fixtures, Catalog, Layouts, Sites, campService)
 end
 
 local function defeatCurrentWave(subject, adapter)
@@ -152,6 +152,25 @@ H.test("AI arena scales a level-five fixture to a two-character party", function
     H.equal(adapter.preparationCalls, 1)
     H.equal(adapter.preparationLevel, 5)
     H.equal(adapter.preparationCatalogSize, #Catalog)
+end)
+
+H.test("AI bootstrap starts after approved Withers followers expand a split-screen party", function()
+    local adapter = fakeAdapter()
+    adapter.partyLevel = 1
+    adapter.partySize = 2
+    local campService = {
+        recruitedCharacters = function()
+            return { ["player-c"] = true, ["player-d"] = true }
+        end,
+    }
+    local subject = arena(adapter, campService)
+    subject:bootstrapParty()
+    adapter.partyLevel = 3
+    adapter.partySize = 4
+    local match = subject:start({ countdownSeconds = 0 })
+    H.equal(subject.bootstrapState.phase, "completed")
+    H.equal(match.phase, "combat")
+    H.equal(#subject.active.teams.left.members, 4)
 end)
 
 H.test("arena preparation supplies are delivered once and retries cannot duplicate them", function()

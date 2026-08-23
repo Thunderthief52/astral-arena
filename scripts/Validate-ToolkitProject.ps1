@@ -45,7 +45,7 @@ if ($Values.Type -ne "Adventure") { throw "Module type must be Adventure." }
 if ($Values.StartupLevelName -ne "AA_Arena_Main") { throw "Startup level is not AA_Arena_Main." }
 if ($Values.CharacterCreationLevelName -ne "") { throw "Character creation must inherit BG3's system character creator." }
 if ($Values.NumPlayers -ne "4") { throw "Adventure must support four players." }
-if ($Values.Version64 -ne "36028797018963982") { throw "Adventure module version is not alpha.14 build 14." }
+if ($Values.Version64 -ne "36028797018963983") { throw "Adventure module version is not alpha.15 build 15." }
 if ((Get-Content -LiteralPath $MetaPath -Raw) -match 'WLD_|BGO_|CRE_|END_|TUT_') {
     throw "Adventure metadata references a vanilla campaign level."
 }
@@ -138,6 +138,26 @@ foreach ($Site in @("astral-flats", "crescent-ruin", "echelon-steps")) {
 }
 
 $SceneryManifest = Get-Content -LiteralPath $SceneryManifestPath -Raw | ConvertFrom-Json
+$LevelMetaSourcePath = Join-Path $RepositoryRoot "toolkit\levels\AA_Arena_Main.meta.lsx"
+if (-not (Test-Path -LiteralPath $LevelMetaSourcePath -PathType Leaf)) {
+    throw "Arena level metadata source is missing."
+}
+[xml]$LevelMetaSource = Get-Content -LiteralPath $LevelMetaSourcePath -Raw
+$LevelMetaValues = @{}
+foreach ($Attribute in $LevelMetaSource.save.region.node.attribute) {
+    $LevelMetaValues[$Attribute.id] = $Attribute.value
+}
+if ($LevelMetaValues.LevelAtmosphere -ne "73e03af9-7ab1-47a7-906b-a4e0362045ef") {
+    throw "Arena level does not use the shipped Underdark atmosphere."
+}
+$LevelBoundsNode = $LevelMetaSource.save.region.node.children.node | Where-Object id -eq "LevelBounds"
+$LevelBoundsValues = @{}
+foreach ($Attribute in $LevelBoundsNode.attribute) {
+    $LevelBoundsValues[$Attribute.id] = $Attribute.value
+}
+if ($LevelBoundsValues.Min -ne "-140 -40 -100" -or $LevelBoundsValues.Max -ne "140 60 110") {
+    throw "Arena level bounds do not contain the Underdark vista shell."
+}
 $GeneratedSceneryIndex = [string[]](Get-Content -LiteralPath $GeneratedSceneryIndexPath -Raw | ConvertFrom-Json)
 $AllSceneryEntries = @($SceneryManifest.objects) + @($SceneryManifest.lights)
 if (@($AllSceneryEntries | Group-Object id | Where-Object Count -gt 1).Count -gt 0) {

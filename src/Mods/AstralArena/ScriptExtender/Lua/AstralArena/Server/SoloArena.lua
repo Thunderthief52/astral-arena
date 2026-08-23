@@ -208,7 +208,7 @@ function SoloArena:bootstrapParty()
         id = "arena-bootstrap-" .. tostring(self.generation),
         targetLevel = 3,
     })
-    local targetLevel = ArenaBootstrap.begin(state, party.level, #party.members)
+    local targetLevel = ArenaBootstrap.begin(state, party.level, party.members)
     self.bootstrapState = state
     self.adapter.awardPartyToLevel(party.members, targetLevel)
     ArenaBootstrap.markExperienceAwarded(state)
@@ -376,7 +376,10 @@ function SoloArena:start(options)
     self:_requireArenaParty(party)
     if self.bootstrapState and self.bootstrapState.phase ~= "completed" then
         if self.bootstrapState.phase == "awaiting_level_up" then
-            ArenaBootstrap.confirmPartyLevel(self.bootstrapState, party.level, #party.members)
+            local recruited = self.campService and self.campService.recruitedCharacters
+                and self.campService:recruitedCharacters()
+                or nil
+            ArenaBootstrap.confirmPartyLevel(self.bootstrapState, party.level, party.members, recruited)
         end
         if self.bootstrapState.phase ~= "ready" then
             error("arena bootstrap is incomplete; use !aa_ai_status or !aa_ai_reset", 2)

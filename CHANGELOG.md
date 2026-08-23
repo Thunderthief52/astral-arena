@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.2-alpha.15 — 2026-08-22
+
+- Fixed automatic onboarding freezing after a two-player party hired two followers: bootstrap now preserves the original avatars while accepting only followers recorded by the Withers service.
+- Leveled recruited followers directly instead of requiring avatar experience components, eliminating the transient unreadable-XP failure during split-screen hiring.
+- Added class-appropriate starter loadouts for all six available followers and retained the full-party level-scaled armory, supply rolls, and Revivify scrolls before the first combat.
+- Removed reachable planted rubble, menhirs, and loose battlefield pillars; kept the three player-to-enemy lanes clear and unobstructed.
+- Added shipped Underdark cliff vistas and giant mushroom silhouettes behind the solid arena boundary, plus a larger centerline Jergal monument with stronger focal lighting.
+
 ## 0.3.2-alpha.14 — 2026-08-22
 
 - Fixed the crash immediately after character creation by removing runtime cloning of Withers' campaign root template and the campaign-linked book used as his ledger.

@@ -364,6 +364,17 @@ function Adapter.hireFollower(candidate, buyerGuid, targetLevel, callback)
     end
     Adapter.schedule(1200, function()
         safely(function() Osi.SetLevel(hirelingGuid, targetLevel) end)
+        for _, templateId in ipairs(candidate.equipment or {}) do
+            if Adapter.validateItemTemplate(templateId) then
+                safely(function()
+                    Osi.TemplateAddTo(templateId, hirelingGuid, 1, 0)
+                    local itemGuid = Osi.GetItemByTemplateInInventory(templateId, hirelingGuid)
+                    if itemGuid and itemGuid ~= "" then
+                        Osi.Equip(hirelingGuid, itemGuid, 1, 0, 1)
+                    end
+                end)
+            end
+        end
         safely(function() Adapter.prepareCharacter(hirelingGuid) end)
         local found = false
         for _, member in ipairs(Adapter.partyMembers()) do
@@ -605,25 +616,29 @@ function Adapter.awardPartyToLevel(members, targetLevel)
     if not targetExperience then
         error("unsupported arena target level: " .. tostring(targetLevel), 2)
     end
-    for _, member in ipairs(members) do
-        local entity = Ext.Entity.Get(member.guid)
-        if not entity or not entity.Experience then
-            error("experience data is unavailable for " .. (member.name or member.guid), 2)
-        end
-    end
-
     -- In ordinary parties AddExplorationExperience may propagate to everyone,
     -- while local split-screen avatars can have distinct progression ownership.
     -- Re-read before each award: a party-wide first call makes later calls no-ops,
     -- but an independently owned avatar still receives exactly its missing XP.
     local awardedCount = 0
     for _, member in ipairs(members) do
-        local entity = Ext.Entity.Get(member.guid)
-        local current = tonumber(entity.Experience.TotalExperience) or 0
-        local gain = targetExperience - current
-        if gain > 0 then
-            Osi.AddExplorationExperience(member.guid, gain)
-            awardedCount = awardedCount + 1
+        if member.isAvatar == false then
+            local currentLevel = tonumber(member.level) or tonumber(Osi.GetLevel(member.guid)) or 1
+            if currentLevel < targetLevel then
+                Osi.SetLevel(member.guid, targetLevel)
+                awardedCount = awardedCount + 1
+            end
+        else
+            local entity = Ext.Entity.Get(member.guid)
+            if not entity or not entity.Experience then
+                error("experience data is unavailable for " .. (member.name or member.guid), 2)
+            end
+            local current = tonumber(entity.Experience.TotalExperience) or 0
+            local gain = targetExperience - current
+            if gain > 0 then
+                Osi.AddExplorationExperience(member.guid, gain)
+                awardedCount = awardedCount + 1
+            end
         end
     end
     return awardedCount

@@ -39,6 +39,16 @@ function CampService:_save(state)
     self.persistence.Save(state)
 end
 
+function CampService:recruitedCharacters()
+    local result = {}
+    for guid, recruited in pairs(self:_state().hiredCharacters or {}) do
+        if recruited then
+            result[guid] = true
+        end
+    end
+    return result
+end
+
 function CampService:ensureCamp(members)
     if type(members) ~= "table" or not members[1] then
         return false

@@ -2,10 +2,10 @@
 
 ## Build under test
 
-- Version: `0.3.2-alpha.14`
+- Version: `0.3.2-alpha.15`
 - Adventure UUID: `29c48c80-8777-f7b5-6bb8-376c1c5d8db6`
 - Character flow: BG3 system character creator → `AA_Arena_Main`
-- PAK: `dist\AstralArena-0.3.2-alpha.14.pak`
+- PAK: `dist\AstralArena-0.3.2-alpha.15.pak`
 
 This candidate fixes the alpha.13 crash after character creation by keeping the polished Jergal-themed camp while removing runtime campaign-NPC and book clones. The controller-safe Withers menu opens automatically; each avatar receives 300 gold once, and followers cost 100 gold and match the current party level. The first bout supplies a shared magic armory, randomized consumables, and two Scrolls of Revivify per player. Enemy formations begin 30–34 metres away in validated walk-through approach lanes. Downed and dead players persist into a 30-second between-wave revival window; automatic resurrection and a full long rest occur only when the entire battle ends.
 
@@ -17,7 +17,7 @@ This candidate fixes the alpha.13 crash after character creation by keeping the 
 
    ```powershell
    Set-ExecutionPolicy -Scope Process Bypass
-   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.2-alpha.14.pak"
+   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.2-alpha.15.pak"
    ```
 
 4. Confirm this file exists:
@@ -32,7 +32,7 @@ This candidate fixes the alpha.13 crash after character creation by keeping the 
 
 ## Discard placeholder-party saves
 
-Do not continue a save containing four naked, classless, immobile characters at one HP. Those entities are BG3's temporary system character-creation placeholders, not recoverable player builds. Also discard the session that crashed under alpha.13 after character creation. Begin a fresh New Game with `0.3.2-alpha.14` enabled. Real custom-character staging saves from earlier stable builds at levels 3, 5, 8, 10, or 12 can resume at their current tier; mixed-level split-screen parties receive missing XP repair.
+Do not continue a save containing four naked, classless, immobile characters at one HP. Those entities are BG3's temporary system character-creation placeholders, not recoverable player builds. Also discard the session that crashed under alpha.13 after character creation. Begin a fresh New Game with `0.3.2-alpha.15` enabled. Real custom-character staging saves from earlier stable builds at levels 3, 5, 8, 10, or 12 can resume at their current tier; mixed-level split-screen parties receive missing XP repair.
 
 ## Start a clean Adventure
 
@@ -40,7 +40,7 @@ Do not continue a save containing four naked, classless, immobile characters at 
 2. Create one character for solo, join the ordinary online lobby before finalizing characters for co-op, or connect the second controller before completing split-screen character creation.
 3. Finish the supported BG3 system character creator normally. This system scene is expected; it is not a campaign location. Do not use Honour Mode for this alpha.
 4. Confirm the finished custom party transfers into `AA_Arena_Main`, not a Nautiloid or Act 1 campaign location. A naked character-creation dummy must not remain active.
-5. Make a named manual save such as `AA 0.3.2-alpha.14 BEFORE AUTO START`.
+5. Make a named manual save such as `AA 0.3.2-alpha.15 BEFORE AUTO START`.
 6. Confirm Astral Arena automatically awards the vanilla level-3 XP threshold and displays a notification. No console command is required.
 7. Complete every ordinary BG3 level-up through level 3. In co-op or split-screen, both players should receive XP and complete their own choices.
 8. Confirm each player-created avatar receives 300 gold once. The automatic Withers menu should offer Eldra the Fighter, Zenith the Cleric, then additional classes for 100 gold each. Hire up to the four-person cap or decline through the list; followers must arrive at party level and remain controllable. There should be no spawned Withers NPC or interactive book—the static Jergal court is intentional in this crash-hotfix build.
