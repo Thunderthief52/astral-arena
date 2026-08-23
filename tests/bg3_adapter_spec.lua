@@ -281,7 +281,7 @@ H.test("victory bundle gives four loot rolls per avatar and distributes six rare
     H.equal(items[6], "item-6:player-b")
 end)
 
-H.test("preparation bundle gives every avatar six level-scaled supply rolls", function()
+H.test("preparation bundle gives every avatar supplies, revival scrolls, and a complete personal kit", function()
     local previousExt = _G.Ext
     local previousOsi = _G.Osi
     local generated = {}
@@ -309,7 +309,7 @@ H.test("preparation bundle gives every avatar six level-scaled supply rolls", fu
     _G.Ext = previousExt
     _G.Osi = previousOsi
     H.equal(delivered.treasureRolls, 12)
-    H.equal(delivered.armoryItems, 2)
+    H.equal(delivered.armoryItems, 22)
     H.equal(delivered.revivifyScrolls, 4)
     H.equal(#generated, 12)
     H.equal(generated[1].tableId, "RewardMedium")
@@ -317,6 +317,8 @@ H.test("preparation bundle gives every avatar six level-scaled supply rolls", fu
     H.equal(generated[7].guid, "player-b")
     H.equal(items[1], "c1c3e4fb-d68c-4e10-afdc-d4550238d50e:player-a")
     H.equal(items[2], "c1c3e4fb-d68c-4e10-afdc-d4550238d50e:player-b")
-    H.equal(items[3], "armor-template:player-a")
-    H.equal(items[4], "weapon-template:player-b")
+    H.equal(items[3], "970c962d-dca1-4b90-8d02-81a4e59e3f08:player-a")
+    H.equal(items[13], "eadad0c4-d4a5-45cb-b4c3-e16a9b3ebe0a:player-a")
+    H.equal(items[14], "970c962d-dca1-4b90-8d02-81a4e59e3f08:player-b")
+    H.equal(items[24], "eadad0c4-d4a5-45cb-b4c3-e16a9b3ebe0a:player-b")
 end)
