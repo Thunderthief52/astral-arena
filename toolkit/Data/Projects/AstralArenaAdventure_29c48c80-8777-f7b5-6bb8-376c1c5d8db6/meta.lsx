@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<save>
+    <version major="4" minor="8" revision="0" build="500"/>
+    <region id="MetaData">
+        <node id="root">
+            <attribute id="GameProject" type="LSString" value=""/>
+            <attribute id="Module" type="LSString" value="29c48c80-8777-f7b5-6bb8-376c1c5d8db6"/>
+            <attribute id="Name" type="LSString" value="AstralArenaAdventure"/>
+            <attribute id="UUID" type="LSString" value="9040da33-8f85-bdc2-b417-a2839e589e8c"/>
+            <attribute id="UpdatedDependencies" type="bool" value="true"/>
+            <children>
+                <node id="Categories"/>
+            </children>
+        </node>
+    </region>
+</save>

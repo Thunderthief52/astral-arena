@@ -39,6 +39,7 @@ body:
       label: Team size
       options:
         - 1v1
+        - Split-screen 1v1
         - 2v2
         - 3v3
         - 4v4
