@@ -5,6 +5,9 @@ local BY_LEVEL = {
         id = "astral-initiation",
         displayName = "Astral Initiates",
         level = 3,
+        -- The initiation teaches the wave loop. Keep it below party parity even
+        -- when two players recruit both staging-ground hirelings.
+        enemyCap = 2,
         members = {
             { id = "gish", displayName = "Initiate Spellblade", role = "gish", templateId = "9a8b2d7f-e1a3-456a-8c66-c362cb6d1539" },
             { id = "raider", displayName = "Initiate Archer", role = "ranged", templateId = "74672dc8-497c-4d9c-92b7-7347ab643e43" },
@@ -101,7 +104,7 @@ function Fixtures.forWave(level, partySize, waveIndex)
     if waveIndex < 1 or waveIndex > #(fixture.waveOrders or {}) then
         error(string.format("fixture level %d does not define wave %d", level, waveIndex), 2)
     end
-    local memberCount = math.min(#fixture.members, partySize)
+    local memberCount = math.min(#fixture.members, partySize, fixture.enemyCap or partySize)
     local byId = {}
     for _, member in ipairs(fixture.members) do
         byId[member.id] = member

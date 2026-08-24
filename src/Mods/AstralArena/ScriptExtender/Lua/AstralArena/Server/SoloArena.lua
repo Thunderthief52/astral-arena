@@ -188,14 +188,8 @@ function SoloArena:handleMenuResponse(characterGuid, messageKey, result)
             for _, member in ipairs(active.teams.left.members) do
                 self.adapter.notify(member.guid, message)
             end
-            local expectedMenu = menu
-            local generation = active.generation
-            self.adapter.schedule(60000, function()
-                if self.active and self.active.generation == generation and self.menu == expectedMenu then
-                    expectedMenu.dismissed = nil
-                    self:_showMenu()
-                end
-            end)
+            -- The recurring prompt retry armed when this menu opened will
+            -- redisplay it without spawning or forcing a wave.
         end
         return true
     end
@@ -252,7 +246,26 @@ function SoloArena:_openWaveStartMenu(members, options)
         clearedWave = options.clearedWave,
         nextWave = options.nextWave,
     }
-    return self:_showMenu()
+    local shown = self:_showMenu()
+    local menu = self.menu
+    local generation = self.active and self.active.generation
+    local scheduleRetry = self.adapter.schedulePromptRetry or self.adapter.schedule
+    local function armRetry()
+        if not menu or menu.retryArmed then
+            return
+        end
+        menu.retryArmed = true
+        scheduleRetry(60000, function()
+            menu.retryArmed = nil
+            if self.active and self.active.generation == generation and self.menu == menu then
+                menu.dismissed = nil
+                self:_showMenu()
+                armRetry()
+            end
+        end)
+    end
+    armRetry()
+    return shown
 end
 
 function SoloArena:bootstrapParty()
@@ -385,7 +398,7 @@ function SoloArena:_validateParty(party, verbose)
     end
     if verbose then
         self.output(string.format("  Reward catalog validated: %d items.", #self.rewardCatalog))
-        self.output(string.format("  Personal preparation loadout validated: %d items per character.", #PreparationLoadout))
+        self.output(string.format("  Random preparation pools validated: %d audited candidates.", #PreparationLoadout))
     end
     return party
 end
@@ -492,7 +505,7 @@ function SoloArena:_startBout(party, options)
         ) or preparation
         self.preparationBundleDelivered = true
         local supplyMessage = string.format(
-            "Arena armory delivered: %d guaranteed personal gear pieces, %d level-%d supply rolls, and %d Scrolls of Revivify. Every character has weapon and armour choices plus a helmet, gloves, boots, amulet, and ring. Equip before confirming combat.",
+            "Arena armory rolled: %d randomized personal gear pieces, %d level-%d supply rolls, and %d Scrolls of Revivify. Every character has weapon and armour choices plus a helmet, gloves, boots, amulet, and ring. Equip before confirming combat.",
             preparation.armoryItems or 0,
             preparation.treasureRolls or 0,
             self.run.level,
@@ -511,12 +524,10 @@ function SoloArena:_startBout(party, options)
         self.arenaSites.forLevel and self.arenaSites.forLevel(self.run.level)
         or self.arenaSites.forBout(self.run.battleIndex)
     ) or nil
-    local spawned = nil
     local setupOk, setupError = pcall(function()
         if site and self.adapter.prepareArenaSite then
             self.adapter.prepareArenaSite(party.members, site)
         end
-        spawned = self.adapter.spawnFixtureTeam(fixture, party.members[1].guid, layout)
     end)
     if not setupOk then
         if self.adapter.returnPartyToStaging then
@@ -532,22 +543,22 @@ function SoloArena:_startBout(party, options)
         right = {
             entrantId = fixture.id,
             label = fixture.displayName,
-            members = spawned,
+            members = {},
         },
     }
-    local match = createWaveMatch(self.run, teams, 1)
     local waveCount = self.fixtures.waveCount and self.fixtures.waveCount(self.run.level) or 1
 
     self.active = {
         generation = self.generation,
         teams = teams,
-        match = match,
+        match = nil,
+        fixture = fixture,
         defeated = {},
         dead = {},
         countdownRemaining = options.countdownSeconds ~= nil and countdown(options.countdownSeconds) or nil,
         layout = layout,
         site = site,
-        waveIndex = 1,
+        waveIndex = 0,
         waveCount = math.max(1, waveCount),
         transitioning = false,
     }
@@ -571,7 +582,7 @@ function SoloArena:_startBout(party, options)
         site and site.displayName or "the active arena",
         self.active.waveCount,
         #party.members,
-        #spawned,
+        #fixture.members,
         fixture.displayName,
         layout and (" using " .. layout.displayName .. " formation") or ""
     ))
@@ -586,7 +597,7 @@ function SoloArena:_startBout(party, options)
     else
         self:_countdown(self.generation, self.active.countdownRemaining)
     end
-    return match
+    return self.active and self.active.match or nil
 end
 
 function SoloArena:_countdown(generation, remaining)
@@ -613,9 +624,26 @@ function SoloArena:_beginCombat(generation)
     if not self.active or self.active.generation ~= generation then
         return
     end
+    local active = self.active
     local ok, err = pcall(function()
-        connectTeams(self.adapter, self.active.teams)
-        Match.beginCombat(self.active.match)
+        local fixture = active.fixture
+        local layout = active.layout
+        local party = active.teams.left
+        local spawned = self.adapter.spawnFixtureTeam(fixture, party.members[1].guid, layout)
+        active.teams = {
+            level = self.run.level,
+            left = party,
+            right = {
+                entrantId = fixture.id,
+                label = fixture.displayName,
+                members = spawned,
+            },
+        }
+        active.match = createWaveMatch(self.run, active.teams, 1)
+        active.waveIndex = 1
+        active.fixture = nil
+        connectTeams(self.adapter, active.teams)
+        Match.beginCombat(active.match)
         SoloRun.beginCombat(self.run)
     end)
     if not ok then
@@ -765,6 +793,7 @@ function SoloArena:_spawnNextWave(generation)
         active.dead = {}
         active.layout = layout
         active.waveIndex = nextWave
+        active.fixture = nil
         connectTeams(self.adapter, active.teams)
         Match.beginCombat(active.match)
     end)
@@ -1046,7 +1075,7 @@ function SoloArena:abort(reason)
         error("there is no active AI arena match", 2)
     end
     local active = self.active
-    if active.match.phase ~= "completed" and active.match.phase ~= "aborted" then
+    if active.match and active.match.phase ~= "completed" and active.match.phase ~= "aborted" then
         Match.abort(active.match, reason or "manual-abort")
     end
     self.active = nil

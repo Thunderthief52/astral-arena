@@ -284,6 +284,7 @@ end)
 H.test("preparation bundle gives every avatar supplies, revival scrolls, and a complete personal kit", function()
     local previousExt = _G.Ext
     local previousOsi = _G.Osi
+    local previousRandomIndex = Adapter.randomIndex
     local generated = {}
     local items = {}
     _G.Ext = {
@@ -301,11 +302,15 @@ H.test("preparation bundle gives every avatar supplies, revival scrolls, and a c
             table.insert(items, templateId .. ":" .. guid)
         end,
     }
+    Adapter.randomIndex = function(maximum)
+        return maximum
+    end
     local delivered = Adapter.deliverPreparationBundle(members, 3, {
         { id = "weapon", templateId = "weapon-template", minimumLevel = 3, maximumLevel = 8 },
         { id = "armor", templateId = "armor-template", minimumLevel = 3, maximumLevel = 8 },
         { id = "too-late", templateId = "late-template", minimumLevel = 8 },
     })
+    Adapter.randomIndex = previousRandomIndex
     _G.Ext = previousExt
     _G.Osi = previousOsi
     H.equal(delivered.treasureRolls, 12)
@@ -317,8 +322,8 @@ H.test("preparation bundle gives every avatar supplies, revival scrolls, and a c
     H.equal(generated[7].guid, "player-b")
     H.equal(items[1], "c1c3e4fb-d68c-4e10-afdc-d4550238d50e:player-a")
     H.equal(items[2], "c1c3e4fb-d68c-4e10-afdc-d4550238d50e:player-b")
-    H.equal(items[3], "970c962d-dca1-4b90-8d02-81a4e59e3f08:player-a")
-    H.equal(items[13], "eadad0c4-d4a5-45cb-b4c3-e16a9b3ebe0a:player-a")
-    H.equal(items[14], "970c962d-dca1-4b90-8d02-81a4e59e3f08:player-b")
-    H.equal(items[24], "eadad0c4-d4a5-45cb-b4c3-e16a9b3ebe0a:player-b")
+    H.equal(#items, 24)
+    H.truthy(items[3]:find(":player-a", 1, true) ~= nil)
+    H.truthy(items[4]:find(":player-b", 1, true) ~= nil)
+    H.truthy(items[3]:match("^[^:]+") ~= items[4]:match("^[^:]+"), "the first randomized slot should differ across avatars")
 end)

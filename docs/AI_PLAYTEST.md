@@ -2,7 +2,7 @@
 
 ## What this candidate tests
 
-Version `0.3.2-alpha.16` tests a continuous solo/co-op progression run with a 300-gold-per-avatar automatic Withers hireling onboarding, approved roster expansion to four, equipped level-matched followers, party-sized multi-wave battles, validated combat and camp routes, 30–34 metre opening separation, guaranteed personal magic kits, fully lethal native death saves, player-controlled wave starts, living-party resource refreshes between waves, final-wave automatic resurrection/rest/loot, save-tier recovery, a level-3 initiation, and a true level-12 championship. The menu does not spawn campaign-linked Withers or book entities:
+Version `0.3.2-alpha.17` tests a continuous solo/co-op progression run with a 300-gold-per-avatar automatic Withers hireling onboarding, approved roster expansion to four, equipped level-matched followers, party-scaled multi-wave battles, validated combat and camp routes, 30–34 metre opening separation, randomized personal magic kits, fully lethal native death saves, spawn-free player-controlled preparation, living-party resource refreshes between waves, final-wave automatic resurrection/rest/loot, save-tier recovery, a two-enemy level-3 initiation, and a true level-12 championship. The menu does not spawn campaign-linked Withers or book entities:
 
 ```text
 2 waves at L3 -> long rest + loot for L5 -> native level-up
@@ -14,7 +14,7 @@ Version `0.3.2-alpha.16` tests a continuous solo/co-op progression run with a 30
 
 The level-12 party faces four rotating waves of Astral Exarchs at Echelon Steps. Clearing the last wave completes the run and triggers staged champion announcements for every player.
 
-The whole active party fights each wave against a matching number of temporary AI enemies. Reduced rosters rotate roles between waves while retaining melee and ranged or magical pressure. The level-3 fixture is capped at three enemies per wave; later fixtures are capped at four. This includes a solo avatar, online co-op players, or split-screen players cooperating against the AI.
+The whole active party fights each wave against temporary AI enemies. Reduced rosters rotate roles between waves while retaining melee and ranged or magical pressure. The level-3 fixture is capped at two enemies per wave even with four allies; later fixtures match the party up to four. This includes a solo avatar, online co-op players, or split-screen players cooperating against the AI.
 
 ## Important safety boundary
 
@@ -54,12 +54,12 @@ The Adventure PAK starts in the private `AA_Arena_Main` level. Read [ADVENTURE_P
 
 1. Confirm every active party member finishes leveling to 3.
 2. Confirm the party moves from staging to Astral Flats and opens a ready prompt. Take as long as needed to equip and position, then choose Yes.
-3. Clear both party-sized Astral Initiate waves (up to three enemies per wave). Confirm living characters fully refresh after wave 1 but receive no loot or XP, then confirm the full battle-boundary restore, automatic loot delivery, and XP target for level 5 after wave 2.
+3. Clear both Astral Initiate waves (maximum two enemies per wave). Confirm living characters fully refresh after wave 1 but receive no loot or XP, then confirm the full battle-boundary restore, automatic loot delivery, and XP target for level 5 after wave 2.
 
 ### Level 5 tournament opener
 
 1. Confirm every active party member finishes leveling to 5 and is not already in combat.
-2. Confirm automatic validation moves the whole party from staging to Astral Flats, gives every character the eleven-piece personal magic kit, six supply rolls and two Scrolls of Revivify, and opens a ready prompt without starting combat.
+2. Confirm automatic validation moves the whole party from staging to Astral Flats, gives every character a varied eleven-piece personal magic kit, six supply rolls and two Scrolls of Revivify, and opens a ready prompt with no enemies present.
 3. Fight both party-sized Astral Vanguard waves normally. A two-character split-screen party should face exactly two opponents per wave, beginning with Vanguard Warrior + Vanguard Raider and then Vanguard Gish + Vanguard Devastator.
 
 Expected after victory:
@@ -99,9 +99,9 @@ If combat cleanup, inventory, or progression looks wrong, stop immediately and r
 - One developer-authored AI team per combat level.
 - The playable-alpha fallback distributes all six rare candidates instead of enforcing one-of-six; a graphical controller-friendly selection screen remains planned.
 - The rare catalog is an intentionally conservative set of ten vanilla `+2` weapons; armor, jewelry, named build-defining items, and class-aware weighting come after catalog auditing.
-- Before the first bout, every player receives six calls to the vanilla `RewardMedium` table, two audited Scrolls of Revivify, and eleven guaranteed magic equipment pieces covering weapons, armour weights, and every accessory slot. Final-wave victory bundles still use four calls per player. These will become Astral Arena-owned treasure tables after balance reports.
+- Before the first bout, every player receives six calls to the vanilla `RewardMedium` table, two audited Scrolls of Revivify, and eleven magic equipment rolls covering weapons, armour weights, and every accessory slot. Final-wave victory bundles still use four calls per player. These will become Astral Arena-owned treasure tables after balance reports.
 - Run details are session-only, but a party at level 5, 8, or 10 can reconstruct the remaining progression after reload.
-- The preparation armory is deliberately generous but is not class-aware yet. Every character receives the same complete eleven-piece kit; equip a proficient weapon and armour weight before accepting the ready prompt, and trade extras if desired.
+- The preparation armory is deliberately generous but is not class-aware yet. Every character rolls separately from audited slot pools; equip a proficient weapon and armour weight before accepting the ready prompt, and trade extras if desired.
 - The dedicated map has a first shipped-asset visual pass, but final terrain materials, navigation around tactical props, spectator boundaries, camera bounds, and minimap data remain unfinished.
 - Vanilla cumulative XP thresholds are required.
 

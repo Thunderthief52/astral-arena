@@ -335,6 +335,10 @@ function Adapter.schedule(delayMilliseconds, callback)
     Ext.Timer.WaitFor(delayMilliseconds, callback)
 end
 
+function Adapter.schedulePromptRetry(delayMilliseconds, callback)
+    Ext.Timer.WaitFor(delayMilliseconds, callback)
+end
+
 function Adapter.notify(guid, message)
     safely(function()
         Osi.ShowNotification(guid, message)
@@ -531,6 +535,23 @@ function Adapter.deliverAutomaticReward(offer, recipientGuid)
     end
 end
 
+function Adapter.randomIndex(maximum)
+    maximum = math.max(1, math.floor(tonumber(maximum) or 1))
+    return math.random(maximum)
+end
+
+local function shuffledCopy(values)
+    local shuffled = {}
+    for index, value in ipairs(values) do
+        shuffled[index] = value
+    end
+    for index = #shuffled, 2, -1 do
+        local swapIndex = Adapter.randomIndex(index)
+        shuffled[index], shuffled[swapIndex] = shuffled[swapIndex], shuffled[index]
+    end
+    return shuffled
+end
+
 function Adapter.deliverPreparationBundle(members, level, catalog)
     if type(members) ~= "table" or not members[1] then
         error("arena preparation supplies require a player party", 2)
@@ -558,12 +579,28 @@ function Adapter.deliverPreparationBundle(members, level, catalog)
         end
     end
 
-    -- Give every character a complete personal kit instead of distributing a
-    -- shared random armory. The three weapons and three armour weights let each
-    -- build choose a proficient option; every inventory is also guaranteed a
-    -- helmet, gloves, boots, amulet, and ring.
-    for _, member in ipairs(members) do
-        for _, item in ipairs(PreparationLoadout) do
+    -- Roll one item per equipment slot for every avatar. Each slot uses its own
+    -- shuffled bag, which keeps the result random while preventing the whole
+    -- split-screen party from receiving cloned kits.
+    local slotOrder = {}
+    local pools = {}
+    for _, item in ipairs(PreparationLoadout) do
+        if not pools[item.slot] then
+            pools[item.slot] = {}
+            table.insert(slotOrder, item.slot)
+        end
+        table.insert(pools[item.slot], item)
+    end
+    for _, slot in ipairs(slotOrder) do
+        local bag = shuffledCopy(pools[slot])
+        local bagIndex = 1
+        for _, member in ipairs(members) do
+            if bagIndex > #bag then
+                bag = shuffledCopy(pools[slot])
+                bagIndex = 1
+            end
+            local item = bag[bagIndex]
+            bagIndex = bagIndex + 1
             if Adapter.validateItemTemplate(item.templateId) then
                 local ok = pcall(function()
                     Osi.TemplateAddTo(item.templateId, member.guid, 1, 1)

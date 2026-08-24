@@ -15,7 +15,7 @@ _G.Ext = previousExt
 
 local function fakeAdapter()
     local adapter = {
-        alive = {}, dead = {}, queue = {}, restored = {}, recovered = {}, deleted = {}, delivered = {}, experienceTargets = {}, layouts = {}, sites = {}, notifications = {}, defeatedMarks = {}, stagingReturns = 0, fullRests = 0, waveRests = 0, menus = {}, partySize = 2, spawnCalls = 0, interWaveRecoveries = 0, preparationCalls = 0,
+        alive = {}, dead = {}, queue = {}, promptQueue = {}, restored = {}, recovered = {}, deleted = {}, delivered = {}, experienceTargets = {}, layouts = {}, sites = {}, notifications = {}, defeatedMarks = {}, stagingReturns = 0, fullRests = 0, waveRests = 0, menus = {}, partySize = 2, spawnCalls = 0, interWaveRecoveries = 0, preparationCalls = 0,
     }
     function adapter.partyMembers()
         local ids = { "player-a", "player-b", "player-c", "player-d" }
@@ -77,6 +77,7 @@ local function fakeAdapter()
     end
     function adapter.deleteTemporary(member) table.insert(adapter.deleted, member.guid) end
     function adapter.schedule(_, callback) table.insert(adapter.queue, callback) end
+    function adapter.schedulePromptRetry(_, callback) table.insert(adapter.promptQueue, callback) end
     function adapter.notify(guid, message)
         table.insert(adapter.notifications, { guid = guid, message = message })
     end
@@ -112,6 +113,11 @@ local function defeatCurrentWave(subject, adapter)
         adapter.alive[member.guid] = false
     end
     table.remove(adapter.queue, 1)()
+end
+
+local function acceptReadyWave(subject)
+    H.equal(subject.menu.kind, "wave_start")
+    subject:handleMenuResponse(subject.menu.ownerGuid, subject.menu.messageKey, true)
 end
 
 local function clearBout(subject, adapter)
@@ -198,7 +204,8 @@ H.test("AI arena returns the party to staging when fixture setup fails", functio
     local adapter = fakeAdapter()
     adapter.spawnFixtureTeam = function() error("fixture failure") end
     local subject = arena(adapter)
-    H.raises(function() subject:start({ countdownSeconds = 0 }) end, "rolled back")
+    subject:start()
+    acceptReadyWave(subject)
     H.equal(subject.active, nil)
     H.equal(adapter.stagingReturns, 1)
     H.equal(subject.run.phase, "seeking_opponent")
@@ -232,6 +239,7 @@ H.test("AI fixture waves rotate roles while preserving party-size scaling", func
     H.equal(#secondWave.members, 2)
     H.equal(secondWave.members[1].id, "gish")
     H.equal(secondWave.members[2].id, "devastator")
+    H.equal(#Fixtures.forWave(3, 4, 1).members, 2)
 end)
 
 H.test("level-twelve championship uses four waves and celebrates every player", function()
@@ -304,14 +312,29 @@ H.test("declining a wave prompt never forces combat and offers it again after on
     local adapter = fakeAdapter()
     local subject = arena(adapter)
     subject:start()
-    H.equal(subject.active.match.phase, "preparation")
+    H.equal(subject.active.match, nil)
+    H.equal(adapter.spawnCalls, 0)
     H.equal(subject.menu.kind, "wave_start")
     subject:handleMenuResponse("player-a", subject.menu.messageKey, false)
-    H.equal(subject.active.match.phase, "preparation")
-    H.equal(#adapter.queue, 1)
-    table.remove(adapter.queue, 1)()
+    H.equal(subject.active.match, nil)
+    H.equal(adapter.spawnCalls, 0)
+    H.equal(#adapter.promptQueue, 1)
+    table.remove(adapter.promptQueue, 1)()
     H.equal(#adapter.menus, 2)
-    H.equal(subject.active.match.phase, "preparation")
+    H.equal(subject.active.match, nil)
+    H.equal(adapter.spawnCalls, 0)
+end)
+
+H.test("the first enemy is not created until the party confirms the ready prompt", function()
+    local adapter = fakeAdapter()
+    local subject = arena(adapter)
+    subject:start()
+    H.equal(adapter.spawnCalls, 0)
+    H.equal(#subject.active.teams.right.members, 0)
+    acceptReadyWave(subject)
+    H.equal(adapter.spawnCalls, 1)
+    H.equal(subject.active.match.phase, "combat")
+    H.equal(subject.active.waveIndex, 1)
 end)
 
 H.test("AI arena retains the full fixture for a four-character party", function()
@@ -335,6 +358,8 @@ H.test("defeat fully restores and schedules the same bout automatically", functi
     table.remove(adapter.queue, 1)()
     H.equal(subject.run.phase, "ready")
     H.equal(subject.run.level, 5)
+    H.equal(subject.active.match, nil)
+    acceptReadyWave(subject)
     H.equal(subject.active.match.level, 5)
 end)
 
@@ -384,8 +409,10 @@ H.test("continue refuses until every party member reaches the expected level", f
     clearBout(subject, adapter)
     H.raises(function() subject:continue() end, "level 8")
     adapter.partyLevel = 8
-    local match = subject:continue()
-    H.equal(match.level, 8)
+    subject:continue()
+    H.equal(subject.active.match, nil)
+    acceptReadyWave(subject)
+    H.equal(subject.active.match.level, 8)
     H.equal(adapter.sites[2].id, "crescent-ruin")
 end)
 
@@ -427,6 +454,8 @@ H.test("automatic onboarding validates and starts when every player reaches leve
     adapter.partyLevel = 3
     H.equal(subject:autoAdvance(), "started")
     H.equal(subject.bootstrapState.phase, "completed")
+    H.equal(subject.active.match, nil)
+    acceptReadyWave(subject)
     H.equal(subject.active.match.level, 3)
     H.equal(#subject.active.teams.right.members, 2)
 end)
@@ -439,6 +468,7 @@ H.test("automatic onboarding repairs a split-screen avatar missed by the XP awar
     H.equal(adapter.experienceTargets[1], 3)
     adapter.partyLevels = { 3, 3 }
     H.equal(subject:autoAdvance(), "started")
+    acceptReadyWave(subject)
     H.equal(subject.active.match.level, 3)
 end)
 
@@ -449,6 +479,7 @@ H.test("automatic progression starts the next bout after reward level-up", funct
     clearBout(subject, adapter)
     adapter.partyLevel = 8
     H.equal(subject:autoAdvance(), "started")
+    acceptReadyWave(subject)
     H.equal(subject.active.match.level, 8)
 end)
 
@@ -460,6 +491,7 @@ H.test("save recovery infers the current tier for a mixed level-five party", fun
     H.equal(adapter.experienceTargets[1], 5)
     adapter.partyLevels = { 5, 5 }
     H.equal(subject:autoAdvance(), "started")
+    acceptReadyWave(subject)
     H.equal(subject.active.match.level, 5)
 end)
 
@@ -468,6 +500,7 @@ H.test("automatic recovery resumes an existing level-eight arena save", function
     adapter.partyLevel = 8
     local subject = arena(adapter)
     H.equal(subject:autoAdvance(), "started")
+    acceptReadyWave(subject)
     H.equal(subject.active.match.level, 8)
     H.equal(adapter.sites[1].id, "crescent-ruin")
 end)

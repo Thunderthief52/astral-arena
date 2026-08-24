@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.2-alpha.17 — 2026-08-23
+
+- Fixed the stalled-wave root cause: enemies no longer spawn during preparation, so their vanilla hostile faction cannot begin an unmonitored fight. Accepting the ready prompt now creates the wave, joins combat, and starts victory polling as one controlled transition.
+- Added a safe once-per-minute ready-prompt retry for controller and split-screen sessions; unanswered prompts never force combat.
+- Reduced the level-3 initiation to a maximum of two enemies per wave, including against a four-character party.
+- Replaced cloned personal kits with independently shuffled rolls across 39 audited candidates. Every character still receives all eleven useful categories: three weapon choices, three armour weights, helmet, gloves, boots, amulet, and ring.
+- Fixed the actual grey-island scenery defect: the merged resource had changed Toolkit scenery flags from `uint8` to `int32`, causing BG3 to discard all 96 objects. The rebuilt PAK preserves the Toolkit schema and validation now guards it.
+
 ## 0.3.2-alpha.16 — 2026-08-23
 
 - Replaced the forced 30-second first-wave and inter-wave countdowns with controller-safe ready prompts; players may prepare indefinitely and explicitly choose when each wave begins.

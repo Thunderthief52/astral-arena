@@ -46,7 +46,7 @@ if ($Values.Type -ne "Adventure") { throw "Module type must be Adventure." }
 if ($Values.StartupLevelName -ne "AA_Arena_Main") { throw "Startup level is not AA_Arena_Main." }
 if ($Values.CharacterCreationLevelName -ne "") { throw "Character creation must inherit BG3's system character creator." }
 if ($Values.NumPlayers -ne "4") { throw "Adventure must support four players." }
-if ($Values.Version64 -ne "36028797018963984") { throw "Adventure module version is not alpha.16 build 16." }
+if ($Values.Version64 -ne "36028797018963985") { throw "Adventure module version is not alpha.17 build 17." }
 if ((Get-Content -LiteralPath $MetaPath -Raw) -match 'WLD_|BGO_|CRE_|END_|TUT_') {
     throw "Adventure metadata references a vanilla campaign level."
 }
@@ -221,6 +221,10 @@ if ($ActualSceneryFiles.Count -ne 1 -or $ActualSceneryFiles[0].Name -ne "_merged
 }
 if ($ActualLightFiles.Count -ne 1 -or $ActualLightFiles[0].Name -ne "_merged.lsf") {
     throw "Arena lights must be compiled into the engine-loaded Lights/_merged.lsf resource."
+}
+$SceneryBuilderText = Get-Content -LiteralPath (Join-Path $RepositoryRoot "scripts\Build-ArenaScenery.ps1") -Raw
+if ($SceneryBuilderText -notmatch "Add-Attribute \`$writer 'Flag' 'uint8' '1'") {
+    throw "Arena scenery Flag must use the Toolkit-authored uint8 resource type."
 }
 if ($GeneratedSceneryIndex.Count -ne 2) {
     throw "Generated scenery index does not match the manifest."
