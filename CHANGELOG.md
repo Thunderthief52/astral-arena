@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0-alpha.2 — 2026-09-23
+
+- Fixed characters running through pillars, arches, statues, and raised floors. Root cause: `AA_Arena_Main`'s navigation grid was generated on 2026-08-10 for the bare ground plane and never rebuilt after 96 decorations were added, so BG3 treated every object as open floor. Until the grid is regenerated in the Toolkit, no solid or raised scenery is reachable: 30 ruin arches now form a ring 5 m beyond the ground's edge, the Jergal monument, Selûnite statue, and high arch are enlarged backdrop pieces past the north, west, and south edges, the Underdark cliffs and mushrooms sit outside the ground, and the Crescent floor plus the six Echelon stairs/platforms are removed.
+- Fixed the level-10 and level-12 Echelon Steps enemies spawning up to 15 m past the east edge of the ground (x 110–114 on a plane that ends at x 99).
+- Increased the opening distance between the teams from 30–34 m to 45–49 m across all twelve formations.
+- Moved the three combat sites so every lane, spawn, and formation fits on the ground with at least 6 m to spare: Astral Flats north-east, Crescent Ruin north-west, Echelon Steps south-east. Site lighting and grass moved with them; banners stand 16 m to each side of the lane.
+- The staging origin is now always the authored court centre instead of wherever the first player stood, so spawn geometry is identical in every session.
+- Added `tools/scenery/build_scenery.py` (a cross-platform port of `Build-ArenaScenery.ps1`, verified to produce the same resources), `validate_scenery.py` (reachability, spawn, lane, and separation checks), and `render_map.py`, which draws `docs/arena-map.png`.
+
 ## 0.4.0-alpha.1 — 2026-09-23
 
 - Completed the AI gauntlet rules: battles at levels 3, 5, 8, 10, and 12, and **one lost battle ends the run**. A defeat or a mutual knockout in any wave restores the party, announces a run summary to every player plus a host message box, and never schedules a rematch.

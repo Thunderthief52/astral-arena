@@ -15,6 +15,8 @@ jobs:
         run: lua tests/run.lua
       - name: Run engine smoke test
         run: lua tests/engine_smoke.lua
+      - name: Validate arena geometry
+        run: LUA=lua python3 tools/scenery/validate_scenery.py
       - name: Run tournament simulation
         run: lua scripts/simulate.lua
       - name: Build playtest archive

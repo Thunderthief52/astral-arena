@@ -13,27 +13,30 @@ local STAGING = {
     safe = true,
 }
 
+-- Offsets are relative to the authored staging court at world origin. Every
+-- site keeps its full lane (party line to 45-49 m enemy line, +/-8 m lateral,
+-- 10 m margins) inside AA_Arena_Main's walkable ground, x -100..99, z -89..96.
 local COMBAT = {
     {
         id = "astral-flats",
         displayName = "Astral Flats",
-        offset = { 0, 0, 28 },
+        offset = { 15, 0, 60 },
         partyOffsets = { { 0, 0 }, { -2, -2 }, { -2, 2 }, { -4, 0 } },
         visualIdentity = "open ground and long sight lines",
     },
     {
         id = "crescent-ruin",
         displayName = "Crescent Ruin",
-        offset = { 48, 0, 0 },
+        offset = { -80, 0, 60 },
         partyOffsets = { { 0, 0 }, { -2, -3 }, { -2, 3 }, { -4, 0 } },
-        visualIdentity = "a curved ruin with broken flanks",
+        visualIdentity = "moonlit ground under the western Selune ruins",
     },
     {
         id = "echelon-steps",
         displayName = "Echelon Steps",
-        offset = { 80, 0, 28 },
+        offset = { 15, 0, -60 },
         partyOffsets = { { 0, 0 }, { -2, -2 }, { -4, 0 }, { -6, 2 } },
-        visualIdentity = "a stepped approach with staggered ranks",
+        visualIdentity = "a long southern field below the high arch",
     },
 }
 

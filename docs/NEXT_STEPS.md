@@ -45,7 +45,7 @@ Exit criteria:
 
 Goal: make matches repeatable enough to evaluate builds rather than setup accidents.
 
-The `0.4.0-alpha.1` candidate turns the party-scaled, role-balanced level-3, level-5, level-8, level-10, and level-12 fixtures into two-, three-, and four-wave battles. The level-3 initiation is capped at two enemies. Enemies do not exist during preparation and are spawned only when the host accepts the recurring ready prompt, guaranteeing that every fight is monitored by the progression controller. Downed actors remain vulnerable to native death-save failures and real death. Non-final waves fully refresh living characters and preserve actual death for resurrection magic. Opening formations use 30–34 metres of separation, an eleven-piece randomized personal armory plus Revivify scrolls closes the early-game equipment gap, and an automatic Withers menu offers optional level-matched, equipped followers for undersized parties without spawning campaign-linked world entities. Approved hires may expand the bootstrap roster without triggering the party-swap safety gate.
+The `0.4.0-alpha.2` candidate turns the party-scaled, role-balanced level-3, level-5, level-8, level-10, and level-12 fixtures into two-, three-, and four-wave battles. The level-3 initiation is capped at two enemies. Enemies do not exist during preparation and are spawned only when the host accepts the recurring ready prompt, guaranteeing that every fight is monitored by the progression controller. Downed actors remain vulnerable to native death-save failures and real death. Non-final waves fully refresh living characters and preserve actual death for resurrection magic. Opening formations use 45–49 metres of separation, an eleven-piece randomized personal armory plus Revivify scrolls closes the early-game equipment gap, and an automatic Withers menu offers optional level-matched, equipped followers for undersized parties without spawning campaign-linked world entities. Approved hires may expand the bootstrap roster without triggering the party-swap safety gate.
 
 `AA_Arena_Main` starts independently of vanilla campaign locations and provides a Jergal-themed staging court plus Astral Flats, Crescent Ruin, and Echelon Steps. The current pass has 96 shipped-asset objects and sixteen accent lights, including 30 oversized ruin arches plus an Underdark vista shell. The merged scenery now preserves the Toolkit's required `uint8` object flag instead of the `int32` value that BG3 silently discarded. All loose rocks remain removed and the validator enforces three combat approach lanes plus two staging routes. This playable foundation must pass new-game, solo, ordinary co-op, and split-screen engine playtests before the map expands.
 
@@ -55,7 +55,7 @@ Planned work:
 - add and validate the remaining nine combat sites;
 - replace the generous all-six fallback with a graphical one-of-six item grid and tooltips;
 - validate the new standardized full restore across every class resource and add equipment-budget enforcement;
-- validate the 30–34 metre start spacing across melee, ranged, and caster parties, then evaluate deterministic initiative policy experiments;
+- validate the 45–49 metre start spacing across melee, ranged, and caster parties, then evaluate deterministic initiative policy experiments;
 - hard-control guardrails around the unlimited player-controlled preparation window;
 - expand each existing level-5, level-8, and level-10 fixture into a seedable opponent pool;
 - seedable encounter selection using the existing match controller;

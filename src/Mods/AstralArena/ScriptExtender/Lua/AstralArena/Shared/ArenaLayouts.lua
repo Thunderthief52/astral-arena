@@ -1,18 +1,18 @@
 local Layouts = {}
 
 local VALUES = {
-    { id = "vanguard-line", displayName = "Vanguard Line", enemyOffsets = { { 30, -6 }, { 32, -2 }, { 32, 2 }, { 30, 6 } } },
-    { id = "astral-cross", displayName = "Astral Cross", enemyOffsets = { { 30, 0 }, { 34, 0 }, { 33, -6 }, { 33, 6 } } },
-    { id = "crescent", displayName = "Crescent", enemyOffsets = { { 30, -7 }, { 33, -3 }, { 33, 3 }, { 30, 7 } } },
-    { id = "twin-flanks", displayName = "Twin Flanks", enemyOffsets = { { 30, -8 }, { 33, -6 }, { 33, 6 }, { 30, 8 } } },
-    { id = "spearhead", displayName = "Spearhead", enemyOffsets = { { 30, 0 }, { 32, -4 }, { 32, 4 }, { 34, 0 } } },
-    { id = "broken-ring", displayName = "Broken Ring", enemyOffsets = { { 30, -5 }, { 33, -8 }, { 34, 3 }, { 31, 8 } } },
-    { id = "four-corners", displayName = "Four Corners", enemyOffsets = { { 30, -8 }, { 34, -8 }, { 34, 8 }, { 30, 8 } } },
-    { id = "deep-v", displayName = "Deep V", enemyOffsets = { { 30, -7 }, { 32, -3 }, { 32, 3 }, { 34, 0 } } },
-    { id = "echelon", displayName = "Echelon", enemyOffsets = { { 30, -8 }, { 31, -3 }, { 33, 3 }, { 34, 8 } } },
-    { id = "split-ranks", displayName = "Split Ranks", enemyOffsets = { { 30, -7 }, { 30, 7 }, { 34, -4 }, { 34, 4 } } },
-    { id = "compass", displayName = "Astral Compass", enemyOffsets = { { 30, 0 }, { 33, -8 }, { 33, 8 }, { 34, 0 } } },
-    { id = "hollow-square", displayName = "Hollow Square", enemyOffsets = { { 30, -6 }, { 34, -6 }, { 34, 6 }, { 30, 6 } } },
+    { id = "vanguard-line", displayName = "Vanguard Line", enemyOffsets = { { 45, -6 }, { 47, -2 }, { 47, 2 }, { 45, 6 } } },
+    { id = "astral-cross", displayName = "Astral Cross", enemyOffsets = { { 45, 0 }, { 49, 0 }, { 48, -6 }, { 48, 6 } } },
+    { id = "crescent", displayName = "Crescent", enemyOffsets = { { 45, -7 }, { 48, -3 }, { 48, 3 }, { 45, 7 } } },
+    { id = "twin-flanks", displayName = "Twin Flanks", enemyOffsets = { { 45, -8 }, { 48, -6 }, { 48, 6 }, { 45, 8 } } },
+    { id = "spearhead", displayName = "Spearhead", enemyOffsets = { { 45, 0 }, { 47, -4 }, { 47, 4 }, { 49, 0 } } },
+    { id = "broken-ring", displayName = "Broken Ring", enemyOffsets = { { 45, -5 }, { 48, -8 }, { 49, 3 }, { 46, 8 } } },
+    { id = "four-corners", displayName = "Four Corners", enemyOffsets = { { 45, -8 }, { 49, -8 }, { 49, 8 }, { 45, 8 } } },
+    { id = "deep-v", displayName = "Deep V", enemyOffsets = { { 45, -7 }, { 47, -3 }, { 47, 3 }, { 49, 0 } } },
+    { id = "echelon", displayName = "Echelon", enemyOffsets = { { 45, -8 }, { 46, -3 }, { 48, 3 }, { 49, 8 } } },
+    { id = "split-ranks", displayName = "Split Ranks", enemyOffsets = { { 45, -7 }, { 45, 7 }, { 49, -4 }, { 49, 4 } } },
+    { id = "compass", displayName = "Astral Compass", enemyOffsets = { { 45, 0 }, { 48, -8 }, { 48, 8 }, { 49, 0 } } },
+    { id = "hollow-square", displayName = "Hollow Square", enemyOffsets = { { 45, -6 }, { 49, -6 }, { 49, 6 }, { 45, 6 } } },
 }
 
 -- Deterministic string hash. The previous polynomial hash reduced modulo 12

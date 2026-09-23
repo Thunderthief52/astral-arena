@@ -107,34 +107,26 @@ local function teleportParty(members, origin, site)
     end
 end
 
--- AA_Arena_Main's Jergal court is authored around world origin; the combat
--- lanes in toolkit/scenery/AA_Arena_Main.scenery.json are laid out from it.
+-- AA_Arena_Main's staging court is authored around world origin and every
+-- combat site offset in ArenaSites.lua is validated from that exact point (see
+-- tools/scenery/validate_scenery.py). Only the ground height is read at runtime,
+-- so spawn geometry never depends on where a player happened to be standing.
 local STAGING_CENTER = { 0, 0 }
-local STAGING_BOUNDS = { minimum = { -6, -6 }, maximum = { 6, 12 } }
-
-local function insideStaging(position)
-    return position[1] >= STAGING_BOUNDS.minimum[1] and position[1] <= STAGING_BOUNDS.maximum[1]
-        and position[3] >= STAGING_BOUNDS.minimum[2] and position[3] <= STAGING_BOUNDS.maximum[2]
-end
 
 local function resolveStagingOrigin(members)
     if stagingOrigin then
         return stagingOrigin
     end
     local position = requirePosition(members[1].guid)
-    if insideStaging(position) then
-        stagingOrigin = position
-    else
-        -- A save loaded while the party stood at a combat site must not turn
-        -- that site into the new origin; fall back to the authored court.
-        stagingOrigin = { STAGING_CENTER[1], position[2], STAGING_CENTER[2] }
-    end
+    stagingOrigin = { STAGING_CENTER[1], position[2], STAGING_CENTER[2] }
     return stagingOrigin
 end
 
 function Adapter.setStagingOrigin(origin)
-    if type(origin) == "table" and type(origin[1]) == "number" and type(origin[2]) == "number" and type(origin[3]) == "number" then
-        stagingOrigin = { origin[1], origin[2], origin[3] }
+    -- Saves record the origin; only its height is honoured because the
+    -- horizontal centre is fixed by the authored level.
+    if type(origin) == "table" and type(origin[2]) == "number" then
+        stagingOrigin = { STAGING_CENTER[1], origin[2], STAGING_CENTER[2] }
     end
 end
 
@@ -504,10 +496,10 @@ function Adapter.spawnFixtureTeam(fixture, anchorGuid, layout)
         error("could not read the player party position", 2)
     end
     local offsets = layout and layout.enemyOffsets or {
-        { 30, -6 },
-        { 32, -2 },
-        { 32, 2 },
-        { 30, 6 },
+        { 45, -6 },
+        { 47, -2 },
+        { 47, 2 },
+        { 45, 6 },
     }
     local spawned = {}
     local ok, err = pcall(function()

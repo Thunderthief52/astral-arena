@@ -2,7 +2,7 @@
 
 ## What this candidate tests
 
-Version `0.4.0-alpha.1` tests a one-loss elimination gauntlet (only survivors press on) with a 300-gold-per-avatar automatic Withers hireling onboarding, approved roster expansion to four, equipped level-matched followers, party-scaled multi-wave battles, validated combat and camp routes, 30–34 metre opening separation, randomized personal magic kits, fully lethal native death saves, spawn-free player-controlled preparation, living-party resource refreshes between waves, final-wave automatic resurrection/rest/loot, save-tier recovery, a two-enemy level-3 initiation, and a true level-12 championship. The menu does not spawn campaign-linked Withers or book entities:
+Version `0.4.0-alpha.2` tests a one-loss elimination gauntlet (only survivors press on) with a 300-gold-per-avatar automatic Withers hireling onboarding, approved roster expansion to four, equipped level-matched followers, party-scaled multi-wave battles, validated combat and camp routes, 45–49 metre opening separation, randomized personal magic kits, fully lethal native death saves, spawn-free player-controlled preparation, living-party resource refreshes between waves, final-wave automatic resurrection/rest/loot, save-tier recovery, a two-enemy level-3 initiation, and a true level-12 championship. The menu does not spawn campaign-linked Withers or book entities:
 
 ```text
 2 waves at L3 -> long rest + loot for L5 -> native level-up
