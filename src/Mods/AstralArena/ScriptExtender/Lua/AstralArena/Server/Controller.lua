@@ -12,6 +12,7 @@ local AdventureHandoff = Ext.Require("AstralArena/Shared/AdventureHandoff.lua")
 local HirelingCatalog = Ext.Require("AstralArena/Shared/HirelingCatalog.lua")
 local CampPersistence = Ext.Require("AstralArena/Server/CampPersistence.lua")
 local CampService = Ext.Require("AstralArena/Server/CampService.lua")
+local RunPersistence = Ext.Require("AstralArena/Server/RunPersistence.lua")
 
 local Controller = { API = {} }
 local registered = false
@@ -26,7 +27,7 @@ end
 
 local sparring = Sparring.new(Bg3Adapter, printLine)
 local campService = CampService.new(Bg3Adapter, printLine, HirelingCatalog, CampPersistence)
-local soloArena = SoloArena.new(Bg3Adapter, printLine, AIFixtures, RewardCatalog, ArenaLayouts, ArenaSites, campService)
+local soloArena = SoloArena.new(Bg3Adapter, printLine, AIFixtures, RewardCatalog, ArenaLayouts, ArenaSites, campService, RunPersistence)
 Controller.Sparring = sparring
 Controller.SoloArena = soloArena
 Controller.CampService = campService
@@ -100,6 +101,18 @@ local function finishCharacterCreationHandoff()
     recoverCharacterCreationHandoff(levelName)
 end
 
+-- The watcher ticks every second. Print a repeated pause reason once instead
+-- of flooding the console and Script Extender log with identical lines.
+local lastPauseReason = nil
+
+local function reportPause(reason)
+    reason = tostring(reason)
+    if reason ~= lastPauseReason then
+        lastPauseReason = reason
+        printLine("Automatic arena onboarding paused: " .. reason)
+    end
+end
+
 local function scheduleAutomaticProgression(generation)
     Bg3Adapter.schedule(1000, function()
         if generation ~= autoGeneration then
@@ -109,10 +122,11 @@ local function scheduleAutomaticProgression(generation)
             return soloArena:autoAdvance()
         end)
         if not ok then
-            printLine("Automatic arena onboarding paused: " .. tostring(action))
+            reportPause(action)
             scheduleAutomaticProgression(generation)
             return
         end
+        lastPauseReason = nil
         if action == "outside" then
             printLine("Automatic arena onboarding ignored outside " .. Constants.ArenaLevel .. ".")
             return
@@ -136,7 +150,7 @@ armAutomaticProgression = function()
                 return soloArena:autoAdvance()
             end)
             if not ok then
-                printLine("Automatic arena onboarding paused: " .. tostring(action))
+                reportPause(action)
                 scheduleAutomaticProgression(generation)
                 return
             end
@@ -240,6 +254,12 @@ function Controller.Register()
         end)
     end)
 
+    Ext.Osiris.RegisterListener("Died", 1, "after", function(character)
+        safely(function()
+            soloArena:onDied(character)
+        end)
+    end)
+
     Ext.RegisterConsoleCommand("aa_demo", function()
         safely(Controller.API.CreateDemo)
     end)
@@ -273,17 +293,19 @@ function Controller.Register()
         printLine("  !aa_spar_status             show the current or previous sparring result")
         printLine("  !aa_forfeit left|right      concede for the selected side")
         printLine("  !aa_abort                   stop the match and restore both teams")
-        printLine("AI progression starts automatically after Adventure character creation.")
+        printLine("AI gauntlet (L3 -> L5 -> L8 -> L10 -> L12) starts automatically after Adventure character creation.")
+        printLine("Rule: one lost battle ends the run; only survivors press on.")
         printLine("AI diagnostics and recovery commands:")
-        printLine("  !aa_ai_bootstrap            award L1 characters XP for native level-ups to L5")
+        printLine("  !aa_ai_bootstrap            award L1 characters XP for native level-ups to L3")
         printLine("  !aa_ai_doctor               validate party, AI templates, and reward templates")
-        printLine("  !aa_ai_start                start the L5 -> L8 -> L10 -> L12 AI run")
+        printLine("  !aa_ai_start                start the gauntlet at the party's current tier")
         printLine("  !aa_ai_pick <1-6> <member>  deliver two random rolls and one selected item")
         printLine("  !aa_ai_menu                 reopen a dismissed arena decision prompt")
         printLine("  !aa_ai_continue             continue after every character finishes level-up")
         printLine("  !aa_ai_status               show run, reward, or level-up state")
         printLine("  !aa_ai_abort                restore players and delete active AI enemies")
-        printLine("  !aa_ai_reset                reset session state; does not undo XP or loot")
+        printLine("  !aa_ai_reset                reset session state; does not undo XP, loot, or an elimination")
+        printLine("  !aa_ai_unlock_run           DEVELOPER ONLY: reopen a run ended by a false elimination")
         printLine("Tournament simulation: !aa_demo, !aa_state, !aa_win <match> <entrant>, !aa_reset")
     end)
 
@@ -417,6 +439,13 @@ function Controller.Register()
     Ext.RegisterConsoleCommand("aa_ai_reset", function()
         safely(function()
             soloArena:reset()
+        end)
+    end)
+
+    Ext.RegisterConsoleCommand("aa_ai_unlock_run", function()
+        safely(function()
+            soloArena:overrideElimination()
+            armAutomaticProgression()
         end)
     end)
 

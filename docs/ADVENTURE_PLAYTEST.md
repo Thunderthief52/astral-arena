@@ -2,10 +2,11 @@
 
 ## Build under test
 
-- Version: `0.3.2-alpha.17`
+- Version: `0.4.0-alpha.1`
+- Rule: one lost battle ends the run
 - Adventure UUID: `29c48c80-8777-f7b5-6bb8-376c1c5d8db6`
 - Character flow: BG3 system character creator → `AA_Arena_Main`
-- PAK: `dist\AstralArena-0.3.2-alpha.17.pak`
+- PAK: `dist\AstralArena-0.4.0-alpha.1.pak`
 
 This candidate fixes the grey-island presentation by restoring the Toolkit-native scenery schema inside BG3's merged level resources. The controller-safe Withers menu opens automatically; each avatar receives 300 gold once, and followers cost 100 gold and match the current party level. Every character receives a separately randomized personal magic kit, randomized consumables, and two Scrolls of Revivify. No enemy exists during preparation. Confirming readiness spawns the formation 30–34 metres away, begins combat, and starts the progression monitor together. Living allies fully refresh between waves; dead allies still require Revivify until the battle ends.
 
@@ -17,7 +18,7 @@ This candidate fixes the grey-island presentation by restoring the Toolkit-nativ
 
    ```powershell
    Set-ExecutionPolicy -Scope Process Bypass
-   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.3.2-alpha.17.pak"
+   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.4.0-alpha.1.pak"
    ```
 
 4. Confirm this file exists:
@@ -32,7 +33,7 @@ This candidate fixes the grey-island presentation by restoring the Toolkit-nativ
 
 ## Discard placeholder-party saves
 
-Do not continue a save containing four naked, classless, immobile characters at one HP. Those entities are BG3's temporary system character-creation placeholders, not recoverable player builds. Also discard the session that crashed under alpha.13 after character creation. Begin a fresh New Game with `0.3.2-alpha.17` enabled so the corrected scenery and one-time randomized kits are present. Real custom-character staging saves from earlier stable builds at levels 3, 5, 8, 10, or 12 can resume at their current tier; mixed-level split-screen parties receive missing XP repair.
+Do not continue a save containing four naked, classless, immobile characters at one HP. Those entities are BG3's temporary system character-creation placeholders, not recoverable player builds. Also discard the session that crashed under alpha.13 after character creation. Begin a fresh New Game with `0.4.0-alpha.1` enabled so the corrected scenery and one-time randomized kits are present. Real custom-character staging saves from earlier stable builds at levels 3, 5, 8, 10, or 12 can resume at their current tier; mixed-level split-screen parties receive missing XP repair.
 
 ## Start a clean Adventure
 
@@ -40,7 +41,7 @@ Do not continue a save containing four naked, classless, immobile characters at 
 2. Create one character for solo, join the ordinary online lobby before finalizing characters for co-op, or connect the second controller before completing split-screen character creation.
 3. Finish the supported BG3 system character creator normally. This system scene is expected; it is not a campaign location. Do not use Honour Mode for this alpha.
 4. Confirm the finished custom party transfers into `AA_Arena_Main`, not a Nautiloid or Act 1 campaign location. A naked character-creation dummy must not remain active.
-5. Make a named manual save such as `AA 0.3.2-alpha.17 BEFORE WAVE 1`.
+5. Make a named manual save such as `AA 0.4.0-alpha.1 BEFORE WAVE 1`.
 6. Confirm Astral Arena automatically awards the vanilla level-3 XP threshold and displays a notification. No console command is required.
 7. Complete every ordinary BG3 level-up through level 3. In co-op or split-screen, both players should receive XP and complete their own choices.
 8. Confirm each player-created avatar receives 300 gold once. The automatic Withers menu should offer Eldra the Fighter, Zenith the Cleric, then additional classes for 100 gold each. Hire up to the four-person cap or decline through the list; followers must arrive at party level and remain controllable. There should be no spawned Withers NPC or interactive book—the static Jergal court is intentional in this crash-hotfix build.
@@ -71,7 +72,21 @@ For each bout:
 8. Check every party inventory. Each player should receive four level-scaled loot rolls, and the six rare candidates should be distributed round-robin across the party.
 9. For bouts 1–4, complete native level-ups to the next target; the next bout starts automatically when every player is ready. The fifth victory completes the run.
 
-After a defeat or draw in any wave, confirm the party returns to staging and fully restores. After the 30-second camp window, the same tier may be prepared again, but wave 1 must still wait for the ready confirmation.
+After a defeat or draw in any wave, confirm that:
+
+- BG3's own game-over screen does **not** appear (the arena resolves the knockout the moment the last player goes down);
+- temporary enemies disappear and the party is resurrected, returned to staging, and fully restored;
+- every player sees `YOUR PARTY HAS FALLEN — THE ASTRAL ARENA RUN IS OVER.` and the run summary, and the host gets a message box;
+- no ready prompt or new battle ever appears again in that Adventure, including after saving and reloading;
+- `!aa_ai_status` prints `ELIMINATED: ...` with the level, battle, and wave.
+
+If BG3's native game-over screen appears instead, report it immediately; that is the most important engine question for this build.
+
+## Save/load checks
+
+1. Save during a wave's intermission with one ally dead, reload, and confirm the notice that the battle was reset, the ally is alive, stale enemies are gone, and the wave-1 ready prompt returns.
+2. Save in staging after a victory, reload, and confirm no second armory is delivered.
+3. Save after an elimination, reload, and confirm the run stays over.
 
 After the fourth reward, finish leveling to 12. The four-wave championship starts automatically. After the fifth reward, confirm every player sees the final-wave, arena-eruption, and championship-spoils announcements.
 

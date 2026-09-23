@@ -4,6 +4,7 @@ local SoloRun = Ext.Require("AstralArena/Core/SoloRun.lua")
 local ArenaBootstrap = Ext.Require("AstralArena/Core/ArenaBootstrap.lua")
 local Constants = Ext.Require("AstralArena/Shared/Constants.lua")
 local PreparationLoadout = Ext.Require("AstralArena/Shared/PreparationLoadout.lua")
+local RunRecord = Ext.Require("AstralArena/Core/RunRecord.lua")
 
 local SoloArena = {}
 SoloArena.__index = SoloArena
@@ -27,7 +28,21 @@ local function countdown(value)
     return math.max(0, math.min(30, math.floor(value)))
 end
 
-function SoloArena.new(adapter, output, fixtures, rewardCatalog, arenaLayouts, arenaSites, campService)
+-- Session-only fallback used by deterministic tests and by callers that do not
+-- provide a save-backed store. The game passes RunPersistence instead.
+local function memoryRunStore()
+    local record = RunRecord.new()
+    return {
+        load = function()
+            return record
+        end,
+        save = function(value)
+            record = value
+        end,
+    }
+end
+
+function SoloArena.new(adapter, output, fixtures, rewardCatalog, arenaLayouts, arenaSites, campService, runStore)
     return setmetatable({
         adapter = adapter,
         output = output,
@@ -45,6 +60,9 @@ function SoloArena.new(adapter, output, fixtures, rewardCatalog, arenaLayouts, a
         menu = nil,
         preparationBundleDelivered = false,
         campService = campService,
+        runStore = runStore or memoryRunStore(),
+        endingNoticeShown = false,
+        restartCooldown = 0,
     }, SoloArena)
 end
 
@@ -65,6 +83,58 @@ local function progressionFrom(startingLevel)
         error("an AI arena run requires a party at level 3, 5, 8, 10, or 12", 3)
     end
     return result
+end
+
+function SoloArena:_record()
+    return self.runStore.load()
+end
+
+function SoloArena:_saveRecord(record)
+    self.runStore.save(record)
+end
+
+local function enemyFactionList(group)
+    local values = {}
+    local seen = {}
+    for _, member in ipairs(group and group.members or {}) do
+        if member.faction and member.faction ~= "" and not seen[member.faction] then
+            seen[member.faction] = true
+            table.insert(values, member.faction)
+        end
+    end
+    return values
+end
+
+function SoloArena:_persistCombat(active)
+    -- Persistence protects save/load recovery; it must never block a fight.
+    local ok, err = pcall(function()
+        local record = self:_record()
+        if RunRecord.isOver(record) then
+            return
+        end
+        RunRecord.beginCombat(record, {
+            level = self.run and self.run.level,
+            battleIndex = self.run and self.run.battleIndex,
+            wave = active.waveIndex,
+            enemyGuids = guids(active.teams.right),
+            enemyFactions = enemyFactionList(active.teams.right),
+        })
+        self:_saveRecord(record)
+    end)
+    if not ok then
+        self.output("WARNING: could not record the active wave for save recovery: " .. tostring(err))
+    end
+end
+
+-- Position in the full 3 -> 12 gauntlet, even when a reload rebuilt the live
+-- run from a later tier.
+local function gauntletPosition(level)
+    for index, value in ipairs(PROGRESSION_LEVELS) do
+        if value == level then
+            return index, #PROGRESSION_LEVELS
+        end
+    end
+    return 1, #PROGRESSION_LEVELS
 end
 
 local function menuResultIsYes(result)
@@ -101,18 +171,6 @@ function SoloArena:_showMenu()
                 self.active and self.active.waveCount or 2
             )
         end
-    elseif menu.kind == "defeat" then
-        key = Constants.MenuMessages.defeat
-        message = string.format(
-            "Astral Arena defeat at level %d. Retry this bout now? Choose No to remain safely in staging.",
-            self.run and self.run.level or 5
-        )
-    elseif menu.kind == "draw" then
-        key = Constants.MenuMessages.draw
-        message = string.format(
-            "The level %d bout ended in a draw. Replay this bout now? Choose No to remain safely in staging.",
-            self.run and self.run.level or 5
-        )
     elseif menu.kind == "reward" then
         key = Constants.MenuMessages.reward
         local choices = self.run.pendingReward.offer.choices
@@ -194,20 +252,6 @@ function SoloArena:handleMenuResponse(characterGuid, messageKey, result)
         return true
     end
 
-    if menu.kind == "defeat" or menu.kind == "draw" then
-        if accepted then
-            if menu.kind == "defeat" then
-                SoloRun.retryDefeat(self.run)
-            end
-            self.menu = nil
-            self:_startBout(self:_party())
-        else
-            menu.dismissed = true
-            self.output("Arena bout paused in staging by player choice. Use !aa_ai_menu to reopen the arena prompt.")
-        end
-        return true
-    end
-
     if menu.kind == "reward" then
         local choices = self.run.pendingReward.offer.choices
         if accepted then
@@ -268,7 +312,16 @@ function SoloArena:_openWaveStartMenu(members, options)
     return shown
 end
 
+function SoloArena:_requireOpenRun()
+    local record = self:_record()
+    if RunRecord.isOver(record) then
+        error(RunRecord.summary(record) .. " Start a New Game with Astral Arena Adventure for a fresh run.", 3)
+    end
+    return record
+end
+
 function SoloArena:bootstrapParty()
+    self:_requireOpenRun()
     if self.active or (self.run and self.run.phase ~= "completed") then
         error("an AI arena run is already in progress", 2)
     end
@@ -453,6 +506,7 @@ function SoloArena:start(options)
     if self.run and self.run.phase ~= "completed" then
         error("an AI arena run already exists; use status, continue, or reset", 2)
     end
+    self:_requireOpenRun()
     local party = self:_party()
     local levels = progressionFrom(party.level)
     self:_requireArenaParty(party)
@@ -494,16 +548,21 @@ function SoloArena:_startBout(party, options)
     end
     SoloRun.assignOpponent(self.run, fixture)
 
+    local record = self:_record()
     local preparation = { treasureRolls = 0, armoryItems = 0, revivifyScrolls = 0 }
-    if self.run.battleIndex == 1 and not self.preparationBundleDelivered
+    if not record.preparationDelivered and not self.preparationBundleDelivered
         and self.adapter.deliverPreparationBundle
     then
+        -- Mark first: a crash halfway through delivery must never allow a
+        -- reload to hand out a second full armory.
+        self.preparationBundleDelivered = true
+        RunRecord.markPreparationDelivered(record)
+        self:_saveRecord(record)
         preparation = self.adapter.deliverPreparationBundle(
             party.members,
             self.run.level,
             self.rewardCatalog
         ) or preparation
-        self.preparationBundleDelivered = true
         local supplyMessage = string.format(
             "Arena armory rolled: %d randomized personal gear pieces, %d level-%d supply rolls, and %d Scrolls of Revivify. Every character has weapon and armour choices plus a helmet, gloves, boots, amulet, and ring. Equip before confirming combat.",
             preparation.armoryItems or 0,
@@ -526,7 +585,17 @@ function SoloArena:_startBout(party, options)
     ) or nil
     local setupOk, setupError = pcall(function()
         if site and self.adapter.prepareArenaSite then
+            if record.stagingOrigin and self.adapter.setStagingOrigin then
+                self.adapter.setStagingOrigin(record.stagingOrigin)
+            end
             self.adapter.prepareArenaSite(party.members, site)
+            if not record.stagingOrigin and self.adapter.stagingOrigin then
+                local origin = self.adapter.stagingOrigin()
+                if origin then
+                    RunRecord.setStagingOrigin(record, origin)
+                    self:_saveRecord(record)
+                end
+            end
         end
     end)
     if not setupOk then
@@ -574,10 +643,11 @@ function SoloArena:_startBout(party, options)
         error("AI arena setup failed and was rolled back: " .. tostring(err), 2)
     end
 
+    local boutIndex, boutCount = gauntletPosition(self.run.level)
     self.output(string.format(
         "Prepared AI bout %d/%d at L%d in %s: %d wave(s), with %d player(s) versus %d %s in wave 1%s.",
-        self.run.battleIndex,
-        #self.run.levels,
+        boutIndex,
+        boutCount,
         self.run.level,
         site and site.displayName or "the active arena",
         self.active.waveCount,
@@ -642,6 +712,7 @@ function SoloArena:_beginCombat(generation)
         active.match = createWaveMatch(self.run, active.teams, 1)
         active.waveIndex = 1
         active.fixture = nil
+        self:_persistCombat(active)
         connectTeams(self.adapter, active.teams)
         Match.beginCombat(active.match)
         SoloRun.beginCombat(self.run)
@@ -665,23 +736,65 @@ function SoloArena:_beginCombat(generation)
     self:_schedulePoll(generation)
 end
 
+local function isPollable(active)
+    return active ~= nil
+        and not active.transitioning
+        and active.match ~= nil
+        and active.match.phase == "combat"
+end
+
 function SoloArena:_schedulePoll(generation)
-    self.adapter.schedule(250, function()
-        if not self.active or self.active.generation ~= generation then
-            return
-        end
-        local ok, err = pcall(function()
-            self:_poll()
-        end)
-        if not ok then
-            self.output("ERROR while checking AI combat: " .. tostring(err))
-            if self.active then
-                self:abort("poll-error")
+    local active = self.active
+    if not active then
+        return
+    end
+    -- One token per wave: a knockout resolved by an engine event, or a quick
+    -- ready confirmation, can never leave two polling chains running.
+    active.pollToken = (active.pollToken or 0) + 1
+    local token = active.pollToken
+    local function tick()
+        self.adapter.schedule(250, function()
+            local current = self.active
+            if not current or current.generation ~= generation or current.pollToken ~= token then
+                return
             end
-        elseif self.active and self.active.generation == generation and not self.active.transitioning then
-            self:_schedulePoll(generation)
-        end
+            if not isPollable(current) then
+                return
+            end
+            local ok, err = pcall(function()
+                self:_poll()
+            end)
+            if not ok then
+                self.output("ERROR while checking AI combat: " .. tostring(err))
+                if self.active then
+                    self:abort("poll-error")
+                end
+            elseif isPollable(self.active) and self.active.generation == generation and self.active.pollToken == token then
+                tick()
+            end
+        end)
+    end
+    tick()
+end
+
+-- Resolve a wave the moment the engine reports a knockout instead of waiting
+-- for the next poll. Ending a total party knockout inside the same engine
+-- callback gives the arena cleanup a chance to run before BG3's own
+-- party-wipe handling.
+function SoloArena:_evaluateNow()
+    if not isPollable(self.active) then
+        return false
+    end
+    local ok, err = pcall(function()
+        self:_poll()
     end)
+    if not ok then
+        self.output("ERROR while resolving an arena knockout: " .. tostring(err))
+        if self.active then
+            self:abort("poll-error")
+        end
+    end
+    return true
 end
 
 function SoloArena:_poll()
@@ -736,6 +849,22 @@ function SoloArena:onStatusApplied(guid, status)
                     self.adapter.markDefeated(guid)
                     self.output((member.name or guid) .. " is down and making death saves; further attacks can cause failures or death.")
                 end
+                self:_evaluateNow()
+                return true
+            end
+        end
+    end
+    return false
+end
+
+function SoloArena:onDied(guid)
+    if not self.active then
+        return false
+    end
+    for _, side in ipairs({ "left", "right" }) do
+        for _, member in ipairs(self.active.teams[side].members) do
+            if member.guid == guid then
+                self:_evaluateNow()
                 return true
             end
         end
@@ -794,6 +923,7 @@ function SoloArena:_spawnNextWave(generation)
         active.layout = layout
         active.waveIndex = nextWave
         active.fixture = nil
+        self:_persistCombat(active)
         connectTeams(self.adapter, active.teams)
         Match.beginCombat(active.match)
     end)
@@ -822,6 +952,13 @@ function SoloArena:_advanceWave()
     local active = self.active
     active.transitioning = true
     self:_cleanupBetweenWaves(active)
+    -- Keep an intermission marker in the save: a reload here must still
+    -- resurrect fallen allies and restart the battle safely.
+    local record = self:_record()
+    if record.combat then
+        record.combat.enemyGuids = {}
+        self:_saveRecord(record)
+    end
     local message = string.format(
         "Wave %d/%d cleared. Living allies are fully restored, including spell slots and class resources. Dead allies still require Revivify. Prepare for as long as needed, then confirm when wave %d should begin.",
         active.waveIndex,
@@ -871,7 +1008,11 @@ function SoloArena:_finish(resultSide)
     self.active = nil
     self:_cleanup(active)
     local result = resultSide == "left" and "win" or resultSide == "right" and "loss" or "draw"
-    SoloRun.recordResult(self.run, result)
+    local opponentLabel = active.teams.right.label
+    local level = self.run.level
+    local battleIndex, battleCount = gauntletPosition(level)
+    -- Survivors press on: any defeat or mutual knockout ends the run.
+    SoloRun.recordResult(self.run, result == "win" and "win" or "loss")
     if result == "win" then
         self.rewardRecipients = active.teams.left
         local offer = SoloRun.createRewardOffer(self.run, self.rewardCatalog, {
@@ -886,45 +1027,94 @@ function SoloArena:_finish(resultSide)
             table.insert(self.recentOfferItemIds, offered.id)
         end
         self.menu = nil
+        local record = self:_record()
+        RunRecord.recordVictory(record, {
+            level = level,
+            battleIndex = battleIndex,
+            opponent = opponentLabel,
+            waves = active.waveCount,
+        })
         if self.run.phase == "completed" then
+            RunRecord.crown(record, {
+                level = level,
+                battleIndex = battleIndex,
+                battleCount = battleCount,
+                opponent = opponentLabel,
+            })
+            self:_saveRecord(record)
             self:_celebrateChampions(self.rewardRecipients.members, delivered)
             return selected
         end
+        self:_saveRecord(record)
         self.adapter.awardPartyToLevel(self.rewardRecipients.members, targetLevel)
         self.output(string.format(
-            "AI arena victory. Delivered %d loot rolls and all %d rare candidates across the party; full-rest resources restored. Complete native level-ups to L%d for the next bout.",
+            "AI arena victory %d/%d. Delivered %d loot rolls and all %d rare candidates across the party; full-rest resources restored. Complete native level-ups to L%d for the next bout.",
+            battleIndex,
+            battleCount,
             delivered.treasureRolls or 0,
             delivered.rareItems or 0,
             targetLevel
         ))
         for _, member in ipairs(self.rewardRecipients.members) do
             self.adapter.notify(member.guid, string.format(
-                "Victory! Fully rested and loot delivered. Finish leveling to %d when your party is ready for the next bout.",
+                "Victory %d/%d! Fully rested and loot delivered. Finish leveling to %d when your party is ready for the next battle.",
+                battleIndex,
+                battleCount,
                 targetLevel
             ))
         end
         return selected
-    elseif result == "loss" then
-        SoloRun.retryDefeat(self.run)
-        self.output("Arena defeat. Party fully rested; the same bout will restart automatically in staging.")
-    else
-        self.output("Arena draw. Party fully rested; the same bout will restart automatically in staging.")
     end
-    local generation = self.generation
-    for _, member in ipairs(active.teams.left.members) do
-        self.adapter.notify(member.guid, "Party fully rested. The wave-1 ready prompt returns in 30 seconds; combat still waits for confirmation.")
-    end
-    self.adapter.schedule(30000, function()
-        if self.generation ~= generation or self.active or not self.run or self.run.phase ~= "seeking_opponent" then
-            return
-        end
-        local ok, err = pcall(function()
-            self:_startBout(self:_party())
+
+    local record = self:_record()
+    RunRecord.eliminate(record, {
+        level = level,
+        battleIndex = battleIndex,
+        battleCount = battleCount,
+        wave = active.waveIndex,
+        waveCount = active.waveCount,
+        opponent = opponentLabel,
+        resolution = result == "draw" and "draw" or "defeat",
+    })
+    self:_saveRecord(record)
+    self.menu = nil
+    self.endingNoticeShown = true
+    self:_announceElimination(active.teams.left.members, record)
+    return nil
+end
+
+function SoloArena:_announceElimination(members, record)
+    local summary = RunRecord.summary(record)
+    local messages = {
+        "YOUR PARTY HAS FALLEN — THE ASTRAL ARENA RUN IS OVER.",
+        summary,
+        "Only survivors press on. Start a New Game with Astral Arena Adventure to build a new party.",
+    }
+    self.output("=== ASTRAL ARENA: RUN OVER ===")
+    self.output(summary)
+    self.output("The party has been restored in staging, but no further battles will start in this Adventure.")
+    for index, message in ipairs(messages) do
+        self.adapter.schedule((index - 1) * 1800, function()
+            for _, member in ipairs(members) do
+                self.adapter.notify(member.guid, message)
+            end
         end)
-        if not ok then
-            self.output("ERROR restarting arena bout: " .. tostring(err))
+    end
+    if self.adapter.openMessage then
+        local owner = self:_menuOwner(members)
+        if owner then
+            local ok, err = pcall(function()
+                self.adapter.openMessage(
+                    owner,
+                    Constants.MenuMessages.runOver,
+                    "THE RUN IS OVER. " .. summary .. " Only survivors press on: start a New Game with Astral Arena Adventure to try again."
+                )
+            end)
+            if not ok then
+                self.output("WARNING: could not open the run-over message: " .. tostring(err))
+            end
         end
-    end)
+    end
 end
 
 function SoloArena:_celebrateChampions(members, delivered)
@@ -946,6 +1136,19 @@ function SoloArena:_celebrateChampions(members, delivered)
         end)
     end
     self.output("The level-12 championship is complete. The party returns to staging with its final spoils and a full rest.")
+    self.endingNoticeShown = true
+    if self.adapter.openMessage then
+        local owner = self:_menuOwner(members)
+        if owner then
+            pcall(function()
+                self.adapter.openMessage(
+                    owner,
+                    Constants.MenuMessages.champion,
+                    "ASTRAL ARENA CHAMPIONS! Your party survived every battle from level 3 to the level-12 championship."
+                )
+            end)
+        end
+    end
 end
 
 function SoloArena:pick(choiceIndex, recipientIndex)
@@ -1008,9 +1211,87 @@ function SoloArena:continue()
     return self:_startBout(party)
 end
 
+function SoloArena:_showEndingNotice(record)
+    if self.endingNoticeShown then
+        return
+    end
+    self.endingNoticeShown = true
+    local summary = RunRecord.summary(record)
+    self.output(summary)
+    local ok, members = pcall(self.adapter.partyMembers)
+    if not ok or type(members) ~= "table" then
+        return
+    end
+    local tail = record.outcome == "champion"
+        and " Start a New Game with Astral Arena Adventure for another run."
+        or " This Adventure's run is over; start a New Game with Astral Arena Adventure to try again."
+    for _, member in ipairs(members) do
+        self.adapter.notify(member.guid, "Astral Arena: " .. summary .. tail)
+    end
+end
+
+-- A save made during a wave or an intermission reloads with no live monitor.
+-- Delete any surviving temporary enemies, restore the party in staging, and
+-- restart the same battle from wave 1. This is not counted as a defeat.
+function SoloArena:_recoverInterruptedCombat(record)
+    local combat = record.combat
+    local members = self.adapter.partyMembers()
+    if type(members) ~= "table" or not members[1] then
+        return false
+    end
+    if self.adapter.isPartyInArena and not self.adapter.isPartyInArena(members) then
+        return false
+    end
+    local factions = {}
+    for _, faction in ipairs(combat.enemyFactions or {}) do
+        factions[faction] = true
+    end
+    for _, guid in ipairs(combat.enemyGuids or {}) do
+        self.adapter.deleteTemporary({ guid = guid, temporary = true })
+    end
+    for _, member in ipairs(members) do
+        self.adapter.restoreCharacter(member, factions)
+    end
+    if record.stagingOrigin and self.adapter.setStagingOrigin then
+        self.adapter.setStagingOrigin(record.stagingOrigin)
+    end
+    if self.adapter.returnPartyToStaging then
+        self.adapter.returnPartyToStaging(members)
+    end
+    if self.adapter.fullRestParty then
+        self.adapter.fullRestParty(members)
+    end
+    RunRecord.clearCombat(record)
+    self:_saveRecord(record)
+    self.run = nil
+    self.menu = nil
+    local message = string.format(
+        "A save from the middle of the level-%s battle (wave %s) was loaded. The unfinished battle was reset; the party is restored in staging and the battle restarts from wave 1.",
+        tostring(combat.level or "?"),
+        tostring(combat.wave or "?")
+    )
+    self.output(message)
+    for _, member in ipairs(members) do
+        self.adapter.notify(member.guid, message)
+    end
+    return true
+end
+
 function SoloArena:autoAdvance()
     if self.active then
         return "combat"
+    end
+
+    local record = self:_record()
+    if RunRecord.isOver(record) then
+        self:_showEndingNotice(record)
+        return "completed"
+    end
+    if record.combat then
+        if not self:_recoverInterruptedCombat(record) then
+            return "outside"
+        end
+        return "recovered"
     end
 
     local ok, party = pcall(function()
@@ -1037,6 +1318,16 @@ function SoloArena:autoAdvance()
         if self.run.phase == "awaiting_level_up" and party.level == self.run.level then
             self:continue()
             return self.run.phase == "completed" and "completed" or "started"
+        end
+        if self.run.phase == "seeking_opponent" and party.level == self.run.level then
+            -- After an abort or a rolled-back setup, offer the same battle
+            -- again. The ready prompt still gates every enemy spawn.
+            self.restartCooldown = (self.restartCooldown or 0) - 1
+            if self.restartCooldown <= 0 then
+                self.restartCooldown = 30
+                self:_startBout(party)
+                return "started"
+            end
         end
         return "waiting"
     end
@@ -1082,7 +1373,32 @@ function SoloArena:abort(reason)
     self:_cleanup(active)
     self.run.phase = "seeking_opponent"
     self.run.opponent = nil
-    self.output("AI arena match aborted; player party restored and temporary enemies deleted.")
+    self.menu = nil
+    local record = self:_record()
+    if record.combat then
+        RunRecord.clearCombat(record)
+        self:_saveRecord(record)
+    end
+    -- An abort is a recovery tool, not a defeat. Re-offer the same battle
+    -- after a short pause; enemies still wait for the ready prompt.
+    self.restartCooldown = 10
+    self.output("AI arena match aborted; player party restored and temporary enemies deleted. The same battle's ready prompt returns in about ten seconds.")
+end
+
+-- Developer escape hatch for a false elimination caused by an engine bug.
+function SoloArena:overrideElimination()
+    if self.active then
+        error("an AI arena match is active", 2)
+    end
+    local record = self:_record()
+    RunRecord.reopen(record)
+    self:_saveRecord(record)
+    self.run = nil
+    self.bootstrapState = nil
+    self.menu = nil
+    self.endingNoticeShown = false
+    self.restartCooldown = 0
+    self.output("DEVELOPER OVERRIDE: the eliminated run was reopened. The current tier will be offered again. This is recorded in the run history.")
 end
 
 function SoloArena:reset()
@@ -1101,13 +1417,18 @@ function SoloArena:reset()
 end
 
 function SoloArena:status()
+    local record = self:_record()
+    local summary = RunRecord.summary(record)
+    if RunRecord.isOver(record) then
+        return summary
+    end
     if not self.run then
         if self.bootstrapState then
-            return ArenaBootstrap.status(self.bootstrapState)
+            return ArenaBootstrap.status(self.bootstrapState) .. " | " .. summary
         end
-        return "No AI arena run exists."
+        return "No AI arena battle is prepared. | " .. summary
     end
-    return SoloRun.status(self.run)
+    return SoloRun.status(self.run) .. " | " .. summary
 end
 
 return SoloArena

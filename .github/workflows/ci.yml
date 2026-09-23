@@ -13,6 +13,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y lua5.4 zip
       - name: Run deterministic tests
         run: lua tests/run.lua
+      - name: Run engine smoke test
+        run: lua tests/engine_smoke.lua
       - name: Run tournament simulation
         run: lua scripts/simulate.lua
       - name: Build playtest archive

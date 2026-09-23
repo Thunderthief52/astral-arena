@@ -2,7 +2,7 @@
 
 ## What this candidate tests
 
-Version `0.3.2-alpha.17` tests a continuous solo/co-op progression run with a 300-gold-per-avatar automatic Withers hireling onboarding, approved roster expansion to four, equipped level-matched followers, party-scaled multi-wave battles, validated combat and camp routes, 30–34 metre opening separation, randomized personal magic kits, fully lethal native death saves, spawn-free player-controlled preparation, living-party resource refreshes between waves, final-wave automatic resurrection/rest/loot, save-tier recovery, a two-enemy level-3 initiation, and a true level-12 championship. The menu does not spawn campaign-linked Withers or book entities:
+Version `0.4.0-alpha.1` tests a one-loss elimination gauntlet (only survivors press on) with a 300-gold-per-avatar automatic Withers hireling onboarding, approved roster expansion to four, equipped level-matched followers, party-scaled multi-wave battles, validated combat and camp routes, 30–34 metre opening separation, randomized personal magic kits, fully lethal native death saves, spawn-free player-controlled preparation, living-party resource refreshes between waves, final-wave automatic resurrection/rest/loot, save-tier recovery, a two-enemy level-3 initiation, and a true level-12 championship. The menu does not spawn campaign-linked Withers or book entities:
 
 ```text
 2 waves at L3 -> long rest + loot for L5 -> native level-up
@@ -15,6 +15,10 @@ Version `0.3.2-alpha.17` tests a continuous solo/co-op progression run with a 30
 The level-12 party faces four rotating waves of Astral Exarchs at Echelon Steps. Clearing the last wave completes the run and triggers staged champion announcements for every player.
 
 The whole active party fights each wave against temporary AI enemies. Reduced rosters rotate roles between waves while retaining melee and ranged or magical pressure. The level-3 fixture is capped at two enemies per wave even with four allies; later fixtures match the party up to four. This includes a solo avatar, online co-op players, or split-screen players cooperating against the AI.
+
+## Elimination rule
+
+The party must win every battle. A defeat, or a draw where both sides are knocked out together, ends the run immediately: the party is restored in staging, every player sees the run summary, and the save records the elimination so no further battle starts in that Adventure. Start a New Game to build a new party. Aborting a stuck battle with `!aa_ai_abort` is not a defeat; the same battle's ready prompt returns about ten seconds later.
 
 ## Important safety boundary
 
@@ -90,7 +94,8 @@ THE ASTRAL ARENA ERUPTS — YOUR PARTY ARE THE CHAMPIONS!
 | --- | --- |
 | `!aa_ai_status` | Show current tier and whether combat or level-up is pending. |
 | `!aa_ai_abort` | Stop an active fight, restore players, and delete temporary enemies. Use `!aa_ai_continue` only to replay the ready tier manually. |
-| `!aa_ai_reset` | Forget the current session run. Does not remove items or XP. |
+| `!aa_ai_reset` | Forget the current session run. Does not remove items, XP, or a recorded elimination. |
+| `!aa_ai_unlock_run` | Developer only: reopen a run eliminated by an engine bug. |
 
 If combat cleanup, inventory, or progression looks wrong, stop immediately and reload the pre-test save.
 
@@ -100,7 +105,7 @@ If combat cleanup, inventory, or progression looks wrong, stop immediately and r
 - The playable-alpha fallback distributes all six rare candidates instead of enforcing one-of-six; a graphical controller-friendly selection screen remains planned.
 - The rare catalog is an intentionally conservative set of ten vanilla `+2` weapons; armor, jewelry, named build-defining items, and class-aware weighting come after catalog auditing.
 - Before the first bout, every player receives six calls to the vanilla `RewardMedium` table, two audited Scrolls of Revivify, and eleven magic equipment rolls covering weapons, armour weights, and every accessory slot. Final-wave victory bundles still use four calls per player. These will become Astral Arena-owned treasure tables after balance reports.
-- Run details are session-only, but a party at level 5, 8, or 10 can reconstruct the remaining progression after reload.
+- The live battle is session-only, but the run result, victories, one-time armory flag, and staging origin are saved. A party at level 3, 5, 8, 10, or 12 reconstructs the current tier after reload, and a save made during a battle restarts that battle from wave 1.
 - The preparation armory is deliberately generous but is not class-aware yet. Every character rolls separately from audited slot pools; equip a proficient weapon and armour weight before accepting the ready prompt, and trade extras if desired.
 - The dedicated map has a first shipped-asset visual pass, but final terrain materials, navigation around tactical props, spectator boundaries, camera bounds, and minimap data remain unfinished.
 - Vanilla cumulative XP thresholds are required.

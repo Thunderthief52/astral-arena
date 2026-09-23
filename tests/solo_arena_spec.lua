@@ -11,6 +11,7 @@ local Fixtures = require("AstralArena.Shared.AIFixtures")
 local Catalog = require("AstralArena.Shared.RewardCatalog")
 local Layouts = require("AstralArena.Shared.ArenaLayouts")
 local Sites = require("AstralArena.Shared.ArenaSites")
+local RunRecord = require("AstralArena.Core.RunRecord")
 _G.Ext = previousExt
 
 local function fakeAdapter()
@@ -104,8 +105,35 @@ local function fakeAdapter()
     return adapter
 end
 
-local function arena(adapter, campService)
-    return SoloArena.new(adapter, function() end, Fixtures, Catalog, Layouts, Sites, campService)
+local function sharedStore()
+    -- Mimics the ModVar: every load returns a fresh copy, so a test fails if the
+    -- runtime forgets to save a mutation.
+    local saved = RunRecord.new()
+    local function copy(value)
+        if type(value) ~= "table" then
+            return value
+        end
+        local result = {}
+        for key, child in pairs(value) do
+            result[key] = copy(child)
+        end
+        return result
+    end
+    return {
+        load = function()
+            return RunRecord.normalize(copy(saved))
+        end,
+        save = function(record)
+            saved = copy(record)
+        end,
+        peek = function()
+            return saved
+        end,
+    }
+end
+
+local function arena(adapter, campService, store)
+    return SoloArena.new(adapter, function() end, Fixtures, Catalog, Layouts, Sites, campService, store)
 end
 
 local function defeatCurrentWave(subject, adapter)
@@ -345,22 +373,31 @@ H.test("AI arena retains the full fixture for a four-character party", function(
     H.equal(#subject.active.teams.right.members, 4)
 end)
 
-H.test("defeat fully restores and schedules the same bout automatically", function()
+H.test("a single defeat restores the party and ends the run for good", function()
     local adapter = fakeAdapter()
-    local subject = arena(adapter)
+    local store = sharedStore()
+    local subject = arena(adapter, nil, store)
     subject:start({ countdownSeconds = 0 })
     adapter.alive["player-a"] = false
     adapter.alive["player-b"] = false
     table.remove(adapter.queue, 1)()
-    H.equal(subject.run.phase, "seeking_opponent")
+    H.equal(subject.active, nil)
+    H.equal(subject.run.phase, "completed")
+    H.equal(subject.run.completion, "defeated")
     H.equal(adapter.fullRests, 1)
-    H.equal(#adapter.menus, 0)
-    table.remove(adapter.queue, 1)()
-    H.equal(subject.run.phase, "ready")
-    H.equal(subject.run.level, 5)
-    H.equal(subject.active.match, nil)
-    acceptReadyWave(subject)
-    H.equal(subject.active.match.level, 5)
+    H.equal(adapter.stagingReturns, 1)
+    H.equal(store.peek().outcome, "eliminated")
+    H.equal(store.peek().ending.level, 5)
+    H.equal(store.peek().ending.wave, 1)
+    -- Only the three staged announcements remain; no rematch is scheduled.
+    H.equal(#adapter.queue, 3)
+    while #adapter.queue > 0 do
+        table.remove(adapter.queue, 1)()
+    end
+    H.equal(subject.active, nil)
+    H.equal(subject:autoAdvance(), "completed")
+    H.equal(subject.active, nil)
+    H.raises(function() subject:start() end, "ELIMINATED")
 end)
 
 H.test("battle defeat automatically resurrects dead players at the mission boundary", function()
@@ -396,6 +433,7 @@ H.test("the native downed event records death-save state without target protecti
     local adapter = fakeAdapter()
     local subject = arena(adapter)
     subject:start({ countdownSeconds = 0 })
+    adapter.alive["player-a"] = false
     H.truthy(subject:onStatusApplied("player-a", "DOWNED"))
     H.truthy(subject.active.defeated["player-a"])
     H.equal(adapter.defeatedMarks[1], "player-a")
@@ -511,4 +549,244 @@ H.test("manual bootstrap also rejects a party outside AA_Arena_Main", function()
     adapter.inArena = false
     local subject = arena(adapter)
     H.raises(function() subject:bootstrapParty() end, "AA_Arena_Main")
+end)
+
+H.test("a mutual knockout is a draw that also eliminates the party", function()
+    local adapter = fakeAdapter()
+    local store = sharedStore()
+    local subject = arena(adapter, nil, store)
+    subject:start({ countdownSeconds = 0 })
+    for guid in pairs(adapter.alive) do
+        adapter.alive[guid] = false
+    end
+    table.remove(adapter.queue, 1)()
+    H.equal(store.peek().outcome, "eliminated")
+    H.equal(store.peek().ending.resolution, "draw")
+    H.truthy(RunRecord.summary(store.peek()):find("fell together", 1, true) ~= nil)
+end)
+
+H.test("an elimination survives a reload and blocks every automatic restart", function()
+    local adapter = fakeAdapter()
+    local store = sharedStore()
+    local first = arena(adapter, nil, store)
+    first:start({ countdownSeconds = 0 })
+    adapter.alive["player-a"] = false
+    adapter.alive["player-b"] = false
+    table.remove(adapter.queue, 1)()
+
+    local reloadedAdapter = fakeAdapter()
+    reloadedAdapter.partyLevel = 5
+    local reloaded = arena(reloadedAdapter, nil, store)
+    H.equal(reloaded:autoAdvance(), "completed")
+    H.equal(reloaded:autoAdvance(), "completed")
+    H.equal(reloaded.active, nil)
+    H.equal(reloadedAdapter.preparationCalls, 0)
+    H.equal(reloadedAdapter.spawnCalls, 0)
+    H.truthy(reloadedAdapter.notifications[1].message:find("ELIMINATED", 1, true) ~= nil)
+    -- The reminder is shown once per session rather than every watcher tick.
+    H.equal(#reloadedAdapter.notifications, 2)
+    H.raises(function() reloaded:bootstrapParty() end, "New Game")
+end)
+
+H.test("the defeat notice fires before BG3 can react when the final player goes down", function()
+    local adapter = fakeAdapter()
+    local store = sharedStore()
+    local subject = arena(adapter, nil, store)
+    subject:start({ countdownSeconds = 0 })
+    adapter.alive["player-a"] = false
+    subject:onStatusApplied("player-a", "DOWNED")
+    H.truthy(subject.active ~= nil)
+    adapter.alive["player-b"] = false
+    subject:onStatusApplied("player-b", "DOWNED")
+    H.equal(subject.active, nil)
+    H.equal(store.peek().outcome, "eliminated")
+    H.equal(adapter.fullRests, 1)
+end)
+
+H.test("a death event resolves a cleared wave immediately", function()
+    local adapter = fakeAdapter()
+    local subject = arena(adapter)
+    subject:start({ countdownSeconds = 0 })
+    local enemies = subject.active.teams.right.members
+    for _, member in ipairs(enemies) do
+        adapter.alive[member.guid] = false
+    end
+    H.truthy(subject:onDied(enemies[1].guid))
+    H.truthy(subject.active.transitioning)
+    H.equal(subject.menu.kind, "wave_start")
+    -- The already-scheduled poll must not reopen or re-resolve the wave.
+    table.remove(adapter.queue, 1)()
+    H.equal(#adapter.queue, 0)
+    H.equal(adapter.waveRests, 1)
+    H.equal(subject:onDied("unrelated-npc"), false)
+end)
+
+H.test("accepting the next wave quickly never leaves two polling chains", function()
+    local adapter = fakeAdapter()
+    local subject = arena(adapter)
+    subject:start({ countdownSeconds = 0 })
+    local enemies = subject.active.teams.right.members
+    for _, member in ipairs(enemies) do
+        adapter.alive[member.guid] = false
+    end
+    subject:onDied(enemies[1].guid)
+    acceptReadyWave(subject)
+    H.equal(subject.active.waveIndex, 2)
+    H.equal(#adapter.queue, 2)
+    table.remove(adapter.queue, 1)()
+    H.equal(#adapter.queue, 1)
+    table.remove(adapter.queue, 1)()
+    H.equal(#adapter.queue, 1)
+end)
+
+H.test("the one-time armory is never delivered again after a reload", function()
+    local adapter = fakeAdapter()
+    local store = sharedStore()
+    local subject = arena(adapter, nil, store)
+    subject:start({ countdownSeconds = 0 })
+    clearBout(subject, adapter)
+    H.equal(adapter.preparationCalls, 1)
+    H.equal(#store.peek().victories, 1)
+
+    local reloadedAdapter = fakeAdapter()
+    reloadedAdapter.partyLevel = 8
+    local reloaded = arena(reloadedAdapter, nil, store)
+    H.equal(reloaded:autoAdvance(), "started")
+    H.equal(reloadedAdapter.preparationCalls, 0)
+    acceptReadyWave(reloaded)
+    H.equal(reloaded.active.match.level, 8)
+end)
+
+H.test("the staging origin is persisted and reused after a reload", function()
+    local adapter = fakeAdapter()
+    local origin = nil
+    function adapter.stagingOrigin() return { 1, 2, 3 } end
+    function adapter.setStagingOrigin(value) origin = value end
+    local store = sharedStore()
+    arena(adapter, nil, store):start()
+    H.equal(store.peek().stagingOrigin[3], 3)
+
+    local reloadedAdapter = fakeAdapter()
+    function reloadedAdapter.setStagingOrigin(value) origin = value end
+    function reloadedAdapter.stagingOrigin() return { 9, 9, 9 } end
+    arena(reloadedAdapter, nil, store):start()
+    H.equal(origin[1], 1)
+    H.equal(store.peek().stagingOrigin[1], 1)
+end)
+
+H.test("loading a save made mid-wave deletes stale enemies and restarts the battle", function()
+    local adapter = fakeAdapter()
+    local store = sharedStore()
+    local subject = arena(adapter, nil, store)
+    subject:start({ countdownSeconds = 0 })
+    local enemyGuid = subject.active.teams.right.members[1].guid
+    H.equal(store.peek().combat.wave, 1)
+    H.equal(store.peek().combat.enemyGuids[1], enemyGuid)
+
+    -- Simulate loading that save: a fresh session with a dead, in-combat player.
+    local reloadedAdapter = fakeAdapter()
+    reloadedAdapter.dead["player-b"] = true
+    local reloaded = arena(reloadedAdapter, nil, store)
+    H.equal(reloaded:autoAdvance(), "recovered")
+    H.equal(reloadedAdapter.deleted[1], enemyGuid)
+    H.equal(#reloadedAdapter.restored, 2)
+    H.equal(reloadedAdapter.dead["player-b"], nil)
+    H.equal(reloadedAdapter.stagingReturns, 1)
+    H.equal(store.peek().combat, nil)
+    H.equal(store.peek().outcome, nil)
+    H.equal(reloaded:autoAdvance(), "started")
+    H.equal(reloadedAdapter.preparationCalls, 0)
+    H.equal(reloaded.menu.kind, "wave_start")
+end)
+
+H.test("a save made during an intermission still restores a dead ally on reload", function()
+    local adapter = fakeAdapter()
+    local store = sharedStore()
+    local subject = arena(adapter, nil, store)
+    subject:start({ countdownSeconds = 0 })
+    adapter.dead["player-a"] = true
+    adapter.alive["player-a"] = false
+    defeatCurrentWave(subject, adapter)
+    H.truthy(subject.active.transitioning)
+    H.truthy(store.peek().combat ~= nil)
+    H.equal(#store.peek().combat.enemyGuids, 0)
+    local reloadedAdapter = fakeAdapter()
+    reloadedAdapter.dead["player-a"] = true
+    H.equal(arena(reloadedAdapter, nil, store):autoAdvance(), "recovered")
+    H.equal(reloadedAdapter.dead["player-a"], nil)
+end)
+
+H.test("an abort is not a defeat and the ready prompt returns automatically", function()
+    local adapter = fakeAdapter()
+    local store = sharedStore()
+    local subject = arena(adapter, nil, store)
+    subject:start({ countdownSeconds = 0 })
+    subject:abort("manual-abort")
+    H.equal(store.peek().outcome, nil)
+    H.equal(store.peek().combat, nil)
+    H.equal(subject.menu, nil)
+    local action
+    for _ = 1, 9 do
+        action = subject:autoAdvance()
+        H.equal(action, "waiting")
+    end
+    H.equal(subject:autoAdvance(), "started")
+    H.equal(subject.menu.kind, "wave_start")
+    H.equal(adapter.spawnCalls, 1)
+    H.equal(adapter.preparationCalls, 1)
+end)
+
+H.test("winning the level-twelve championship is recorded and survives a reload", function()
+    local adapter = fakeAdapter()
+    adapter.partyLevel = 12
+    local store = sharedStore()
+    local subject = arena(adapter, nil, store)
+    subject:start({ countdownSeconds = 0 })
+    clearBout(subject, adapter)
+    H.equal(store.peek().outcome, "champion")
+    local reloaded = arena(fakeAdapter(), nil, store)
+    H.equal(reloaded:autoAdvance(), "completed")
+    H.truthy(reloaded:status():find("CHAMPIONS", 1, true) ~= nil)
+end)
+
+H.test("a full 3 -> 5 -> 8 -> 10 -> 12 gauntlet crowns a surviving party", function()
+    local adapter = fakeAdapter()
+    adapter.partyLevel = 1
+    local store = sharedStore()
+    local subject = arena(adapter, nil, store)
+    H.equal(subject:autoAdvance(), "bootstrapped")
+    local expected = { 3, 5, 8, 10, 12 }
+    for index, level in ipairs(expected) do
+        adapter.partyLevel = level
+        H.equal(subject:autoAdvance(), "started")
+        acceptReadyWave(subject)
+        H.equal(subject.active.match.level, level)
+        adapter.fullRests = 0
+        clearBout(subject, adapter)
+        H.equal(#store.peek().victories, index)
+        while #adapter.queue > 0 do
+            table.remove(adapter.queue, 1)()
+        end
+    end
+    H.equal(store.peek().outcome, "champion")
+    H.equal(adapter.preparationCalls, 1)
+    H.equal(subject:autoAdvance(), "completed")
+    local targets = table.concat(adapter.experienceTargets, ",")
+    H.equal(targets, "3,5,8,10,12")
+end)
+
+H.test("the developer override reopens a false elimination", function()
+    local adapter = fakeAdapter()
+    local store = sharedStore()
+    local subject = arena(adapter, nil, store)
+    subject:start({ countdownSeconds = 0 })
+    adapter.alive["player-a"] = false
+    adapter.alive["player-b"] = false
+    table.remove(adapter.queue, 1)()
+    H.equal(store.peek().outcome, "eliminated")
+    subject:overrideElimination()
+    H.equal(store.peek().outcome, nil)
+    H.equal(store.peek().overrides, 1)
+    H.equal(subject:autoAdvance(), "started")
+    H.equal(subject.menu.kind, "wave_start")
 end)

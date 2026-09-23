@@ -15,13 +15,22 @@ local VALUES = {
     { id = "hollow-square", displayName = "Hollow Square", enemyOffsets = { { 30, -6 }, { 34, -6 }, { 34, 6 }, { 30, 6 } } },
 }
 
+-- Deterministic string hash. The previous polynomial hash reduced modulo 12
+-- almost ignored the bout and wave digits, so every run replayed the same few
+-- formations. Two coprime moduli plus a high-order bucket spread nearby seeds.
+local PRIME_A = 2147483629
+local PRIME_B = 1000003
+
 local function hash(value)
-    local result = 216613626
+    local a = 216613626
+    local b = 7919
     local text = tostring(value or "")
     for index = 1, #text do
-        result = (result * 131 + text:byte(index)) % 2147483647
+        local byte = text:byte(index)
+        a = (a * 131 + byte) % PRIME_A
+        b = (b * 257 + byte * 7 + index) % PRIME_B
     end
-    return result
+    return (a + b * 48271) % PRIME_B
 end
 
 function Layouts.all()
@@ -33,7 +42,7 @@ function Layouts.all()
 end
 
 function Layouts.select(seed)
-    return VALUES[(hash(seed) % #VALUES) + 1]
+    return VALUES[math.floor(hash(seed) * #VALUES / PRIME_B) + 1]
 end
 
 return Layouts

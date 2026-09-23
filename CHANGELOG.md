@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.4.0-alpha.1 — 2026-09-23
+
+- Completed the AI gauntlet rules: battles at levels 3, 5, 8, 10, and 12, and **one lost battle ends the run**. A defeat or a mutual knockout in any wave restores the party, announces a run summary to every player plus a host message box, and never schedules a rematch.
+- Added a save-persistent run record (`ArenaRunState` ModVar). Eliminations and championships survive save/load, so a later save cannot silently resume a finished run.
+- Fixed the one-time armory being handed out again after every reload; the delivery flag now lives in the save and is set before items are created.
+- Added mid-battle save recovery: loading a save made during a wave or intermission deletes stale temporary enemies, resurrects and restores the party in staging, and restarts that battle from wave 1 without counting a loss. Previously such saves left the party stuck behind the in-combat/dead validation.
+- Persisted the staging origin and fall back to the authored Jergal court instead of treating a combat site as staging after a reload.
+- Battle numbering in messages now reflects the whole 3 → 12 gauntlet (for example `5/5`) even after a reload rebuilt the run from a later tier.
+- Resolve knockouts the moment BG3 reports `DOWNED` or `Died`, so a total party knockout is handled by the arena before the engine's party-wipe flow, and cleared waves no longer wait for the next poll.
+- Replaced free-running poll chains with one token per wave so a fast ready confirmation can never run two monitors.
+- `!aa_ai_abort` now re-offers the same battle's ready prompt after about ten seconds instead of stalling until a console command.
+- Collapsed repeated onboarding pause messages into a single console line.
+- Fixed formation selection: the old hash ignored the bout number, so every opening wave in a run used the same formation. All twelve formations now rotate.
+- Added `tests/engine_smoke.lua`, which boots the real `BootstrapServer.lua` against a scripted Script Extender/Osiris fake and plays onboarding, five battles, a mid-wave save/load, and an elimination reload end to end.
+- Added `!aa_ai_unlock_run` as a developer-only override for false eliminations.
+- Added a Divine-free PAK builder (`tools/pak/build_pak.py`) with LSPK v18 and `.loca` writers.
+
 ## 0.3.2-alpha.17 — 2026-08-23
 
 - Fixed the stalled-wave root cause: enemies no longer spawn during preparation, so their vanilla hostile faction cannot begin an unmonitored fight. Accepting the ready prompt now creates the wave, joins combat, and starts victory polling as one controlled transition.

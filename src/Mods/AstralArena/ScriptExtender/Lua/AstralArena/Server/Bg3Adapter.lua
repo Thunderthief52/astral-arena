@@ -107,6 +107,44 @@ local function teleportParty(members, origin, site)
     end
 end
 
+-- AA_Arena_Main's Jergal court is authored around world origin; the combat
+-- lanes in toolkit/scenery/AA_Arena_Main.scenery.json are laid out from it.
+local STAGING_CENTER = { 0, 0 }
+local STAGING_BOUNDS = { minimum = { -6, -6 }, maximum = { 6, 12 } }
+
+local function insideStaging(position)
+    return position[1] >= STAGING_BOUNDS.minimum[1] and position[1] <= STAGING_BOUNDS.maximum[1]
+        and position[3] >= STAGING_BOUNDS.minimum[2] and position[3] <= STAGING_BOUNDS.maximum[2]
+end
+
+local function resolveStagingOrigin(members)
+    if stagingOrigin then
+        return stagingOrigin
+    end
+    local position = requirePosition(members[1].guid)
+    if insideStaging(position) then
+        stagingOrigin = position
+    else
+        -- A save loaded while the party stood at a combat site must not turn
+        -- that site into the new origin; fall back to the authored court.
+        stagingOrigin = { STAGING_CENTER[1], position[2], STAGING_CENTER[2] }
+    end
+    return stagingOrigin
+end
+
+function Adapter.setStagingOrigin(origin)
+    if type(origin) == "table" and type(origin[1]) == "number" and type(origin[2]) == "number" and type(origin[3]) == "number" then
+        stagingOrigin = { origin[1], origin[2], origin[3] }
+    end
+end
+
+function Adapter.stagingOrigin()
+    if not stagingOrigin then
+        return nil
+    end
+    return { stagingOrigin[1], stagingOrigin[2], stagingOrigin[3] }
+end
+
 function Adapter.prepareArenaSite(members, site)
     if type(members) ~= "table" or not members[1] then
         error("arena site preparation requires a player party", 2)
@@ -114,14 +152,15 @@ function Adapter.prepareArenaSite(members, site)
     if type(site) ~= "table" or type(site.offset) ~= "table" then
         error("arena site definition is invalid", 2)
     end
-    if not stagingOrigin then
-        stagingOrigin = requirePosition(members[1].guid)
-    end
-    teleportParty(members, stagingOrigin, site)
+    teleportParty(members, resolveStagingOrigin(members), site)
 end
 
 function Adapter.returnPartyToStaging(members)
-    if not stagingOrigin or type(members) ~= "table" then
+    if type(members) ~= "table" or not members[1] then
+        return
+    end
+    local ok = pcall(resolveStagingOrigin, members)
+    if not ok or not stagingOrigin then
         return
     end
     teleportParty(members, stagingOrigin, {
@@ -369,6 +408,18 @@ function Adapter.openYesNo(guid, messageKey, message)
         end)
     end
     Osi.OpenMessageBoxYesNo(guid, messageKey)
+end
+
+function Adapter.openMessage(guid, messageKey, message)
+    if not guid or guid == "" then
+        error("arena message requires a player character", 2)
+    end
+    if Ext.Loca and Ext.Loca.UpdateTranslatedString then
+        safely(function()
+            Ext.Loca.UpdateTranslatedString(messageKey, message)
+        end)
+    end
+    Osi.OpenMessageBox(guid, messageKey)
 end
 
 function Adapter.getGold(guid)

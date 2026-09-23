@@ -25,6 +25,17 @@ function Variables.Register()
         SyncOnTick = true,
         SyncOnWrite = true,
     })
+    Ext.Vars.RegisterModVariable(Constants.ModuleUUID, "ArenaRunState", {
+        Server = true,
+        Client = false,
+        WriteableOnServer = true,
+        WriteableOnClient = false,
+        Persistent = true,
+        SyncToClient = false,
+        SyncToServer = false,
+        SyncOnTick = true,
+        SyncOnWrite = true,
+    })
 end
 
 return Variables
