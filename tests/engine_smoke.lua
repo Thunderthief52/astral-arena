@@ -103,10 +103,26 @@ Ext = {
         Get = function(guid)
             local c = world.characters[guid]
             if not c then return nil end
+            local items = {}
+            for index, itemGuid in ipairs(c.inventory or {}) do
+                items[index] = { Item = { Uuid = { EntityUuid = itemGuid } } }
+            end
             return {
                 UserAvatar = c.avatar and { UserID = 1 } or nil,
                 Experience = { TotalExperience = c.xp },
+                InventoryOwner = { Inventories = { { InventoryContainer = { Items = items } } } },
             }
+        end,
+    },
+    Stats = {
+        Get = function(name)
+            local stats = {
+                ARM_Plate_1 = { Slot = "Breast", ArmorType = "Plate", ArmorClass = 18, Rarity = "Uncommon", Boosts = "AC(1)" },
+                WPN_Greatsword_1 = { Slot = "Melee Main Weapon", Damage = "2d6", Rarity = "Uncommon", Boosts = "WeaponEnchantment(1)",
+                    ["Weapon Properties"] = { "Melee", "Twohanded" }, ["Proficiency Group"] = { "Greatswords", "MartialWeapons" } },
+                GreatWeaponMaster_BonusAttack = {},
+            }
+            return stats[name]
         end,
     },
     Template = {
@@ -171,7 +187,10 @@ Osi = setmetatable({
     GetGold = function(guid) return world.characters[guid].gold or 0 end,
     AddGold = function(guid, amount) local c = world.characters[guid]; c.gold = (c.gold or 0) + amount end,
     AddExplorationExperience = function(guid, gain) local c = world.characters[guid]; c.xp = c.xp + gain end,
-    SetLevel = function(guid, level) world.characters[guid].level = level end,
+    SetLevel = function(guid, level)
+        if not world.characters[guid] then newCharacter(guid, level, false) end
+        world.characters[guid].level = level
+    end,
     HasPassive = function(guid, passive) return world.characters[guid] and world.characters[guid].passives[passive] and 1 or 0 end,
     AddPassive = function(guid, passive) world.characters[guid].passives[passive] = true end,
     Resurrect = function(guid) local c = world.characters[guid]; c.dead = false; c.hp = 10 end,
@@ -192,7 +211,33 @@ Osi = setmetatable({
         if world.characters[a] then world.characters[a].inCombat = true end
         if world.characters[b] then world.characters[b].inCombat = true end
     end,
-    PROC_Hirelings_Hire = function(guid) table.insert(world.party, guid) end,
+    PROC_Hirelings_Hire = function(guid)
+        if not world.characters[guid] then
+            newCharacter(guid, 1, false)
+        end
+        world.itemStats = { ["plate-item-1"] = "ARM_Plate_1", ["gs-item-1"] = "WPN_Greatsword_1" }
+        world.characters[guid].inventory = { "plate-item-1", "gs-item-1" }
+        table.insert(world.party, guid)
+    end,
+    TeleportTo = function() end,
+    GetStatString = function(item) return world.itemStats and world.itemStats[item] end,
+    GetEquippedItem = function(guid, slot) local c = world.characters[guid]; return c and c.equipped and c.equipped[slot] or "" end,
+    Equip = function(guid, item)
+        local c = world.characters[guid]
+        c.equipped = c.equipped or {}
+        local stat = Ext.Stats.Get(world.itemStats[item])
+        local slot = stat.Slot == "Breast" and "Breast" or stat.Slot == "Melee Main Weapon" and "MeleeMainHand" or stat.Slot
+        c.equipped[slot] = item
+        world.equipLog = world.equipLog or {}
+        table.insert(world.equipLog, item)
+    end,
+    AddPassive = function(guid, passive)
+        world.characters[guid].passives[passive] = true
+    end,
+    AddBoosts = function(guid, boost)
+        world.boostLog = world.boostLog or {}
+        table.insert(world.boostLog, guid .. ":" .. boost)
+    end,
     GetItemByTemplateInInventory = function() return "" end,
 }, {
     __index = function(_, name)
@@ -287,11 +332,16 @@ runTimers(3000)
 expect(world.characters.avatar_a.xp == 900, "bootstrap should award level-3 XP")
 applyLevelUps()
 runTimers(2000)
--- Withers: decline every offer.
+-- Withers: hire the first follower (the fighter), then decline the rest.
+runTimers(1000)
+expect(answerMenus(true, "h93ba8d19ef074e7eb7c59686bbc9fbb5") == 1, "Withers should offer a hireling")
+runTimers(2000)
 for _ = 1, 10 do
     runTimers(1000)
     if answerMenus(false, "h93ba8d19ef074e7eb7c59686bbc9fbb5") == 0 then break end
 end
+expect(#world.party == 3, "the fighter hireling should join the party")
+local fighterGuid = world.party[3]
 runTimers(3000)
 expect(#enemies() == 0, "no enemy may exist before the ready prompt")
 expect(logContains("Prepared AI bout 1/5 at L3"), "bout 1 should be prepared at level 3")
@@ -321,6 +371,9 @@ local function fightBattle(expectedLevel, loseOnWave)
     return waves
 end
 
+expect(world.characters[fighterGuid].equipped and world.characters[fighterGuid].equipped.Breast == "plate-item-1", "the hireling should wear its best armour")
+expect(world.characters[fighterGuid].equipped.MeleeMainHand == "gs-item-1", "the hireling should wield its best weapon")
+
 local expectedWaves = { [3] = 2, [5] = 2, [8] = 3, [10] = 3 }
 for _, level in ipairs({ 3, 5, 8, 10 }) do
     local waves = fightBattle(level)
@@ -329,6 +382,13 @@ for _, level in ipairs({ 3, 5, 8, 10 }) do
     runTimers(3000)
 end
 expect(world.characters.avatar_a.level == 12, "party should reach level 12")
+expect(world.characters[fighterGuid].level == 12, "the hireling should level with the party")
+expect(world.characters[fighterGuid].passives.GreatWeaponMaster_BonusAttack, "the fighter should learn Great Weapon Master at level 4")
+local strengthBoosts = 0
+for _, entry in ipairs(world.boostLog or {}) do
+    if entry:find("Strength", 1, true) then strengthBoosts = strengthBoosts + 1 end
+end
+expect(strengthBoosts == 1, "the level-6 Strength increase should be applied exactly once, got " .. strengthBoosts)
 local armoryLines = 0
 for _, line in ipairs(log) do
     if line:find("Arena armory rolled", 1, true) then armoryLines = armoryLines + 1 end

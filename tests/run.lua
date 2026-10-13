@@ -21,6 +21,7 @@ require("tests.arena_layouts_spec")
 require("tests.arena_sites_spec")
 require("tests.adventure_handoff_spec")
 require("tests.camp_service_spec")
+require("tests.auto_kit_spec")
 
 if not Helper.run() then
     os.exit(1)

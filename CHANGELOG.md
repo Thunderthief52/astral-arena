@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0-alpha.1 — 2026-10-12
+
+- Added hireling auto-kit. Before every battle each Withers follower (Fighter, Cleric, Wizard, Rogue, Paladin, Ranger) catches up on a fixed per-class build plan for its level and equips the best gear it carries.
+  - Builds: Great Weapon Master fighters/paladins, Wisdom clerics with Bless, Healing Word, Spiritual Weapon, Spirit Guardians and Revivify, Intelligence wizards with Shield, Misty Step, Fireball, Haste and Counterspell, Dexterity rogues, Sharpshooter rangers with Hunter's Mark. Each step is applied exactly once and recorded in the save; spell or passive names missing from the installed game version are skipped and reported.
+  - Gear: armour by real armour class within the class's proficiencies, two-handers for great-weapon builds, one-hander plus shield for clerics, finesse weapons for rogues, bows for rangers, staffs and robes for wizards, the best two rings, and accessories that raise the class's main ability. Never swaps to worse gear.
+- Added `!aa_kit` (apply auto-kit now) and `!aa_party_report` (levels and equipped items for every party member).
+- Hirelings still level with the party automatically; player characters keep their own native level-up choices.
+
 ## 0.4.0-alpha.3 — 2026-10-12
 
 - Fixed the run stalling after the level-3 level-up: BG3 reports a message-box answer against whichever character the clicking player has selected (the other split-screen avatar or a hireling), and the arena only accepted the exact character the box was opened for, so "Yes" did nothing. Any active party member's answer now counts; a stranger's still does not.

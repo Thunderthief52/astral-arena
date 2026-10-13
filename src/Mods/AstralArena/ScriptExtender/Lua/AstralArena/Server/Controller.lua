@@ -13,6 +13,7 @@ local HirelingCatalog = Ext.Require("AstralArena/Shared/HirelingCatalog.lua")
 local CampPersistence = Ext.Require("AstralArena/Server/CampPersistence.lua")
 local CampService = Ext.Require("AstralArena/Server/CampService.lua")
 local RunPersistence = Ext.Require("AstralArena/Server/RunPersistence.lua")
+local AutoKitService = Ext.Require("AstralArena/Server/AutoKitService.lua")
 
 local Controller = { API = {} }
 local registered = false
@@ -28,6 +29,8 @@ end
 local sparring = Sparring.new(Bg3Adapter, printLine)
 local campService = CampService.new(Bg3Adapter, printLine, HirelingCatalog, CampPersistence)
 local soloArena = SoloArena.new(Bg3Adapter, printLine, AIFixtures, RewardCatalog, ArenaLayouts, ArenaSites, campService, RunPersistence)
+local autoKitService = AutoKitService.new(Bg3Adapter, printLine, HirelingCatalog, RunPersistence)
+soloArena.autoKitService = autoKitService
 Controller.Sparring = sparring
 Controller.SoloArena = soloArena
 Controller.CampService = campService
@@ -302,6 +305,8 @@ function Controller.Register()
         printLine("  !aa_ai_pick <1-6> <member>  deliver two random rolls and one selected item")
         printLine("  !aa_ai_menu                 reopen a dismissed arena decision prompt")
         printLine("  !aa_ai_ready                answer Yes to the open ready prompt (if clicking Yes did nothing)")
+        printLine("  !aa_kit                     make hirelings apply their build plan and equip their best gear now")
+        printLine("  !aa_party_report            list every party member's level and equipped items")
         printLine("  !aa_ai_continue             continue after every character finishes level-up")
         printLine("  !aa_ai_status               show run, reward, or level-up state")
         printLine("  !aa_ai_abort                restore players and delete active AI enemies")
@@ -419,6 +424,26 @@ function Controller.Register()
     Ext.RegisterConsoleCommand("aa_ai_ready", function()
         safely(function()
             soloArena:confirmReadyPrompt()
+        end)
+    end)
+
+    Ext.RegisterConsoleCommand("aa_kit", function()
+        safely(function()
+            autoKitService:refresh(Bg3Adapter.partyMembers())
+            printLine("Hireling auto-kit refreshed.")
+        end)
+    end)
+
+    Ext.RegisterConsoleCommand("aa_party_report", function()
+        safely(function()
+            for _, member in ipairs(Bg3Adapter.partyMembers()) do
+                local hireling = autoKitService:hirelingFor(member)
+                printLine(string.format("%s L%s %s", member.name or member.guid, tostring(member.level),
+                    hireling and ("hireling " .. hireling.className) or "player"))
+                for slot, fields in pairs(Bg3Adapter.equippedItems(member.guid)) do
+                    printLine(string.format("    %-14s %s", slot, tostring(fields.Name)))
+                end
+            end
         end)
     end)
 

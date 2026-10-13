@@ -27,6 +27,7 @@ Astral Arena is an experimental Baldur's Gate 3 arena Adventure for Windows. Ver
 - A custom controller-safe Withers camp service: each player-created avatar receives 300 gold once, hirelings cost 100 gold, and a solo or co-op party may optionally fill the normal four-person cap. The menu opens automatically before the first bout without spawning campaign-linked world entities.
 - Twelve deterministic-random formations, with levels 3 and 5 using Astral Flats, level 8 using Crescent Ruin, and level 10 using Echelon Steps.
 - Non-blocking post-bout flow: four level-scaled loot rolls per player plus all six rare candidates distributed across the party after wins.
+- Hireling auto-kit: Withers followers apply a per-class build plan for their level and equip the best gear they carry before every battle; players still make their own choices.
 - One-loss elimination: a defeat or a mutual knockout in any wave restores the party in staging, announces the run summary, and permanently ends that Adventure's run. The level-12 championship win is likewise recorded as final.
 - Save-safe progression: the elimination/champion result, the one-time armory, and the staging origin are stored in the savegame. Loading a save made mid-wave or mid-intermission deletes stale enemies, restores the party, and restarts that battle from wave 1 without counting a loss.
 - A 30-piece oversized ruin-arch perimeter around the active arena footprint.
@@ -140,6 +141,9 @@ This mode awards real loot and XP. Read [docs/AI_PLAYTEST.md](docs/AI_PLAYTEST.m
 | `!aa_ai_status` | Show AI run state. |
 | `!aa_ai_abort` | Abort combat, restore players, and delete temporary AI enemies. |
 | `!aa_ai_reset` | Reset session state without removing awarded loot, XP, or a recorded elimination. |
+| `!aa_kit` | Make hirelings apply their build plan and equip their best gear now. |
+| `!aa_party_report` | List every party member's level and equipped items. |
+| `!aa_ai_ready` | Answer Yes to the open ready prompt if clicking it did nothing. |
 | `!aa_ai_unlock_run` | Developer only: reopen a run that ended because of an engine bug. Recorded in the run history. |
 
 ## Build and test from source

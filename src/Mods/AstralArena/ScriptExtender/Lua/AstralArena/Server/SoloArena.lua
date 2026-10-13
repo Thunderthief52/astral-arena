@@ -603,6 +603,17 @@ function SoloArena:_startBout(party, options)
         end
     end
 
+    if self.autoKitService then
+        -- Hirelings catch up on their class build and wear their best gear
+        -- before every battle (after the armory and after each level-up).
+        local kitOk, kitError = pcall(function()
+            self.autoKitService:refresh(party.members)
+        end)
+        if not kitOk then
+            self.output("WARNING: hireling auto-kit skipped: " .. tostring(kitError))
+        end
+    end
+
     local layout = self.arenaLayouts and self.arenaLayouts.select(
         self.run.id .. "-bout-" .. tostring(self.run.battleIndex) .. "-wave-1"
     ) or nil

@@ -739,4 +739,136 @@ function Adapter.awardPartyToLevel(members, targetLevel)
     return awardedCount
 end
 
+-- AutoKit engine access ------------------------------------------------------
+
+local EQUIP_SLOTS = {
+    "Helmet", "Breast", "Cloak", "MeleeMainHand", "MeleeOffHand", "RangedMainHand",
+    "Ring", "Ring2", "Boots", "Gloves", "Amulet",
+}
+local STAT_FIELDS = {
+    "Slot", "ArmorClass", "ArmorType", "Rarity", "Boosts", "DefaultBoosts", "PassivesOnEquip",
+    "Proficiency Group", "Weapon Properties", "Damage",
+}
+
+local function bareUuid(guid)
+    local uuid = tostring(guid or ""):match("(%x%x%x%x%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%x%x%x%x%x%x%x%x)$")
+    return uuid or guid
+end
+
+local function flatten(value)
+    if type(value) == "table" then
+        local parts = {}
+        for _, part in pairs(value) do
+            table.insert(parts, tostring(part))
+        end
+        return table.concat(parts, ";")
+    end
+    return value
+end
+
+function Adapter.statExists(name)
+    local ok, stat = pcall(function()
+        return Ext.Stats.Get(name)
+    end)
+    return ok and stat ~= nil
+end
+
+function Adapter.itemStatFields(itemGuid)
+    local statsId = safely(function()
+        return Osi.GetStatString(itemGuid)
+    end)
+    if not statsId or statsId == "" then
+        statsId = safely(function()
+            local entity = Ext.Entity.Get(itemGuid)
+            return entity and entity.Data and entity.Data.StatsId
+        end)
+    end
+    if not statsId or statsId == "" then
+        return nil
+    end
+    local stat = safely(function()
+        return Ext.Stats.Get(statsId)
+    end)
+    if not stat then
+        return nil
+    end
+    local display = safely(function()
+        return translatedName(itemGuid)
+    end)
+    local fields = { id = bareUuid(itemGuid), Name = (display and display ~= itemGuid) and display or statsId }
+    for _, key in ipairs(STAT_FIELDS) do
+        local ok, value = pcall(function()
+            return stat[key]
+        end)
+        if ok and value ~= nil then
+            fields[key] = flatten(value)
+        end
+    end
+    return fields
+end
+
+function Adapter.equippedItems(guid)
+    local result = {}
+    for _, slot in ipairs(EQUIP_SLOTS) do
+        local itemGuid = safely(function()
+            return Osi.GetEquippedItem(guid, slot)
+        end)
+        if itemGuid and itemGuid ~= "" then
+            local fields = Adapter.itemStatFields(itemGuid)
+            if fields then
+                result[slot] = fields
+            end
+        end
+    end
+    return result
+end
+
+function Adapter.characterItems(guid)
+    local items = {}
+    local seen = {}
+    local function add(itemGuid)
+        if type(itemGuid) ~= "string" or itemGuid == "" or seen[bareUuid(itemGuid)] then
+            return
+        end
+        seen[bareUuid(itemGuid)] = true
+        local fields = Adapter.itemStatFields(itemGuid)
+        if fields then
+            table.insert(items, fields)
+        end
+    end
+    safely(function()
+        local entity = Ext.Entity.Get(guid)
+        local owner = entity and entity.InventoryOwner
+        for _, inventory in pairs(owner and owner.Inventories or {}) do
+            local container = inventory.InventoryContainer
+            for _, entry in pairs(container and container.Items or {}) do
+                local item = entry.Item
+                add(item and item.Uuid and item.Uuid.EntityUuid)
+            end
+        end
+    end)
+    for _, fields in pairs(Adapter.equippedItems(guid)) do
+        add(fields.id)
+    end
+    return items
+end
+
+function Adapter.equipItem(guid, itemGuid)
+    Osi.Equip(guid, itemGuid, 1, 0, 1)
+end
+
+function Adapter.addSpell(guid, spell)
+    Osi.AddSpell(guid, spell, 0, 1)
+end
+
+function Adapter.addPassive(guid, passive)
+    if Osi.HasPassive(guid, passive) ~= 1 then
+        Osi.AddPassive(guid, passive)
+    end
+end
+
+function Adapter.addBoosts(guid, boost)
+    Osi.AddBoosts(guid, boost, "AstralArena_AutoKit", "")
+end
+
 return Adapter
