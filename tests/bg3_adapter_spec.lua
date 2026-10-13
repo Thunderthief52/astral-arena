@@ -78,10 +78,12 @@ H.test("party XP award levels a recruited follower without avatar experience dat
     local previousExt = _G.Ext
     local previousOsi = _G.Osi
     local setLevel
+    local autoLevelled
     _G.Ext = { Entity = { Get = function() return nil end } }
     _G.Osi = {
         GetLevel = function() return 1 end,
         SetLevel = function(guid, level) setLevel = { guid, level } end,
+        RequestAutoLevel = function(guid) autoLevelled = guid end,
     }
     local awarded = Adapter.awardPartyToLevel({
         { guid = "hireling", name = "Hireling", level = 1, isAvatar = false },
@@ -91,6 +93,19 @@ H.test("party XP award levels a recruited follower without avatar experience dat
     H.equal(awarded, 1)
     H.equal(setLevel[1], "hireling")
     H.equal(setLevel[2], 3)
+    H.equal(autoLevelled, "hireling")
+end)
+
+H.test("auto-level survives an engine without the auto-level call", function()
+    local previousExt = _G.Ext
+    local previousOsi = _G.Osi
+    local setLevel
+    _G.Ext = {}
+    _G.Osi = { SetLevel = function(guid, level) setLevel = { guid, level } end }
+    Adapter.autoLevel("hireling", 5)
+    _G.Ext = previousExt
+    _G.Osi = previousOsi
+    H.equal(setLevel[2], 5)
 end)
 
 H.test("arena menu targets the host avatar when it is in the party", function()

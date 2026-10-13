@@ -381,6 +381,26 @@ function SoloArena:_party()
     return Roster.playerParty(self.adapter.partyMembers(), 4)
 end
 
+-- Hirelings re-check their build and gear every few seconds while the party
+-- waits (including while someone is still levelling), so armour, weapons and
+-- level-up picks are applied without needing a battle to start first.
+function SoloArena:_refreshKitPeriodically(members)
+    if not self.autoKitService or type(members) ~= "table" then
+        return
+    end
+    self.kitTicks = (self.kitTicks or 0) - 1
+    if self.kitTicks > 0 then
+        return
+    end
+    self.kitTicks = 10
+    local kitOk, kitError = pcall(function()
+        self.autoKitService:refresh(members)
+    end)
+    if not kitOk then
+        self.output("WARNING: hireling auto-kit skipped: " .. tostring(kitError))
+    end
+end
+
 function SoloArena:_repairMixedLevelParty()
     local members = self.adapter.partyMembers()
     if type(members) ~= "table" or #members < 1 or #members > 4 then
@@ -423,6 +443,28 @@ function SoloArena:_repairMixedLevelParty()
     end
 
     local awardedCount = self.adapter.awardPartyToLevel(members, targetLevel) or 0
+    self:_refreshKitPeriodically(members)
+    -- Never wait silently: after a short grace period say who is behind.
+    self.repairTicks = (self.repairTicks or 0) + 1
+    if self.repairTicks == 8 then
+        local behind = {}
+        for _, member in ipairs(members) do
+            if member.level < targetLevel then
+                table.insert(behind, string.format("%s (level %d)", member.name or member.guid, member.level))
+            end
+        end
+        if #behind > 0 then
+            local message = string.format(
+                "Waiting for %s to reach level %d. Finish any open level-up screens. Hirelings are auto-levelled every few seconds; if one still shows a level-up icon, open it and accept the suggested picks.",
+                table.concat(behind, ", "),
+                targetLevel
+            )
+            self.output(message)
+            for _, member in ipairs(members) do
+                self.adapter.notify(member.guid, message)
+            end
+        end
+    end
     if awardedCount > 0 and self.repairNoticeTarget ~= targetLevel then
         self.repairNoticeTarget = targetLevel
         self.output(string.format(
@@ -1344,6 +1386,9 @@ function SoloArena:autoAdvance()
     if self.adapter.isPartyInArena and not self.adapter.isPartyInArena(party.members) then
         return "outside"
     end
+    self.repairTicks = 0
+
+    self:_refreshKitPeriodically(party.members)
 
     if self.campService and self.campService.ensureCamp then
         self.campService:ensureCamp(party.members)

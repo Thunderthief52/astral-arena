@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0-alpha.2 — 2026-10-13
+
+- Fixed hirelings joining at level 1 and waiting for the player to click through their level-up screens, which stalled the run with no explanation (and, because gear was only applied when a battle started, also left them unequipped).
+  - New hires skip the game's one-time "recruitment respec" that resets them to level 1, and are levelled with the engine's own auto-level (the call Larian uses for origin characters), retried every few seconds until they match the party.
+  - Hirelings already in a save are caught up the same way when the save is loaded.
+  - Auto-kit (build plan and best gear) now runs every ten seconds while the party is waiting, not only when a battle starts.
+  - If anyone is still behind after about eight seconds, every player is told who is holding the run up and what to do.
+
 ## 0.5.0-alpha.1 — 2026-10-12
 
 - Added hireling auto-kit. Before every battle each Withers follower (Fighter, Cleric, Wizard, Rogue, Paladin, Ranger) catches up on a fixed per-class build plan for its level and equips the best gear it carries.

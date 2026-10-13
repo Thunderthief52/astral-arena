@@ -510,6 +510,26 @@ H.test("automatic onboarding repairs a split-screen avatar missed by the XP awar
     H.equal(subject.active.match.level, 3)
 end)
 
+H.test("a lagging hireling gets gear and a clear notice instead of a silent stall", function()
+    local adapter = fakeAdapter()
+    adapter.partyLevels = { 3, 1 }
+    local subject = arena(adapter)
+    local kitCalls = 0
+    subject.autoKitService = { refresh = function() kitCalls = kitCalls + 1 end }
+    for _ = 1, 7 do
+        H.equal(subject:autoAdvance(), "repairing")
+    end
+    H.equal(kitCalls, 1)
+    local before = #adapter.notifications
+    H.equal(subject:autoAdvance(), "repairing")
+    H.equal(#adapter.notifications, before + 2)
+    H.truthy(adapter.notifications[before + 1].message:find("Player 2 %(level 1%)"))
+    for _ = 1, 3 do
+        subject:autoAdvance()
+    end
+    H.equal(kitCalls, 2)
+end)
+
 H.test("automatic progression starts the next bout after reward level-up", function()
     local adapter = fakeAdapter()
     local subject = arena(adapter)

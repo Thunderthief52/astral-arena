@@ -34,7 +34,10 @@ local function safely(action)
     if ok then
         return result
     end
-    Ext.Utils.PrintWarning("[Astral Arena] Engine cleanup warning: " .. tostring(result))
+    local message = "[Astral Arena] Engine cleanup warning: " .. tostring(result)
+    if Ext and Ext.Utils and Ext.Utils.PrintWarning then
+        Ext.Utils.PrintWarning(message)
+    end
     return nil
 end
 
@@ -434,6 +437,11 @@ function Adapter.hireFollower(candidate, buyerGuid, targetLevel, callback)
         Osi.TeleportTo(hirelingGuid, buyerGuid, "AA_Hireling_Arrived", 0, 0, 0, 1, 1)
         safely(function() Osi.SetOnStage(hirelingGuid, 1) end)
         safely(function() Osi.SetLevel(hirelingGuid, targetLevel) end)
+        -- Larian's recruitment calls RequestInitialLevel once per companion
+        -- (_GLO_Shared_PartyMembers: PROC_CheckFirstTimeRecruited), which drops
+        -- a hireling to level 1 and hands every level-up to the player's UI.
+        -- Recording that one-time step as already done keeps the arena's level.
+        safely(function() Osi.DB_OnlyOncePerPlayer(hirelingGuid, "Recruitment_Respec") end)
         Osi.PROC_Hirelings_Hire(hirelingGuid, buyerGuid)
     end)
     if not ok then
@@ -441,7 +449,7 @@ function Adapter.hireFollower(candidate, buyerGuid, targetLevel, callback)
         return
     end
     Adapter.schedule(1200, function()
-        safely(function() Osi.SetLevel(hirelingGuid, targetLevel) end)
+        Adapter.autoLevel(hirelingGuid, targetLevel)
         for _, templateId in ipairs(candidate.equipment or {}) do
             if Adapter.validateItemTemplate(templateId) then
                 safely(function()
@@ -706,6 +714,32 @@ function Adapter.deliverItem(templateId, recipientGuid)
     Osi.TemplateAddTo(templateId, recipientGuid, 1, 1)
 end
 
+-- Brings a non-avatar party member (hireling) up to the target level without
+-- any level-up screens. SetLevel covers characters the engine still treats as
+-- NPCs; RequestAutoLevel is Larian's own "finish every pending level-up with
+-- automatic choices" call (used for origin starts in __AAB_CharacterCreation).
+-- Hirelings are levelled by the game's own auto-level (the same call Larian
+-- uses to level origin characters at character creation), so nobody has to
+-- click through their level-up screens. The arena polls every second; ask the
+-- engine again only every few seconds per character.
+local autoLevelAttempts = {}
+
+function Adapter.autoLevel(guid, targetLevel)
+    local key = tostring(guid) .. "@" .. tostring(targetLevel)
+    local attempt = (autoLevelAttempts[key] or 0) + 1
+    autoLevelAttempts[key] = attempt
+    if attempt % 5 ~= 1 then
+        return false
+    end
+    safely(function()
+        Osi.SetLevel(guid, targetLevel)
+    end)
+    safely(function()
+        Osi.RequestAutoLevel(guid)
+    end)
+    return true
+end
+
 function Adapter.awardPartyToLevel(members, targetLevel)
     local targetExperience = TOTAL_EXPERIENCE[targetLevel]
     if not targetExperience then
@@ -720,7 +754,7 @@ function Adapter.awardPartyToLevel(members, targetLevel)
         if member.isAvatar == false then
             local currentLevel = tonumber(member.level) or tonumber(Osi.GetLevel(member.guid)) or 1
             if currentLevel < targetLevel then
-                Osi.SetLevel(member.guid, targetLevel)
+                Adapter.autoLevel(member.guid, targetLevel)
                 awardedCount = awardedCount + 1
             end
         else
