@@ -14,8 +14,12 @@ import json
 import math
 import os
 import subprocess
+import sys
 import uuid
 from xml.sax.saxutils import quoteattr
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import navgrid  # noqa: E402
 
 MODULE = "AstralArenaAdventure_29c48c80-8777-f7b5-6bb8-376c1c5d8db6"
 NAMESPACE = uuid.UUID("29c48c80-8777-f7b5-6bb8-376c1c5d8db6")
@@ -162,6 +166,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--conv", required=True, help="path to the built conv.dll (LSLib converter)")
     parser.add_argument("--lsx-only", action="store_true")
+    parser.add_argument("--per-object", metavar="DIR",
+                        help="also write Toolkit editor files (one <MapKey>.lsf per object) under DIR/Scenery and DIR/Lights")
     args = parser.parse_args()
     root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     manifest = json.load(open(os.path.join(root, "toolkit", "scenery", "AA_Arena_Main.scenery.json"), encoding="utf-8"))
@@ -171,7 +177,16 @@ def main():
         if len(set(ids)) != len(ids) or len(set(names)) != len(names):
             raise SystemExit(f"duplicate {collection} id or name in the scenery manifest")
     level_root = os.path.join(root, "toolkit", "Data", "Mods", MODULE, "Levels", manifest["levelName"])
-    for folder, writer in (("Scenery", scenery_objects(manifest)), ("Lights", light_objects(manifest))):
+    # Tactical cover only ships to the game once the AI grid was rebuilt for it;
+    # otherwise characters would walk straight through it again.
+    game_manifest = dict(manifest)
+    stale = navgrid.stale_reason(root, manifest)
+    if stale:
+        held = [obj["id"] for obj in manifest["objects"] if obj.get("tactical")]
+        game_manifest["objects"] = [obj for obj in manifest["objects"] if not obj.get("tactical")]
+        if held:
+            print(f"holding back {len(held)} tactical pieces from the game build: {stale}")
+    for folder, writer in (("Scenery", scenery_objects(game_manifest)), ("Lights", light_objects(game_manifest))):
         out_dir = os.path.join(level_root, folder)
         os.makedirs(out_dir, exist_ok=True)
         lsx = os.path.join(out_dir, "_merged.lsx")
@@ -181,7 +196,32 @@ def main():
             continue
         subprocess.run(["dotnet", args.conv, lsx, os.path.join(out_dir, "_merged.lsf")], check=True)
         os.remove(lsx)
+    if args.per_object:
+        write_per_object(manifest, args.per_object, args.conv)
     print(f"built {len(manifest['objects'])} scenery objects and {len(manifest['lights'])} lights")
+
+
+def write_per_object(manifest, out_root, conv):
+    """The Toolkit editor loads one file per object; the game loads _merged.lsf."""
+    jobs = []
+    for folder, collection, prefix, builder in (
+        ("Scenery", "objects", "scenery/", scenery_objects),
+        ("Lights", "lights", "light/", light_objects),
+    ):
+        out_dir = os.path.join(out_root, folder)
+        os.makedirs(out_dir, exist_ok=True)
+        for entry in manifest[collection]:
+            single = dict(manifest)
+            single[collection] = [entry]
+            key = deterministic_guid(prefix + entry["id"])
+            lsx = os.path.join(out_dir, key + ".lsx")
+            with open(lsx, "w", encoding="utf-8", newline="\n") as handle:
+                handle.write(merged_lsx(builder(single)))
+            jobs.append((lsx, os.path.join(out_dir, key + ".lsf")))
+    for lsx, lsf in jobs:
+        subprocess.run(["dotnet", conv, lsx, lsf], check=True, stdout=subprocess.DEVNULL)
+        os.remove(lsx)
+    print(f"wrote {len(jobs)} Toolkit editor files under {out_root}")
 
 
 if __name__ == "__main__":

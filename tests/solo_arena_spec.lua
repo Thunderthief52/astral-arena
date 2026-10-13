@@ -790,3 +790,27 @@ H.test("the developer override reopens a false elimination", function()
     H.equal(subject:autoAdvance(), "started")
     H.equal(subject.menu.kind, "wave_start")
 end)
+
+H.test("any party member may answer the ready prompt, as BG3 reports the selected character", function()
+    local adapter = fakeAdapter()
+    adapter.partySize = 2
+    local subject = arena(adapter)
+    subject:start()
+    H.equal(subject.menu.ownerGuid, "player-a")
+    -- A stranger cannot answer.
+    H.equal(subject:handleMenuResponse("someone-else", subject.menu.messageKey, true), false)
+    H.equal(adapter.spawnCalls, 0)
+    -- The second split-screen player (or a selected hireling) can.
+    H.truthy(subject:handleMenuResponse("player-b", subject.menu.messageKey, true))
+    H.equal(adapter.spawnCalls, 1)
+    H.equal(subject.active.match.phase, "combat")
+end)
+
+H.test("the console ready command answers an open wave prompt", function()
+    local adapter = fakeAdapter()
+    local subject = arena(adapter)
+    subject:start()
+    subject:confirmReadyPrompt()
+    H.equal(adapter.spawnCalls, 1)
+    H.raises(function() subject:confirmReadyPrompt() end, "no wave ready prompt")
+end)

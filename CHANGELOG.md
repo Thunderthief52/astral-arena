@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0-alpha.3 — 2026-10-12
+
+- Fixed the run stalling after the level-3 level-up: BG3 reports a message-box answer against whichever character the clicking player has selected (the other split-screen avatar or a hireling), and the arena only accepted the exact character the box was opened for, so "Yes" did nothing. Any active party member's answer now counts; a stranger's still does not.
+- Withers' ledger accepts answers the same way and charges whichever avatar can pay, never a selected hireling with no gold.
+- Added `!aa_ai_ready` to confirm the open ready prompt from the console if a click is ever lost again.
+- Fixed the alpha.2 install: the copy written to the Mods folder on 2026-09-23 was actually alpha.1. Installs are now verified by checksum on the PC.
+- Tactical cover is defined in the scenery manifest but is held back from the game build until the Toolkit regenerates the navigation grid for it (`tools/scenery/navgrid.py`, `record_navgrid.py`).
+
 ## 0.4.0-alpha.2 — 2026-09-23
 
 - Fixed characters running through pillars, arches, statues, and raised floors. Root cause: `AA_Arena_Main`'s navigation grid was generated on 2026-08-10 for the bare ground plane and never rebuilt after 96 decorations were added, so BG3 treated every object as open floor. Until the grid is regenerated in the Toolkit, no solid or raised scenery is reachable: 30 ruin arches now form a ring 5 m beyond the ground's edge, the Jergal monument, Selûnite statue, and high arch are enlarged backdrop pieces past the north, west, and south edges, the Underdark cliffs and mushrooms sit outside the ground, and the Crescent floor plus the six Echelon stairs/platforms are removed.

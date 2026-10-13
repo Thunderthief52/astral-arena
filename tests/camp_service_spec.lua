@@ -101,3 +101,16 @@ H.test("a failed hire refunds its gold", function()
     service:handleMenuResponse("player-a", menu.key, 1)
     H.equal(gold["player-a"], 300)
 end)
+
+H.test("a hireling selected by the clicking player can answer Withers and the avatar pays", function()
+    local service, adapter, members, gold = fixture()
+    service:prepareOnboarding(members, 3)
+    service:handleMenuResponse("player-a", adapter.menus[1].key, 1)
+    local hireling = members[3].guid
+    local secondMenu = adapter.menus[#adapter.menus]
+    H.truthy(service:handleMenuResponse(hireling, secondMenu.key, 1))
+    H.equal(#members, 4)
+    H.equal(gold["player-a"], 100)
+    H.equal(gold[hireling] or 0, 0)
+    H.equal(service:handleMenuResponse("stranger", secondMenu.key, 1), false)
+end)

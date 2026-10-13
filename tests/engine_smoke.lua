@@ -222,7 +222,10 @@ local function answerMenus(answer, onlyKey)
         local box = messageBoxes[index]
         if box.kind == "yesno" and (not onlyKey or box.key == onlyKey) then
             table.remove(messageBoxes, index)
-            fire("MessageBoxYesNoClosed", box.guid, box.key, answer)
+            -- BG3 reports the clicking player's selected character, which is often
+            -- not the character the box was opened for.
+            local responder = box.key == "h4b7ad31ee2074bfab4a21407db48a032" and world.party[#world.party] or box.guid
+            fire("MessageBoxYesNoClosed", responder, box.key, answer)
             handled = handled + 1
         else
             index = index + 1

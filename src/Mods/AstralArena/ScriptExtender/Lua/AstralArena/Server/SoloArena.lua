@@ -137,6 +137,25 @@ local function gauntletPosition(level)
     return 1, #PROGRESSION_LEVELS
 end
 
+-- BG3 reports a message-box answer against whichever character the clicking
+-- player currently has selected: a hireling, the other split-screen avatar, or
+-- the host. Any active party member may therefore answer an arena prompt.
+local function isPartyResponder(adapter, menu, characterGuid)
+    if characterGuid == menu.ownerGuid then
+        return true
+    end
+    local ok, members = pcall(adapter.partyMembers)
+    if not ok or type(members) ~= "table" then
+        return false
+    end
+    for _, member in ipairs(members) do
+        if member.guid == characterGuid then
+            return true
+        end
+    end
+    return false
+end
+
 local function menuResultIsYes(result)
     return result == true or result == 1 or result == "1"
 end
@@ -219,7 +238,7 @@ end
 
 function SoloArena:handleMenuResponse(characterGuid, messageKey, result)
     local menu = self.menu
-    if not menu or characterGuid ~= menu.ownerGuid or messageKey ~= menu.messageKey then
+    if not menu or messageKey ~= menu.messageKey or not isPartyResponder(self.adapter, menu, characterGuid) then
         return false
     end
 
@@ -279,6 +298,14 @@ function SoloArena:handleMenuResponse(characterGuid, messageKey, result)
     end
 
     return false
+end
+
+function SoloArena:confirmReadyPrompt()
+    local menu = self.menu
+    if not menu or menu.kind ~= "wave_start" then
+        error("no wave ready prompt is open", 2)
+    end
+    return self:handleMenuResponse(menu.ownerGuid, menu.messageKey, true)
 end
 
 function SoloArena:_openWaveStartMenu(members, options)

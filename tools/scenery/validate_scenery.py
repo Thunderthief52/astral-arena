@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-"""Checks the arena geometry that the BG3 navigation grid does NOT protect.
+"""Checks the arena geometry, including whether the navigation grid is current.
 
-AA_Arena_Main's AI grid treats the whole ground plane as open floor, so any
-solid scenery a character can reach is walked straight through. Until the grid
-is regenerated in the Toolkit, the rules are:
+BG3 moves characters using the level's AI grid (Ai/aigrid.data), which only
+the Toolkit can generate. A solid or walk-on object the grid does not know about
+is walked straight through, so the rules are:
 
-* solid or walk-on scenery must sit at least `solidClearance` metres outside the
-  walkable ground (the only exception is a walk-on floor inside the staging court);
+* tactical scenery (solid cover or walk-on high ground) may stand on the
+  walkable ground only if toolkit/scenery/AA_Arena_Main.navgrid.json records
+  that the current aigrid.data was generated for exactly this scenery
+  (see record_navgrid.py); every other solid or walk-on object must sit at least
+  `solidClearance` metres outside the ground (a walk-on floor inside the
+  staging court is exempt);
 * every party and enemy spawn for every site and formation lies on the ground
   with a 6 m margin and at least 3 m from any scenery object;
 * banners stay out of every combat lane;
@@ -16,6 +20,9 @@ import json
 import os
 import subprocess
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import navgrid  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -33,6 +40,8 @@ def main():
     staging_zones = [z for z in manifest["navigationClearZones"] if z["id"] == "staging-center"]
     errors = []
 
+    stale_reason = navgrid.stale_reason(ROOT, manifest)
+    tactical_count = 0
     for obj in manifest["objects"]:
         x, z = obj["position"][0], obj["position"][2]
         solid = obj.get("walkThrough") is not True
@@ -40,8 +49,14 @@ def main():
             continue
         if obj.get("walkOn") and any(inside((x, z), zone["minimum"], zone["maximum"]) for zone in staging_zones):
             continue
-        if inside((x, z), (lo[0] - clearance, lo[1] - clearance), (hi[0] + clearance, hi[1] + clearance)):
-            errors.append(f"solid scenery {obj['id']} at ({x}, {z}) is reachable from the walkable ground")
+        if not inside((x, z), (lo[0] - clearance, lo[1] - clearance), (hi[0] + clearance, hi[1] + clearance)):
+            continue
+        if obj.get("tactical") is True:
+            # build_scenery.py leaves tactical pieces out of the game build until
+            # the grid is current, so a stale grid is safe, just incomplete.
+            tactical_count += 1
+            continue
+        errors.append(f"solid scenery {obj['id']} at ({x}, {z}) is reachable from the walkable ground; mark it tactical or move it")
 
     spawns = []
     for site in geometry["sites"]:
@@ -57,8 +72,9 @@ def main():
             errors.append(f"{name} spawn {point} is not on the walkable ground with a 6 m margin")
         for obj in manifest["objects"]:
             ox, oz = obj["position"][0], obj["position"][2]
-            if (ox - point[0]) ** 2 + (oz - point[1]) ** 2 < 9 and obj.get("id") != "staging-platform":
-                errors.append(f"{name} spawn {point} is within 3 m of {obj['id']}")
+            limit = 16 if obj.get("tactical") else 9
+            if (ox - point[0]) ** 2 + (oz - point[1]) ** 2 < limit and obj.get("id") != "staging-platform":
+                errors.append(f"{name} spawn {point} is within {int(limit ** 0.5)} m of {obj['id']}")
 
     for zone in manifest["combatClearZones"]:
         if not (inside(zone["minimum"], lo, hi) and inside(zone["maximum"], lo, hi)):
@@ -82,7 +98,8 @@ def main():
         print("\n".join(errors))
         sys.exit(1)
     print(f"scenery validation passed: {len(manifest['objects'])} objects, {len(spawns)} spawn points, "
-          f"enemy lines {separations[0]}-{separations[-1]} m from the party")
+          f"enemy lines {separations[0]}-{separations[-1]} m from the party, {tactical_count} tactical pieces "
+          f"({'navigation grid current' if not stale_reason else 'NAVIGATION GRID STALE'})")
 
 
 if __name__ == "__main__":

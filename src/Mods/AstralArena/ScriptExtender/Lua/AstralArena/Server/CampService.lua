@@ -7,6 +7,25 @@ local STARTING_GOLD = 300
 local HIRELING_COST = 100
 local MAX_PARTY_SIZE = 4
 
+-- BG3 reports a message-box answer against whichever character the clicking
+-- player currently has selected: a hireling, the other split-screen avatar, or
+-- the host. Any active party member may therefore answer an arena prompt.
+local function isPartyResponder(adapter, menu, characterGuid)
+    if characterGuid == menu.ownerGuid then
+        return true
+    end
+    local ok, members = pcall(adapter.partyMembers)
+    if not ok or type(members) ~= "table" then
+        return false
+    end
+    for _, member in ipairs(members) do
+        if member.guid == characterGuid then
+            return true
+        end
+    end
+    return false
+end
+
 local function menuResultIsYes(result)
     return result == true or result == 1 or result == "1"
 end
@@ -166,7 +185,7 @@ end
 
 function CampService:handleMenuResponse(characterGuid, messageKey, result)
     local menu = self.menu
-    if not menu or characterGuid ~= menu.ownerGuid or messageKey ~= menu.messageKey then
+    if not menu or messageKey ~= menu.messageKey or not isPartyResponder(self.adapter, menu, characterGuid) then
         return false
     end
     local candidate = menu.candidate
@@ -175,12 +194,28 @@ function CampService:handleMenuResponse(characterGuid, messageKey, result)
         self:_showMenu()
         return true
     end
-    if self.adapter.getGold(characterGuid) < HIRELING_COST then
-        self.adapter.notify(characterGuid, "Withers requires 100 gold. Choose another buyer or return later.")
+    -- Pay with the responder's gold when they can afford it, otherwise with
+    -- the menu owner's or any other avatar's purse (a selected hireling has none).
+    local buyer = nil
+    local candidates = { characterGuid, menu.ownerGuid }
+    for _, member in ipairs(self.adapter.partyMembers()) do
+        if isAvatar(member) then
+            table.insert(candidates, member.guid)
+        end
+    end
+    for _, guid in ipairs(candidates) do
+        if guid and self.adapter.getGold(guid) >= HIRELING_COST then
+            buyer = guid
+            break
+        end
+    end
+    if not buyer then
+        self.adapter.notify(characterGuid, "Withers requires 100 gold. Choose another class or close the ledger.")
         menu.candidateIndex = menu.candidateIndex + 1
         self:_showMenu()
         return true
     end
+    characterGuid = buyer
 
     local level = self.onboardingLevel
     if not level then
