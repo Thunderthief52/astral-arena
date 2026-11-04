@@ -46,7 +46,7 @@ if ($Values.Type -ne "Adventure") { throw "Module type must be Adventure." }
 if ($Values.StartupLevelName -ne "AA_Arena_Main") { throw "Startup level is not AA_Arena_Main." }
 if ($Values.CharacterCreationLevelName -ne "") { throw "Character creation must inherit BG3's system character creator." }
 if ($Values.NumPlayers -ne "4") { throw "Adventure must support four players." }
-if ($Values.Version64 -ne "36028797018963991") { throw "Adventure module version is not 0.5.1-alpha.1 build 23." }
+if ($Values.Version64 -ne "36028797018963992") { throw "Adventure module version is not 0.6.0-alpha.1 build 24." }
 if ((Get-Content -LiteralPath $MetaPath -Raw) -match 'WLD_|BGO_|CRE_|END_|TUT_') {
     throw "Adventure metadata references a vanilla campaign level."
 }
@@ -203,12 +203,12 @@ foreach ($Zone in $ClearZones) {
         $Position = @($Object.position)
         $BlocksTravel = $Object.walkThrough -ne $true -and $Object.walkOn -ne $true
         $Inside = $Position[0] -ge $Zone.minimum[0] -and $Position[0] -le $Zone.maximum[0] -and $Position[2] -ge $Zone.minimum[1] -and $Position[2] -le $Zone.maximum[1]
-        if ($BlocksTravel -and $Inside) {
+        if ($BlocksTravel -and $Inside -and $Object.tactical -ne $true) {
             throw "Solid scenery '$($Object.id)' intrudes into combat-clear zone '$($Zone.id)'."
         }
     }
 }
-if (@($SceneryManifest.objects | Where-Object { $_.id -match '(rock|boulder)' }).Count -gt 0) {
+if (@($SceneryManifest.objects | Where-Object { ($_.id -match '(rock|boulder)') -and $_.tactical -ne $true }).Count -gt 0) {
     throw "Collision-unsafe planted rocks or boulders remain in the arena scenery manifest."
 }
 
@@ -223,8 +223,8 @@ if ($ActualLightFiles.Count -ne 1 -or $ActualLightFiles[0].Name -ne "_merged.lsf
     throw "Arena lights must be compiled into the engine-loaded Lights/_merged.lsf resource."
 }
 $SceneryBuilderText = Get-Content -LiteralPath (Join-Path $RepositoryRoot "scripts\Build-ArenaScenery.ps1") -Raw
-if ($SceneryBuilderText -notmatch "Add-Attribute \`$writer 'Flag' 'uint8' '1'") {
-    throw "Arena scenery Flag must use the Toolkit-authored uint8 resource type."
+if ($SceneryBuilderText -notmatch "Add-Attribute \`$writer 'Flag' 'int32' '1'") {
+    throw "Arena scenery Flag must use the Toolkit-verified int32 resource type."
 }
 if ($GeneratedSceneryIndex.Count -ne 2) {
     throw "Generated scenery index does not match the manifest."

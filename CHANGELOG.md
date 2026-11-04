@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.0-alpha.1 — 2026-11-04 (rebuilt candidate)
+
+- Rebuilt the missing candidate from recovered source; includes the 0.5.1 ledger fix.
+- Loaded all 114 scenery objects and 16 lights as individual Toolkit resources, corrected the editor-reported Flag type mismatch to int32, reloaded, and performed Full Generate plus AI Grid Save.
+- Enabled the 25 staged tactical cover and high-ground pieces with a matching navigation fingerprint. The saved AI grid now has 147,548 cells and geometry validation covers 156 spawn points.
+- Preserved the installed Toolkit project under build/toolkit-before-navigation before staging changes. This is a development backup, excluded from Git.
+- Automated checks: 148 tests, engine smoke simulation, scenery geometry validation, and Toolkit project validation pass. Actual movement, elevation, appearance, ledger text, and party-wipe behavior still require in-game checks.
+
 ## 0.5.1-alpha.1 — 2026-11-04
 
 - Recovered the 0.5.0-alpha.2 source from the surviving local Git bundle. No 0.6.0 package or source was found in the recovery folder; this is a new maintenance candidate.

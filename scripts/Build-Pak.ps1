@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$Version = "0.5.1-alpha.1",
+    [string]$Version = "0.6.0-alpha.1",
     [string]$Bg3DataPath,
     [string]$DivinePath
 )

@@ -189,7 +189,7 @@ Write-MergedResource $sceneryOutputPath {
         Add-Attribute $writer 'TemplateName' 'FixedString' ([string]$object.template)
         # Toolkit-authored scenery serializes Flag as uint8. Using int32 here
         # makes the merged resource parse but causes BG3 to discard its objects.
-        Add-Attribute $writer 'Flag' 'uint8' '1'
+        Add-Attribute $writer 'Flag' 'int32' '1'
         Add-Attribute $writer 'CanClickThrough' 'bool' $(if ($canClickThrough) { 'True' } else { 'False' })
         if ($null -ne $object.cover) { Add-Attribute $writer 'CoverAmount' 'uint8' ([string]$object.cover) }
         Add-Attribute $writer 'WalkOn' 'bool' $(if ($walkOn) { 'True' } else { 'False' })

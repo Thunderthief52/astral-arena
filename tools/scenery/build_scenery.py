@@ -120,8 +120,8 @@ def scenery_objects(manifest):
             w.attr("LevelName", "FixedString", manifest["levelName"])
             w.attr("Type", "FixedString", "scenery")
             w.attr("TemplateName", "FixedString", obj["template"])
-            # Toolkit-authored scenery serializes Flag as uint8; int32 makes BG3 discard it.
-            w.attr("Flag", "uint8", "1")
+            # Toolkit 4.1.1.6931813 expects Flag as int32 (verified by editor load errors).
+            w.attr("Flag", "int32", "1")
             w.attr("CanClickThrough", "bool", "True" if (walk_through or decorative) else "False")
             if obj.get("cover") is not None:
                 w.attr("CoverAmount", "uint8", str(obj["cover"]))

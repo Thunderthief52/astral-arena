@@ -7,10 +7,17 @@ The surviving `C:\Users\atper\Documents\AstralArena\astral-arena.bundle` ends at
 0.6.0 PAK was found. Work continues in `astral-arena-recovered`, preserving the
 other workspace copies and their unfinished changes.
 
-0.5.1-alpha.1 is a maintenance candidate with packaged Withers prompts. It retains
-the open-field terrain from 0.5.0. The manifest's tactical props remain excluded
-until the navigation grid matches them. Do not record the existing flat grid as
-current merely to enable cover. Rebuild it in the Toolkit first.
+0.5.1-alpha.1 added packaged Withers prompts. The new 0.6.0-alpha.1 candidate
+includes all 25 tactical pieces among 114 scenery objects. Full Generate and
+AI Grid Save were executed in Toolkit 4.1.1.6931813 on November 4. The grid grew
+from 147,260 to 147,548 cells; its saved file changed from 300 to 4,367 bytes.
+The scenery fingerprint and actual grid checksum are recorded in
+`toolkit/scenery/AA_Arena_Main.navgrid.json`. Geometry validation passes for all
+156 spawn points. Gameplay validation remains pending.
+
+The Toolkit reported that scenery `Flag` must be int32, contradicting the older
+uint8 assumption. Editor objects were corrected and reloaded before generating
+navigation; both builders now use int32. Real-game rendering must still be checked.
 
 ## Real-game release gate
 
