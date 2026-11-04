@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$Version = "0.5.0-alpha.2"
+    [string]$Version = "0.5.1-alpha.1"
 )
 
 $ErrorActionPreference = "Stop"
@@ -14,7 +14,12 @@ $Archive = Join-Path $RepositoryRoot "dist\AstralArena-$Version.zip"
 $AdventurePak = Join-Path $RepositoryRoot "dist\AstralArena-$Version.pak"
 
 if (Test-Path $BuildRoot) {
-    Remove-Item $BuildRoot -Recurse -Force
+    $ResolvedBuild = (Resolve-Path -LiteralPath $BuildRoot).Path
+    $AllowedBuildRoot = [IO.Path]::GetFullPath((Join-Path $RepositoryRoot "build"))
+    if (-not $ResolvedBuild.StartsWith($AllowedBuildRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Refusing to clear unexpected build path: $ResolvedBuild"
+    }
+    Remove-Item -LiteralPath $ResolvedBuild -Recurse -Force
 }
 New-Item -ItemType Directory -Force -Path $BuildRoot | Out-Null
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $Archive) | Out-Null

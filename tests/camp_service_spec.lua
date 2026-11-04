@@ -55,6 +55,31 @@ local function fixture()
     return service, adapter, members, gold, function() return state end, output
 end
 
+H.test("every Withers candidate has distinct packaged text with the correct price and class", function()
+    local file = assert(io.open("src/Localization/English/AstralArena_English.xml", "r"))
+    local xml = file:read("*a")
+    file:close()
+    local seen = {}
+    for _, candidate in ipairs(Catalog) do
+        H.equal(seen[candidate.menuMessageKey], nil)
+        seen[candidate.menuMessageKey] = true
+        local text = xml:match('contentuid="' .. candidate.menuMessageKey .. '"[^>]*>(.-)</content>')
+        H.truthy(text and text:find(candidate.displayName, 1, true))
+        H.truthy(text:find(candidate.className, 1, true))
+        H.truthy(text:find("100 gold", 1, true))
+    end
+end)
+
+H.test("a stale Withers answer cannot hire the next candidate", function()
+    local service, adapter, members = fixture()
+    service:prepareOnboarding(members, 3)
+    local key = adapter.menus[1].key
+    service:handleMenuResponse("player-a", key, 0)
+    H.equal(service:handleMenuResponse("player-a", key, 1), false)
+    H.equal(#members, 2)
+    H.equal(#adapter.hires, 0)
+end)
+
 H.test("arena camp grants each avatar starting gold exactly once without spawning world entities", function()
     local service, adapter, members, gold = fixture()
     service:ensureCamp(members)
@@ -67,13 +92,14 @@ end)
 H.test("Withers onboarding hires level-matched followers and stops at four", function()
     local service, adapter, members, gold, getState = fixture()
     H.equal(service:prepareOnboarding(members, 3), "waiting")
-    H.truthy(adapter.menus[1].message:find("Eldra Luthrinn", 1, true) ~= nil)
+    H.equal(adapter.menus[1].key, Catalog[1].menuMessageKey)
+    H.equal(adapter.menus[1].message, nil)
     service:handleMenuResponse("player-a", adapter.menus[1].key, 1)
     H.equal(#members, 3)
     H.equal(gold["player-a"], 200)
     H.equal(adapter.hires[1].level, 3)
     local secondMenu = adapter.menus[#adapter.menus]
-    H.truthy(secondMenu.message:find("Zenith Feur'sel", 1, true) ~= nil)
+    H.equal(secondMenu.key, Catalog[2].menuMessageKey)
     service:handleMenuResponse("player-a", secondMenu.key, true)
     H.equal(#members, 4)
     H.equal(gold["player-a"], 100)

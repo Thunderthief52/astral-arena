@@ -42,6 +42,18 @@ local members = {
     { guid = "player-b", name = "Player B", isAvatar = true },
 }
 
+H.test("a packaged menu opens without a runtime localization override", function()
+    local previousExt, previousOsi = _G.Ext, _G.Osi
+    local opened
+    _G.Ext = { Loca = { UpdateTranslatedString = function() error("must use packaged text") end } }
+    _G.Osi = { OpenMessageBoxYesNo = function(guid, key) opened = { guid, key } end }
+    local ok, err = pcall(Adapter.openYesNo, "player-a", "hpackaged")
+    _G.Ext, _G.Osi = previousExt, previousOsi
+    H.truthy(ok, err)
+    H.equal(opened[1], "player-a")
+    H.equal(opened[2], "hpackaged")
+end)
+
 H.test("party XP award reaches independently owned split-screen avatars", function()
     withExperienceMode("per-avatar", function(experience, calls)
         local awarded = Adapter.awardPartyToLevel(members, 5)

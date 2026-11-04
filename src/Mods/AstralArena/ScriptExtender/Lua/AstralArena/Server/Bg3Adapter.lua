@@ -397,7 +397,7 @@ function Adapter.openYesNo(guid, messageKey, message)
     if not guid or guid == "" then
         error("arena menu requires a player character", 2)
     end
-    if Ext.Loca and Ext.Loca.UpdateTranslatedString then
+    if type(message) == "string" and Ext.Loca and Ext.Loca.UpdateTranslatedString then
         safely(function()
             Ext.Loca.UpdateTranslatedString(messageKey, message)
         end)

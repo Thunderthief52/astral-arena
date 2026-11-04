@@ -1,5 +1,10 @@
 # Astral Arena next steps
 
+Current release gate: [RELEASE_STATUS.md](RELEASE_STATUS.md). For the gauntlet
+release, defer the nine additional sites and graphical reward picker listed in
+the historical plan below. Online progression must include levels 3, 5, 8, 10,
+and 12. The older four-stage bracket remains a separate simulator.
+
 This roadmap converts the broad milestones into testable releases. Dates are intentionally omitted until the corresponding engine boundary has survived a real BG3 playtest.
 
 ## 0.1.x — campaign-space engine validation

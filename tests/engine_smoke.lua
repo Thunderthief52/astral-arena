@@ -338,7 +338,11 @@ expect(answerMenus(true, "h93ba8d19ef074e7eb7c59686bbc9fbb5") == 1, "Withers sho
 runTimers(2000)
 for _ = 1, 10 do
     runTimers(1000)
-    if answerMenus(false, "h93ba8d19ef074e7eb7c59686bbc9fbb5") == 0 then break end
+    local handled = 0
+    for _, candidate in ipairs(Ext.Require("AstralArena/Shared/HirelingCatalog.lua")) do
+        handled = handled + answerMenus(false, candidate.menuMessageKey)
+    end
+    if handled == 0 then break end
 end
 expect(#world.party == 3, "the fighter hireling should join the party")
 local fighterGuid = world.party[3]

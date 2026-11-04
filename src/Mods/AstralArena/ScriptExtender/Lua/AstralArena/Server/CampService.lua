@@ -1,5 +1,3 @@
-local Constants = Ext.Require("AstralArena/Shared/Constants.lua")
-
 local CampService = {}
 CampService.__index = CampService
 
@@ -128,7 +126,9 @@ function CampService:_showMenu()
     end
     menu.candidateIndex = index
     menu.candidate = candidate
-    menu.messageKey = Constants.MenuMessages.hireling
+    -- Packaged per-candidate text is available on every client before the box
+    -- opens. Server-side localization overrides do not guarantee that.
+    menu.messageKey = candidate.menuMessageKey
     local remaining = #self.catalog - index
     local tail = remaining > 0
         and "Choose No to view another class."
@@ -143,7 +143,8 @@ function CampService:_showMenu()
         self.adapter.getGold(menu.ownerGuid),
         tail
     )
-    self.adapter.openYesNo(menu.ownerGuid, menu.messageKey, message)
+    self.adapter.notify(menu.ownerGuid, message)
+    self.adapter.openYesNo(menu.ownerGuid, menu.messageKey)
     return true
 end
 

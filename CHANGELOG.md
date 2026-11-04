@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.1-alpha.1 — 2026-11-04
+
+- Recovered the 0.5.0-alpha.2 source from the surviving local Git bundle. No 0.6.0 package or source was found in the recovery folder; this is a new maintenance candidate.
+- Withers now uses six packaged localized prompts, each naming the offered hireling, class, and 100-gold price. Live party size and gold remain in the accompanying notification. The menu no longer depends on server-only localization overrides reaching a client.
+- Each candidate has its own response key, so a delayed answer to the previous candidate cannot hire the next one.
+- Updated README installation/build version and recorded the remaining engine validation in docs/RELEASE_STATUS.md.
+- Tactical cover remains held back until the Toolkit navigation grid is regenerated and checked. No new real-game validation is claimed.
+
 ## 0.5.0-alpha.2 — 2026-10-13
 
 - Fixed hirelings joining at level 1 and waiting for the player to click through their level-up screens, which stalled the run with no explanation (and, because gear was only applied when a battle started, also left them unequipped).
