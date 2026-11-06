@@ -1,11 +1,12 @@
 # Astral Arena
 
-**Current candidate: 0.6.0-alpha.1.** Newly rebuilt from the recovered 0.5.0 source
-and the 0.5.1 ledger fix. Cover and high ground now have a real Toolkit navigation
+**Current candidate: 0.6.0-alpha.2.** Newly rebuilt from the recovered 0.5.0 source
+and the 0.5.1 ledger changes. Cover and high ground now have a real Toolkit navigation
 bake. See [release status and remaining game checks](docs/RELEASE_STATUS.md) for
 the distinction between completed build checks and pending gameplay checks.
+Terrain authors should use the [checked build workflow](docs/TERRAIN_BUILD.md).
 
-Astral Arena is an experimental Baldur's Gate 3 arena Adventure for Windows. Version `0.6.0-alpha.1` turns the AI mode into a complete elimination gauntlet: build a party, then survive battles at levels 3, 5, 8, 10, and 12. **One lost battle ends the run** — only survivors press on — and that result is stored in the save, so reloading a later save cannot quietly bring the run back. The build creates no enemies until the host explicitly starts a wave, fully refreshes living party members between waves, and rolls a varied personal level-3 magic kit for every character. The scenery resource format has been corrected using the Toolkit load diagnostics; real-game rendering is being checked. Party-scaled multi-wave battles use two waves at levels 3 and 5, three at levels 8 and 10, and a four-wave level-12 championship. The forgiving level-3 initiation is capped at two enemies per wave; later battles scale up with the party. Clear combat lanes separate the teams by 45–49 metres. Downed players and enemies make native death saves and can die normally; dead party members still require resurrection magic between waves and are automatically restored when the complete battle ends.
+Astral Arena is an experimental Baldur's Gate 3 arena Adventure for Windows. Version `0.6.0-alpha.2` turns the AI mode into a complete elimination gauntlet: build a party, then survive battles at levels 3, 5, 8, 10, and 12. **One lost battle ends the run** — only survivors press on — and that result is stored in the save, so reloading a later save cannot quietly bring the run back. The build creates no enemies until the host explicitly starts a wave, fully refreshes living party members between waves, and rolls a varied personal level-3 magic kit for every character. The scenery resource format has been corrected using the Toolkit load diagnostics; real-game rendering is being checked. Party-scaled multi-wave battles use two waves at levels 3 and 5, three at levels 8 and 10, and a four-wave level-12 championship. The forgiving level-3 initiation is capped at two enemies per wave; later battles scale up with the party. Clear combat lanes separate the teams by 45–49 metres. Downed players and enemies make native death saves and can die normally; dead party members still require resurrection magic between waves and are automatically restored when the complete battle ends.
 
 > **Alpha safety note:** use a separate manual save, remove story NPCs from the area, and do not save during an active match. The mod restores combat relationships and characters after a bout, but this is the first engine playtest build.
 
@@ -37,9 +38,9 @@ Astral Arena is an experimental Baldur's Gate 3 arena Adventure for Windows. Ver
 - Save-safe progression: the elimination/champion result, the one-time armory, and the staging origin are stored in the savegame. Loading a save made mid-wave or mid-intermission deletes stale enemies, restores the party, and restarts that battle from wave 1 without counting a loss.
 - A 30-piece oversized ruin-arch perimeter around the active arena footprint.
 
-**Terrain:** the flat 199 m × 185 m ground plane now includes 25 tactical cover and high-ground pieces. Navigation was regenerated with Full Generate in the BG3 Toolkit on November 4, 2026 and saved with a matching scenery fingerprint. All 156 spawn points and the 45–49 m starts pass geometry checks. Movement blocking, usable elevation, appearance and AI engagement remain real-game release checks.
+**Terrain:** the flat 199 m × 185 m ground plane now includes 25 tactical cover and high-ground pieces. Navigation was regenerated with Full Generate in the BG3 Toolkit on November 5, 2026 and saved with a matching scenery fingerprint. All 156 spawn points and the 45–49 m starts pass geometry checks. See [the real-game terrain test](docs/PLAYTEST_2026-11-05.md) for observed movement and remaining failures.
 
-The level now loads its shipped BG3 Underdark cliff shell, giant mushroom silhouettes, stonework, ruins, vegetation, banners, elevation, Jergal monument, and sixteen colored accent lights from the engine-required merged resources. Final terrain polish, graphical bracket/reward UI, player-authored AI ghosts, Eddard matchmaking coordinator, and public rankings are **not** in this alpha.
+Real-game testing shows stonework, vegetation, banners and stairs. The ground is brown, the minimap is black, and oversized backdrop pieces can obstruct the camera. The Withers ledger still displays raw localization handles. These are open defects. Final terrain polish, graphical bracket/reward UI, player-authored AI ghosts, Eddard matchmaking coordinator, and public rankings are **not** in this alpha.
 
 ## Requirements
 
@@ -52,14 +53,14 @@ The level now loads its shipped BG3 Underdark cliff shell, giant mushroom silhou
 
 ## Install the Adventure PAK
 
-The Toolkit build is `dist\AstralArena-0.6.0-alpha.1.pak`.
+The Toolkit build is `dist\AstralArena-0.6.0-alpha.2.pak`.
 
 1. Close Baldur's Gate 3.
 2. Install Norbyte's Script Extender if it is not already present.
 3. From the repository root, install the PAK:
 
    ```powershell
-   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.6.0-alpha.1.pak"
+   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.6.0-alpha.2.pak"
    ```
 
    Manual alternative: copy the PAK to:
@@ -73,7 +74,7 @@ The Toolkit build is `dist\AstralArena-0.6.0-alpha.1.pak`.
 6. Choose **New Game**, select **Astral Arena Adventure** if BG3 displays an Adventure choice, and create the player characters.
 7. For ordinary online co-op, install the identical PAK and Script Extender version on every PC. Split-screen needs one installation.
 
-The installer backs up a previous canonical Adventure PAK under `%LOCALAPPDATA%\AstralArena\PakBackups`. Discard saves containing temporary 1-HP character-creation dummies or saves made by the crashing alpha.13 startup. Begin 0.6.0-alpha.1 from a fresh Astral Arena new game so the corrected scenery and one-time randomized armory are guaranteed. Real custom-character staging saves from earlier stable builds at levels 3, 5, 8, 10, or 12 can resume at their current tier; mixed-level split-screen parties receive missing XP repair. Follow [docs/ADVENTURE_PLAYTEST.md](docs/ADVENTURE_PLAYTEST.md).
+The installer backs up a previous canonical Adventure PAK under `%LOCALAPPDATA%\AstralArena\PakBackups`. Discard saves containing temporary 1-HP character-creation dummies or saves made by the crashing alpha.13 startup. Begin 0.6.0-alpha.2 from a fresh Astral Arena new game so the corrected scenery and one-time randomized armory are guaranteed. Real custom-character staging saves from earlier stable builds at levels 3, 5, 8, 10, or 12 can resume at their current tier; mixed-level split-screen parties receive missing XP repair. Follow [docs/ADVENTURE_PLAYTEST.md](docs/ADVENTURE_PLAYTEST.md).
 
 ## Run the first match
 
@@ -158,16 +159,16 @@ The deterministic Lua code runs outside BG3 with LuaJIT or Lua 5.1+:
 ```sh
 luajit tests/run.lua
 luajit scripts/simulate.lua
-./scripts/build-release.sh 0.6.0-alpha.1
-python3 tools/pak/build_pak.py --version 0.6.0-alpha.1 --assets-from "<an existing Astral Arena Adventure .pak>"
+./scripts/build-release.sh 0.6.0-alpha.2
+python3 tools/pak/build_pak.py --version 0.6.0-alpha.2 --assets-from "<an existing Astral Arena Adventure .pak>"
 ```
 
 Windows equivalents:
 
 ```powershell
 lua tests\run.lua
-.\scripts\Build-Pak.ps1 -Version 0.6.0-alpha.1
-.\scripts\Build-Release.ps1 -Version 0.6.0-alpha.1
+.\scripts\Build-Pak.ps1 -Version 0.6.0-alpha.2
+.\scripts\Build-Release.ps1 -Version 0.6.0-alpha.2
 ```
 
 `tools/pak/build_pak.py` rebuilds the Adventure PAK without Divine.exe or the Toolkit: it repackages the checked-in level, the current Script Extender runtime, and freshly compiled localization, taking only the two Toolkit-generated artwork files from an existing PAK. `Build-Pak.ps1` combines the checked-in Toolkit level, the current Script Extender runtime, and the Toolkit-generated module artwork into the installable Adventure PAK. Run it after syncing/opening the project in the Toolkit. `Build-Release.ps1` then includes that PAK and the playtest documentation in the generated archive under `dist/`.

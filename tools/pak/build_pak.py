@@ -10,6 +10,7 @@ mod_publish_logo.png; they are copied from an existing Adventure PAK.
         --assets-from "%LOCALAPPDATA%/Larian Studios/Baldur's Gate 3/Mods/AstralArenaAdventure_29c48c80-8777-f7b5-6bb8-376c1c5d8db6.pak"
 """
 import argparse
+import json
 import os
 import shutil
 import sys
@@ -17,6 +18,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import loca  # noqa: E402
 import lspk  # noqa: E402
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scenery"))
+import navgrid  # noqa: E402
 
 MODULE = "AstralArenaAdventure_29c48c80-8777-f7b5-6bb8-376c1c5d8db6"
 REQUIRED = [
@@ -24,6 +27,7 @@ REQUIRED = [
     f"Mods/{MODULE}/Levels/AA_Arena_Main/meta.lsf",
     f"Mods/{MODULE}/Levels/AA_Arena_Main/Scenery/_merged.lsf",
     f"Mods/{MODULE}/Levels/AA_Arena_Main/Lights/_merged.lsf",
+    f"Mods/{MODULE}/Levels/AA_Arena_Main/Ai/aigrid.data",
     f"Mods/{MODULE}/ScriptExtender/Lua/AstralArena/Server/Controller.lua",
     f"Mods/{MODULE}/ScriptExtender/Lua/AstralArena/Server/Bg3Adapter.lua",
     f"Mods/{MODULE}/GUI/metadata.lsf",
@@ -41,6 +45,11 @@ def main():
     args = parser.parse_args()
 
     root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    with open(os.path.join(root, "toolkit", "scenery", "AA_Arena_Main.scenery.json"), encoding="utf-8") as handle:
+        manifest = json.load(handle)
+    stale = navgrid.stale_reason(root, manifest) or navgrid.build_stale_reason(root)
+    if stale:
+        raise SystemExit(f"refusing to package stale navigation/scenery: {stale}")
     stage = os.path.join(root, "build", "pak-" + args.version)
     out = args.out or os.path.join(root, "dist", f"AstralArena-{args.version}.pak")
     if os.path.exists(stage):

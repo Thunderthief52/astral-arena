@@ -1,13 +1,22 @@
 param(
     [string]$RepoRoot = (Split-Path -Parent $PSScriptRoot),
-    [string]$DivinePath = (Join-Path (Split-Path -Parent $RepoRoot) 'tools\ExportTool-v1.19.5\Packed\Tools\Divine.exe')
+    [string]$DivinePath = (Join-Path (Split-Path -Parent $RepoRoot) 'tools\ExportTool-v1.19.5\Packed\Tools\Divine.exe'),
+    [switch]$EditorOnly,
+    [string]$EditorOutputPath
 )
 
 $ErrorActionPreference = 'Stop'
 
 $manifestPath = Join-Path $RepoRoot 'toolkit\scenery\AA_Arena_Main.scenery.json'
 $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+. (Join-Path $PSScriptRoot 'lib\ArenaNavigation.ps1')
+if ($EditorOnly) {
+    if (-not $EditorOutputPath) { throw 'EditorOnly requires EditorOutputPath; use a staging directory under build.' }
+} else {
+    Assert-ArenaNavigation -RepositoryRoot $RepoRoot
+}
 $levelRoot = Join-Path $RepoRoot "toolkit\Data\Mods\AstralArenaAdventure_29c48c80-8777-f7b5-6bb8-376c1c5d8db6\Levels\$($manifest.levelName)"
+if ($EditorOnly) { $levelRoot = [IO.Path]::GetFullPath($EditorOutputPath) }
 $sceneryRoot = Join-Path $levelRoot 'Scenery'
 $lightsRoot = Join-Path $levelRoot 'Lights'
 $indexPath = Join-Path $RepoRoot 'toolkit\scenery\AA_Arena_Main.generated-files.json'
@@ -163,6 +172,27 @@ function Write-MergedResource {
         $writer.Dispose()
     }
 
+    if ($EditorOnly) {
+        [xml]$resource = Get-Content -LiteralPath $tempPath -Raw
+        $objects = $resource.SelectSingleNode('/save/region/node/children')
+        foreach ($object in @($objects.SelectNodes('node'))) {
+            $key = $object.SelectSingleNode("attribute[@id='MapKey']").GetAttribute('value')
+            [void][guid]::Parse($key)
+            $single = $resource.Clone()
+            $singleObjects = $single.SelectSingleNode('/save/region/node/children')
+            $singleObjects.RemoveAll()
+            [void]$singleObjects.AppendChild($single.ImportNode($object, $true))
+            $singleLsx = Join-Path (Split-Path -Parent $OutputPath) ($key + '.lsx')
+            $singleLsf = [IO.Path]::ChangeExtension($singleLsx, '.lsf')
+            [IO.File]::WriteAllText($singleLsx, $single.OuterXml, [Text.UTF8Encoding]::new($false))
+            & $DivinePath -g bg3 -a convert-resource -s $singleLsx -d $singleLsf -i lsx -o lsf | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw "Divine failed to build editor object $key" }
+            Remove-Item -LiteralPath $singleLsx
+        }
+        Remove-Item -LiteralPath $tempPath
+        return
+    }
+
     $divineOutput = & $DivinePath -g bg3 -a convert-resource -s $tempPath -d $OutputPath -i lsx -o lsf 2>&1
     if ($LASTEXITCODE -ne 0) {
         throw "Divine failed to build '$OutputPath': $($divineOutput -join [Environment]::NewLine)"
@@ -187,8 +217,7 @@ Write-MergedResource $sceneryOutputPath {
         Add-Attribute $writer 'LevelName' 'FixedString' ([string]$manifest.levelName)
         Add-Attribute $writer 'Type' 'FixedString' 'scenery'
         Add-Attribute $writer 'TemplateName' 'FixedString' ([string]$object.template)
-        # Toolkit-authored scenery serializes Flag as uint8. Using int32 here
-        # makes the merged resource parse but causes BG3 to discard its objects.
+        # Toolkit 4.1.1.6931813 reports Flag as int32 for these scenery resources.
         Add-Attribute $writer 'Flag' 'int32' '1'
         Add-Attribute $writer 'CanClickThrough' 'bool' $(if ($canClickThrough) { 'True' } else { 'False' })
         if ($null -ne $object.cover) { Add-Attribute $writer 'CoverAmount' 'uint8' ([string]$object.cover) }
@@ -203,7 +232,7 @@ Write-MergedResource $sceneryOutputPath {
         $writer.WriteEndElement()
     }
 }
-$generated.Add((Resolve-Path -LiteralPath $sceneryOutputPath).Path.Substring($RepoRoot.Length + 1))
+if (-not $EditorOnly) { $generated.Add((Resolve-Path -LiteralPath $sceneryOutputPath).Path.Substring($RepoRoot.Length + 1)) }
 
 $pointLightTemplate = 'ae8105f5-0490-4d85-9ef7-b6beeedea3a3'
 $lightsOutputPath = Join-Path $lightsRoot '_merged.lsf'
@@ -232,6 +261,10 @@ Write-MergedResource $lightsOutputPath {
         $writer.WriteEndElement()
     }
 }
+if ($EditorOnly) {
+    Write-Host "Built $($manifest.objects.Count) individual scenery objects and $($manifest.lights.Count) lights for the Toolkit in $levelRoot."
+    return
+}
 $generated.Add((Resolve-Path -LiteralPath $lightsOutputPath).Path.Substring($RepoRoot.Length + 1))
 
 $previous = [string[]]@()
@@ -254,4 +287,10 @@ ConvertTo-Json -InputObject $current | Set-Content -LiteralPath $indexPath -Enco
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $levelMetaOutput -PathType Leaf)) {
     throw "Divine failed to build arena level metadata."
 }
+$Receipt = @{
+    manifestSha256 = Get-ArenaManifestHash -Path $manifestPath
+    scenerySha256 = (Get-FileHash -LiteralPath $sceneryOutputPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    lightsSha256 = (Get-FileHash -LiteralPath $lightsOutputPath -Algorithm SHA256).Hash.ToLowerInvariant()
+}
+$Receipt | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $RepoRoot 'toolkit\scenery\AA_Arena_Main.build.json') -Encoding utf8
 Write-Host "Built $($manifest.objects.Count) scenery object(s) and $($manifest.lights.Count) light(s) for $($manifest.levelName)."

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.0-alpha.2 — 2026-11-06 (development candidate)
+
+- Adjusted the two Echelon landings to y=2.7, z=-43.5/-76.5 and saved a real Toolkit navigation rebuild with 147,620 cells. Final traversal needs a fresh Adventure check; the previous checkpoint retained an older grid.
+- Windows scenery builds now reject mismatched scenery, terrain or saved navigation. Python builds use the same stamp format. Both package paths check compiled scenery rather than silently using an older merged resource.
+- Toolkit sync backs up the existing project and exports 114 individual scenery resources plus 16 lights; merged game resources stay out of the editor resource folders.
+- The normal installer excludes temporary terrain probes and explains the fresh-Adventure requirement for terrain updates.
+- Added eight regression tests covering stale collision geometry, terrain, missing/replaced grids, compiled-resource mismatches, checkout line endings and Windows/Python guard agreement. Both PAK builders verify 84 entries.
+- Recorded real-game ledger and visual failures. Packaged ledger text is still not confirmed fixed. No additional playtests were run after the user requested a coding-only continuation.
+
 ## 0.6.0-alpha.1 — 2026-11-04 (rebuilt candidate)
 
 - Rebuilt the missing candidate from recovered source; includes the 0.5.1 ledger fix.

@@ -1,0 +1,48 @@
+{
+  "build": "0.6.0-alpha.1",
+  "date": "2026-11-05",
+  "setup": "teleported beside north Echelon stair; subsequent movement is user-controlled",
+  "result": "Native clicks climbed stairs; upper landing not reachable in first pass.",
+  "samples": [
+    {
+      "position": [
+        39.5,
+        0.0,
+        -56.5
+      ],
+      "second": 1
+    },
+    {
+      "position": [
+        39.09806442260742,
+        0.0,
+        -53.45623779296875
+      ],
+      "second": 40
+    },
+    {
+      "position": [
+        39.30369186401367,
+        0.9296875,
+        -49.85310745239258
+      ],
+      "second": 41
+    },
+    {
+      "position": [
+        39.29887771606445,
+        1.0313682556152344,
+        -49.479713439941406
+      ],
+      "second": 78
+    },
+    {
+      "position": [
+        39.16766357421875,
+        2.076171875,
+        -47.4093132019043
+      ],
+      "second": 79
+    }
+  ]
+}

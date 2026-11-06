@@ -8,6 +8,7 @@ $ErrorActionPreference = "Stop"
 $RepositoryRoot = Split-Path -Parent $PSScriptRoot
 if (-not $PakPath) {
     $Candidate = Get-ChildItem -LiteralPath (Join-Path $RepositoryRoot "dist") -Filter "AstralArena-*.pak" -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -match '^AstralArena-\d+\.\d+\.\d+(?:-(?:alpha|beta|rc)\.\d+)?\.pak$' } |
         Sort-Object LastWriteTime -Descending |
         Select-Object -First 1
     if (-not $Candidate) {
@@ -18,6 +19,9 @@ if (-not $PakPath) {
 $ResolvedPak = (Resolve-Path $PakPath).Path
 if ([IO.Path]::GetExtension($ResolvedPak) -ne ".pak") {
     throw "The selected file is not a .pak: $ResolvedPak"
+}
+if ([IO.Path]::GetFileName($ResolvedPak) -notmatch '^AstralArena-\d+\.\d+\.\d+(?:-(?:alpha|beta|rc)\.\d+)?\.pak$') {
+    throw 'Only normal versioned release PAKs can be installed with this script. Temporary terrain probes are excluded.'
 }
 
 if (Get-Process bg3, bg3_dx11 -ErrorAction SilentlyContinue) {
@@ -45,3 +49,4 @@ Write-Host "Verified SHA256: $SourceHash"
 Write-Host "Installed Astral Arena Adventure:" -ForegroundColor Green
 Write-Host "  $Destination"
 Write-Host "Enable Astral Arena Adventure in BG3's Mod Manager, then start a new game."
+Write-Host 'Terrain updates require a NEW Adventure: an existing save can retain its previous navigation grid.'

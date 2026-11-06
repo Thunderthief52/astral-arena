@@ -41,6 +41,8 @@ def main():
     errors = []
 
     stale_reason = navgrid.stale_reason(ROOT, manifest)
+    if stale_reason:
+        errors.append(f"navigation grid stale: {stale_reason}")
     tactical_count = 0
     for obj in manifest["objects"]:
         x, z = obj["position"][0], obj["position"][2]
@@ -52,8 +54,7 @@ def main():
         if not inside((x, z), (lo[0] - clearance, lo[1] - clearance), (hi[0] + clearance, hi[1] + clearance)):
             continue
         if obj.get("tactical") is True:
-            # build_scenery.py leaves tactical pieces out of the game build until
-            # the grid is current, so a stale grid is safe, just incomplete.
+            # Both runtime builders reject tactical scenery with a stale grid.
             tactical_count += 1
             continue
         errors.append(f"solid scenery {obj['id']} at ({x}, {z}) is reachable from the walkable ground; mark it tactical or move it")

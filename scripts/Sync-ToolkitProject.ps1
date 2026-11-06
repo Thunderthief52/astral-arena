@@ -49,14 +49,47 @@ function Copy-ProjectTree {
 }
 
 $ResolvedData = Find-Bg3DataPath
+if (Get-Process bg3, bg3_dx11, Glasses -ErrorAction SilentlyContinue) {
+    throw 'Close BG3 and the Toolkit before synchronizing the project.'
+}
 $GameRoot = Split-Path -Parent $ResolvedData
 if (-not (Test-Path (Join-Path $GameRoot "bin\bg3.exe") -PathType Leaf)) {
     throw "The selected Data folder does not belong to Baldur's Gate 3: $ResolvedData"
 }
 
+$Timestamp = Get-Date -Format 'yyyyMMdd-HHmmss-fff'
+$BackupRoot = Join-Path $RepositoryRoot "build\toolkit-sync-backups\$Timestamp"
+foreach ($Category in @('Projects', 'Editor\Mods', 'Mods')) {
+    $Relative = Join-Path $Category $ModuleFolder
+    $Existing = Join-Path $ResolvedData $Relative
+    if (Test-Path -LiteralPath $Existing -PathType Container) {
+        $Meta = Join-Path $Existing 'meta.lsx'
+        if ((Test-Path -LiteralPath $Meta -PathType Leaf) -and -not (Select-String -LiteralPath $Meta -SimpleMatch $ModuleUuid -Quiet)) {
+            throw "Unexpected Toolkit project: $Existing"
+        }
+        $BackupParent = Join-Path $BackupRoot $Category
+        New-Item -ItemType Directory -Path $BackupParent -Force | Out-Null
+        Copy-Item -LiteralPath $Existing -Destination $BackupParent -Recurse
+    }
+}
+$EditorStage = Join-Path $RepositoryRoot "build\toolkit-editor-$Timestamp"
+& (Join-Path $PSScriptRoot 'Build-ArenaScenery.ps1') -EditorOnly -EditorOutputPath $EditorStage
+
 Copy-ProjectTree -RelativePath (Join-Path "Projects" $ModuleFolder) -DataRoot $ResolvedData
 Copy-ProjectTree -RelativePath (Join-Path "Editor\Mods" $ModuleFolder) -DataRoot $ResolvedData
 Copy-ProjectTree -RelativePath (Join-Path "Mods" $ModuleFolder) -DataRoot $ResolvedData
+
+# The editor reads individual resources. The game PAK reads _merged.lsf.
+# Replace only the two manifest-owned resource folders after backing them up.
+$InstalledLevel = Join-Path $ResolvedData "Mods\$ModuleFolder\Levels\AA_Arena_Main"
+foreach ($Kind in @('Scenery', 'Lights')) {
+    $Destination = [IO.Path]::GetFullPath((Join-Path $InstalledLevel $Kind))
+    if (-not $Destination.StartsWith([IO.Path]::GetFullPath($InstalledLevel) + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Unexpected editor resource path: $Destination"
+    }
+    Get-ChildItem -LiteralPath $Destination -File -Filter '*.lsf' | ForEach-Object { Remove-Item -LiteralPath $_.FullName }
+    Copy-Item -Path (Join-Path $EditorStage "$Kind\*.lsf") -Destination $Destination
+}
 
 $ScriptSource = Join-Path $RepositoryRoot "src\Mods\AstralArena\ScriptExtender"
 $ModuleDestination = Join-Path $ResolvedData (Join-Path "Mods" $ModuleFolder)
@@ -71,3 +104,5 @@ Write-Host "Synchronized Astral Arena Toolkit project:" -ForegroundColor Green
 Write-Host "  Project: $ModuleFolder"
 Write-Host "  Level:   AA_Arena_Main"
 Write-Host "  Data:    $ResolvedData"
+Write-Host "  Backup:  $BackupRoot"
+Write-Host 'Run Full Generate and AI Grid Save after geometry changes; do not reuse an older Adventure save to validate the new grid.'

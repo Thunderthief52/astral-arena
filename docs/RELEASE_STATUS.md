@@ -1,4 +1,4 @@
-# Gauntlet release status — 2026-11-04
+# Gauntlet release status — 2026-11-06
 
 ## Recovery and candidate
 
@@ -7,17 +7,32 @@ The surviving `C:\Users\atper\Documents\AstralArena\astral-arena.bundle` ends at
 0.6.0 PAK was found. Work continues in `astral-arena-recovered`, preserving the
 other workspace copies and their unfinished changes.
 
-0.5.1-alpha.1 added packaged Withers prompts. The new 0.6.0-alpha.1 candidate
-includes all 25 tactical pieces among 114 scenery objects. Full Generate and
-AI Grid Save were executed in Toolkit 4.1.1.6931813 on November 4. The grid grew
-from 147,260 to 147,548 cells; its saved file changed from 300 to 4,367 bytes.
+0.5.1-alpha.1 added packaged Withers prompts, but real-game testing still showed
+raw handles. The new 0.6.0-alpha.2 candidate includes all 25 tactical pieces among
+114 scenery objects. Full Generate and AI Grid Save were executed in Toolkit
+4.1.1.6931813 on November 4 and repeated on November 5 after landing adjustments.
+The current grid has 147,620 cells and its saved file is 4,346 bytes.
 The scenery fingerprint and actual grid checksum are recorded in
 `toolkit/scenery/AA_Arena_Main.navgrid.json`. Geometry validation passes for all
-156 spawn points. Gameplay validation remains pending.
+156 spawn points. Final fresh-save traversal validation remains pending.
 
 The Toolkit reported that scenery `Flag` must be int32, contradicting the older
 uint8 assumption. Editor objects were corrected and reloaded before generating
-navigation; both builders now use int32. Real-game rendering must still be checked.
+navigation; both builders now use int32. Stonework, grass, banners and stairs
+render in game. Brown ground, a black minimap and camera-obscuring oversized
+backdrops remain visual defects. See [the terrain observations](PLAYTEST_2026-11-05.md).
+
+On November 6 the user asked to continue coding and stop further playtests.
+The game and Toolkit are closed and the normal PAK replaced the temporary probe.
+The Windows builder now enforces the navigation stamp; both platforms verify
+terrain files and compiled scenery. Toolkit sync backs up the project and writes
+individual editor objects. The normal installer excludes probe packages. Eight
+new navigation/build regression tests pass alongside the 148 Lua tests.
+
+An older Adventure save embeds its navigation grid. The test checkpoint contains
+the first 147,548-cell grid, so later traversal failures from that checkpoint do
+not validate the replacement bake. **Start a fresh Adventure for the next terrain
+check.** See [the build workflow](TERRAIN_BUILD.md).
 
 ## Real-game release gate
 

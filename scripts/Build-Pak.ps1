@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$Version = "0.6.0-alpha.1",
+    [string]$Version = "0.6.0-alpha.2",
     [string]$Bg3DataPath,
     [string]$DivinePath
 )
@@ -37,6 +37,10 @@ if (-not (Test-Path -LiteralPath $Bg3DataPath -PathType Container)) {
 if (-not (Test-Path -LiteralPath $SourceModule -PathType Container)) {
     throw "Toolkit module source is missing: $SourceModule"
 }
+
+# Rebuild from the manifest only after verifying the actual saved AI grid.
+# Packaging checked-in merged resources alone could silently ship stale scenery.
+& (Join-Path $PSScriptRoot 'Build-ArenaScenery.ps1') -RepoRoot $RepositoryRoot -DivinePath $DivinePath
 
 if (Test-Path -LiteralPath $BuildRoot) {
     $ResolvedBuild = (Resolve-Path -LiteralPath $BuildRoot).Path
@@ -91,6 +95,7 @@ foreach ($RequiredEntry in @(
     "Mods/$ModuleFolder/Levels/AA_Arena_Main/meta.lsf",
     "Mods/$ModuleFolder/Levels/AA_Arena_Main/Scenery/_merged.lsf",
     "Mods/$ModuleFolder/Levels/AA_Arena_Main/Lights/_merged.lsf",
+    "Mods/$ModuleFolder/Levels/AA_Arena_Main/Ai/aigrid.data",
     "Mods/$ModuleFolder/ScriptExtender/Lua/AstralArena/Server/Controller.lua",
     "Mods/$ModuleFolder/ScriptExtender/Lua/AstralArena/Server/Bg3Adapter.lua",
     "Localization/English/AstralArena_English.loca"

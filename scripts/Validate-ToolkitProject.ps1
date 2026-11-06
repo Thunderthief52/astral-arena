@@ -46,7 +46,7 @@ if ($Values.Type -ne "Adventure") { throw "Module type must be Adventure." }
 if ($Values.StartupLevelName -ne "AA_Arena_Main") { throw "Startup level is not AA_Arena_Main." }
 if ($Values.CharacterCreationLevelName -ne "") { throw "Character creation must inherit BG3's system character creator." }
 if ($Values.NumPlayers -ne "4") { throw "Adventure must support four players." }
-if ($Values.Version64 -ne "36028797018963992") { throw "Adventure module version is not 0.6.0-alpha.1 build 24." }
+if ($Values.Version64 -ne "36028797018963993") { throw "Adventure module version is not 0.6.0-alpha.2 build 25." }
 if ((Get-Content -LiteralPath $MetaPath -Raw) -match 'WLD_|BGO_|CRE_|END_|TUT_') {
     throw "Adventure metadata references a vanilla campaign level."
 }
@@ -238,6 +238,9 @@ foreach ($RelativePath in $GeneratedSceneryIndex) {
         throw "Generated scenery artifact is unexpectedly small: $GeneratedPath"
     }
 }
+
+. (Join-Path $PSScriptRoot 'lib\ArenaNavigation.ps1')
+Assert-ArenaNavigation -RepositoryRoot $RepositoryRoot
 
 Write-Host "Toolkit project validation passed:" -ForegroundColor Green
 Write-Host "  Adventure UUID: $ModuleUuid"

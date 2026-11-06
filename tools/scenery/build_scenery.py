@@ -166,6 +166,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--conv", required=True, help="path to the built conv.dll (LSLib converter)")
     parser.add_argument("--lsx-only", action="store_true")
+    parser.add_argument("--editor-only", action="store_true", help="author individual Toolkit objects without changing runtime resources")
     parser.add_argument("--per-object", metavar="DIR",
                         help="also write Toolkit editor files (one <MapKey>.lsf per object) under DIR/Scenery and DIR/Lights")
     args = parser.parse_args()
@@ -177,16 +178,15 @@ def main():
         if len(set(ids)) != len(ids) or len(set(names)) != len(names):
             raise SystemExit(f"duplicate {collection} id or name in the scenery manifest")
     level_root = os.path.join(root, "toolkit", "Data", "Mods", MODULE, "Levels", manifest["levelName"])
-    # Tactical cover only ships to the game once the AI grid was rebuilt for it;
-    # otherwise characters would walk straight through it again.
-    game_manifest = dict(manifest)
+    if args.editor_only:
+        if not args.per_object:
+            parser.error("--editor-only requires --per-object DIR")
+        write_per_object(manifest, args.per_object, args.conv)
+        return
     stale = navgrid.stale_reason(root, manifest)
     if stale:
-        held = [obj["id"] for obj in manifest["objects"] if obj.get("tactical")]
-        game_manifest["objects"] = [obj for obj in manifest["objects"] if not obj.get("tactical")]
-        if held:
-            print(f"holding back {len(held)} tactical pieces from the game build: {stale}")
-    for folder, writer in (("Scenery", scenery_objects(game_manifest)), ("Lights", light_objects(game_manifest))):
+        raise SystemExit(f"refusing runtime scenery build: {stale}; use --editor-only for Toolkit authoring")
+    for folder, writer in (("Scenery", scenery_objects(manifest)), ("Lights", light_objects(manifest))):
         out_dir = os.path.join(level_root, folder)
         os.makedirs(out_dir, exist_ok=True)
         lsx = os.path.join(out_dir, "_merged.lsx")
@@ -198,6 +198,15 @@ def main():
         os.remove(lsx)
     if args.per_object:
         write_per_object(manifest, args.per_object, args.conv)
+    if not args.lsx_only:
+        receipt = {
+            "manifestSha256": navgrid.text_sha(os.path.join(root, "toolkit", "scenery", "AA_Arena_Main.scenery.json")),
+            "scenerySha256": navgrid.file_sha(os.path.join(level_root, "Scenery", "_merged.lsf")),
+            "lightsSha256": navgrid.file_sha(os.path.join(level_root, "Lights", "_merged.lsf")),
+        }
+        with open(os.path.join(root, "toolkit", "scenery", "AA_Arena_Main.build.json"), "w", encoding="utf-8") as handle:
+            json.dump(receipt, handle, indent=2)
+            handle.write("\n")
     print(f"built {len(manifest['objects'])} scenery objects and {len(manifest['lights'])} lights")
 
 

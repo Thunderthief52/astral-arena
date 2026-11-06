@@ -12,7 +12,9 @@ import navgrid  # noqa: E402
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 manifest = json.load(open(os.path.join(ROOT, "toolkit", "scenery", "AA_Arena_Main.scenery.json"), encoding="utf-8"))
 record = {
+    "formatVersion": 2,
     "sceneryFingerprint": navgrid.scenery_fingerprint(manifest),
+    "terrainFiles": navgrid.terrain_files(ROOT),
     "aigridSha256": navgrid.aigrid_sha(ROOT),
     "aigridBytes": os.path.getsize(os.path.join(navgrid.level_dir(ROOT), "Ai", "aigrid.data")),
     "recordedUtc": datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat(),
