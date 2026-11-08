@@ -28,11 +28,13 @@ REQUIRED = [
     f"Mods/{MODULE}/Levels/AA_Arena_Main/Scenery/_merged.lsf",
     f"Mods/{MODULE}/Levels/AA_Arena_Main/Lights/_merged.lsf",
     f"Mods/{MODULE}/Levels/AA_Arena_Main/Ai/aigrid.data",
+    f"Mods/{MODULE}/Levels/AA_Arena_Main/WorldMap/MiniMap.lsf",
     f"Mods/{MODULE}/ScriptExtender/Lua/AstralArena/Server/Controller.lua",
     f"Mods/{MODULE}/ScriptExtender/Lua/AstralArena/Server/Bg3Adapter.lua",
     f"Mods/{MODULE}/GUI/metadata.lsf",
     f"Mods/{MODULE}/mod_publish_logo.png",
     "Localization/English/AstralArena_English.loca",
+    f"Public/{MODULE}/Stats/Generated/Data/AstralArena.txt",
 ]
 TOOLKIT_ARTWORK = ["GUI/metadata.lsf", "mod_publish_logo.png"]
 
@@ -58,6 +60,7 @@ def main():
 
     toolkit_module = os.path.join(root, "toolkit", "Data", "Mods", MODULE)
     shutil.copytree(toolkit_module, module_stage)
+    shutil.copytree(os.path.join(root, "src", "Public"), os.path.join(stage, "Public"))
     shutil.copytree(
         os.path.join(root, "src", "Mods", "AstralArena", "ScriptExtender"),
         os.path.join(module_stage, "ScriptExtender"),

@@ -1,8 +1,9 @@
 [CmdletBinding()]
 param(
-    [string]$Version = "0.6.0-alpha.2",
+    [string]$Version = "0.6.0-alpha.3",
     [string]$Bg3DataPath,
-    [string]$DivinePath
+    [string]$DivinePath,
+    [string]$AssetsFromPak
 )
 
 $ErrorActionPreference = "Stop"
@@ -56,6 +57,7 @@ Copy-Item -LiteralPath $SourceModule -Destination $StageMods -Recurse -Force
 $StageScriptExtender = Join-Path $StageModule "ScriptExtender"
 New-Item -ItemType Directory -Force -Path $StageScriptExtender | Out-Null
 Copy-Item -Path (Join-Path $RepositoryRoot "src\Mods\AstralArena\ScriptExtender\*") -Destination $StageScriptExtender -Recurse -Force
+Copy-Item -LiteralPath (Join-Path $RepositoryRoot 'src\Public') -Destination $BuildRoot -Recurse -Force
 
 if (-not (Test-Path -LiteralPath $LocalizationSource -PathType Leaf)) {
     throw "English arena menu localization source is missing: $LocalizationSource"
@@ -71,7 +73,19 @@ foreach ($RelativePath in @("GUI\metadata.lsf", "mod_publish_logo.png")) {
     $Source = Join-Path $InstalledModule $RelativePath
     $Destination = Join-Path $StageModule $RelativePath
     if (-not (Test-Path -LiteralPath $Source -PathType Leaf)) {
-        throw "Toolkit-generated package asset is missing: $Source"
+        if (-not $AssetsFromPak) {
+            $Previous = Get-ChildItem -LiteralPath (Join-Path $RepositoryRoot 'dist') -Filter 'AstralArena-*.pak' -File |
+                Where-Object Name -Match '^AstralArena-\d+\.\d+\.\d+(?:-(?:alpha|beta|rc)\.\d+)?\.pak$' |
+                Sort-Object LastWriteTime -Descending | Select-Object -First 1
+            if ($Previous) { $AssetsFromPak = $Previous.FullName }
+        }
+        if (-not $AssetsFromPak) { throw "Toolkit artwork is missing; provide -AssetsFromPak with an existing normal Adventure PAK." }
+        $PackagedPath = "Mods/$ModuleFolder/" + $RelativePath.Replace('\','/')
+        & $DivinePath -g bg3 -a extract-package -s $AssetsFromPak -d $BuildRoot -x $PackagedPath | Out-Null
+        if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $Destination -PathType Leaf)) {
+            throw "Existing PAK is missing Toolkit artwork: $PackagedPath"
+        }
+        continue
     }
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $Destination) | Out-Null
     Copy-Item -LiteralPath $Source -Destination $Destination -Force
@@ -96,9 +110,11 @@ foreach ($RequiredEntry in @(
     "Mods/$ModuleFolder/Levels/AA_Arena_Main/Scenery/_merged.lsf",
     "Mods/$ModuleFolder/Levels/AA_Arena_Main/Lights/_merged.lsf",
     "Mods/$ModuleFolder/Levels/AA_Arena_Main/Ai/aigrid.data",
+    "Mods/$ModuleFolder/Levels/AA_Arena_Main/WorldMap/MiniMap.lsf",
     "Mods/$ModuleFolder/ScriptExtender/Lua/AstralArena/Server/Controller.lua",
     "Mods/$ModuleFolder/ScriptExtender/Lua/AstralArena/Server/Bg3Adapter.lua",
     "Localization/English/AstralArena_English.loca"
+    "Public/$ModuleFolder/Stats/Generated/Data/AstralArena.txt"
 )) {
     if (-not ($Listing | Where-Object { $_ -like "$RequiredEntry`t*" })) {
         throw "Created PAK is missing required entry: $RequiredEntry"

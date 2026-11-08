@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<save>
+  <version major="3" minor="1" revision="1" build="2" lslib_meta="v1,bswap_guids,lsf_keys_adjacency" />
+  <region id="WorldMapMetaData">
+    <node id="WorldMapMetaData">
+      <attribute id="Height" type="uint32" value="2048" />
+      <attribute id="Width" type="uint32" value="2048" />
+      <attribute id="WorldHeight" type="float" value="256" />
+      <attribute id="WorldWidth" type="float" value="256" />
+      <attribute id="WorldX" type="float" value="-128" />
+      <attribute id="WorldZ" type="float" value="-128" />
+    </node>
+  </region>
+</save>

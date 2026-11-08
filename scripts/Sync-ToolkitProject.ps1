@@ -59,7 +59,7 @@ if (-not (Test-Path (Join-Path $GameRoot "bin\bg3.exe") -PathType Leaf)) {
 
 $Timestamp = Get-Date -Format 'yyyyMMdd-HHmmss-fff'
 $BackupRoot = Join-Path $RepositoryRoot "build\toolkit-sync-backups\$Timestamp"
-foreach ($Category in @('Projects', 'Editor\Mods', 'Mods')) {
+foreach ($Category in @('Projects', 'Editor\Mods', 'Mods', 'Public')) {
     $Relative = Join-Path $Category $ModuleFolder
     $Existing = Join-Path $ResolvedData $Relative
     if (Test-Path -LiteralPath $Existing -PathType Container) {
@@ -99,6 +99,9 @@ if (-not (Select-String -LiteralPath (Join-Path $ModuleDestination "meta.lsx") -
 }
 New-Item -ItemType Directory -Force -Path $ScriptDestination | Out-Null
 Copy-Item -Path (Join-Path $ScriptSource "*") -Destination $ScriptDestination -Recurse -Force
+$PublicRoot = Join-Path $ResolvedData 'Public'
+New-Item -ItemType Directory -Force -Path $PublicRoot | Out-Null
+Copy-Item -Path (Join-Path $RepositoryRoot 'src\Public\*') -Destination $PublicRoot -Recurse -Force
 
 Write-Host "Synchronized Astral Arena Toolkit project:" -ForegroundColor Green
 Write-Host "  Project: $ModuleFolder"

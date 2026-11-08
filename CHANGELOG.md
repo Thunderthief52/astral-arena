@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.0-alpha.3 — 2026-11-08 (development candidate)
+
+- Send readable text to native Withers/arena message boxes and translate their plaintext responses back to stable menu keys; stale candidate replies remain isolated.
+- Replace recurring ready pop-ups with a free Ready for Battle hotbar action. Opening the confirmation is player-controlled, an unanswered box cannot be duplicated, and No leaves the party preparing indefinitely.
+- Reduce the 14 non-solid cliff/mushroom vistas, enable scenery fading, and disable camera collision for decorative/background pieces. Tactical geometry and its saved AI grid are unchanged.
+- Add the missing native WorldMap/MiniMap.lsf metadata with bounds covering the entire arena, and verify it is packaged with the ready-action stats and localization.
+- Journal AI armory and victory plans before delivery, reconcile inventory and stack changes before retries, preserve partial progress, and save the XP target before awarding it. Failed steps can be retried with Ready for Battle.
+- Back up and isolate obsolete loose runtime/Stats files during installation; they otherwise override the new PAK. Package builds can recover Toolkit artwork from an existing normal PAK after isolation.
+- Validation: 160 Lua tests, eight navigation/build tests, the engine smoke simulation, installer fixture checks and geometry validation pass. No real-game playtest was run for this candidate.
+
 ## 0.6.0-alpha.2 — 2026-11-06 (development candidate)
 
 - Adjusted the two Echelon landings to y=2.7, z=-43.5/-76.5 and saved a real Toolkit navigation rebuild with 147,620 cells. Final traversal needs a fresh Adventure check; the previous checkpoint retained an older grid.

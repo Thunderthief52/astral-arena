@@ -28,10 +28,13 @@ class NavigationBuildTests(unittest.TestCase):
         self.manifest_path = self.root / "toolkit/scenery/AA_Arena_Main.scenery.json"
         self.manifest_path.parent.mkdir(parents=True)
         self.manifest_path.write_text(json.dumps(self.manifest))
-        for name in ("Ai/aigrid.data", "Terrains/ground.data", "TileConstructions/floor.lsf", "Scenery/_merged.lsf", "Lights/_merged.lsf"):
+        for name in ("Ai/aigrid.data", "Terrains/ground.data", "TileConstructions/floor.lsf", "Scenery/_merged.lsf", "Lights/_merged.lsf", "WorldMap/MiniMap.lsf"):
             path = self.level / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(b"fixture " + name.encode())
+        minimap_source = self.root / "toolkit/levels/AA_Arena_Main.minimap.lsx"
+        minimap_source.parent.mkdir(parents=True)
+        minimap_source.write_text("minimap fixture")
         self.record_path = self.root / navgrid.RECORD
         self.record_path.write_text(json.dumps({
             "formatVersion": 2,
@@ -44,6 +47,8 @@ class NavigationBuildTests(unittest.TestCase):
             "manifestSha256": navgrid.text_sha(self.manifest_path),
             "scenerySha256": navgrid.file_sha(self.level / "Scenery/_merged.lsf"),
             "lightsSha256": navgrid.file_sha(self.level / "Lights/_merged.lsf"),
+            "minimapSourceSha256": navgrid.text_sha(minimap_source),
+            "minimapSha256": navgrid.file_sha(self.level / "WorldMap/MiniMap.lsf"),
         }))
 
     def test_unchanged_bake_and_compilation_are_current(self):
@@ -90,7 +95,7 @@ class NavigationBuildTests(unittest.TestCase):
         self.assertIn("no navigation grid", navgrid.stale_reason(self.root, self.manifest))
 
     def test_stale_merged_resources_and_manifest_are_rejected(self):
-        for target in (self.manifest_path, self.level / "Scenery/_merged.lsf", self.level / "Lights/_merged.lsf"):
+        for target in (self.manifest_path, self.level / "Scenery/_merged.lsf", self.level / "Lights/_merged.lsf", self.level / "WorldMap/MiniMap.lsf", self.root / "toolkit/levels/AA_Arena_Main.minimap.lsx"):
             with self.subTest(target=target.name):
                 original = target.read_bytes()
                 target.write_bytes(original + b" changed")

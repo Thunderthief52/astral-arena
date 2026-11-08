@@ -126,8 +126,7 @@ function CampService:_showMenu()
     end
     menu.candidateIndex = index
     menu.candidate = candidate
-    -- Packaged per-candidate text is available on every client before the box
-    -- opens. Server-side localization overrides do not guarantee that.
+    -- Keep a per-candidate response key, but send readable text to the box.
     menu.messageKey = candidate.menuMessageKey
     local remaining = #self.catalog - index
     local tail = remaining > 0
@@ -144,7 +143,7 @@ function CampService:_showMenu()
         tail
     )
     self.adapter.notify(menu.ownerGuid, message)
-    self.adapter.openYesNo(menu.ownerGuid, menu.messageKey)
+    self.adapter.openYesNo(menu.ownerGuid, menu.messageKey, message)
     return true
 end
 

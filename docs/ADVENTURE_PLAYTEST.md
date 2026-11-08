@@ -2,13 +2,13 @@
 
 ## Build under test
 
-- Version: `0.4.0-alpha.2`
+- Version: `0.6.0-alpha.3`
 - Rule: one lost battle ends the run
 - Adventure UUID: `29c48c80-8777-f7b5-6bb8-376c1c5d8db6`
 - Character flow: BG3 system character creator → `AA_Arena_Main`
-- PAK: `dist\AstralArena-0.4.0-alpha.2.pak`
+- PAK: `dist\AstralArena-0.6.0-alpha.3.pak`
 
-This candidate fixes the grey-island presentation by restoring the Toolkit-native scenery schema inside BG3's merged level resources. The controller-safe Withers menu opens automatically; each avatar receives 300 gold once, and followers cost 100 gold and match the current party level. Every character receives a separately randomized personal magic kit, randomized consumables, and two Scrolls of Revivify. No enemy exists during preparation. Confirming readiness spawns the formation 45–49 metres away, begins combat, and starts the progression monitor together. Living allies fully refresh between waves; dead allies still require Revivify until the battle ends.
+This candidate repairs native ledger text, adds minimap bounds and camera-friendly backgrounds, replaces timed ready boxes with a free Ready for Battle hotbar action, and journals AI loot delivery. These changes still require real-game confirmation. Withers onboarding opens automatically; each avatar receives 300 gold once, and followers cost 100 gold and match the current party level. Every character receives a separately randomized personal magic kit, randomized consumables, and two Scrolls of Revivify. No enemy exists during preparation. Use Ready for Battle and confirm Yes to spawn the formation 45–49 metres away and start combat. Living allies fully refresh between waves; dead allies still require Revivify until the battle ends.
 
 ## Install
 
@@ -17,8 +17,7 @@ This candidate fixes the grey-island presentation by restoring the Toolkit-nativ
 3. Open PowerShell in the repository root and run:
 
    ```powershell
-   Set-ExecutionPolicy -Scope Process Bypass
-   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.4.0-alpha.2.pak"
+   .\scripts\Install-Pak.ps1 -PakPath ".\dist\AstralArena-0.6.0-alpha.3.pak"
    ```
 
 4. Confirm this file exists:
@@ -33,7 +32,7 @@ This candidate fixes the grey-island presentation by restoring the Toolkit-nativ
 
 ## Discard placeholder-party saves
 
-Do not continue a save containing four naked, classless, immobile characters at one HP. Those entities are BG3's temporary system character-creation placeholders, not recoverable player builds. Also discard the session that crashed under alpha.13 after character creation. Begin a fresh New Game with `0.4.0-alpha.2` enabled so the corrected scenery and one-time randomized kits are present. Real custom-character staging saves from earlier stable builds at levels 3, 5, 8, 10, or 12 can resume at their current tier; mixed-level split-screen parties receive missing XP repair.
+Do not continue a save containing four naked, classless, immobile characters at one HP. Those entities are BG3's temporary system character-creation placeholders, not recoverable player builds. Also discard the session that crashed under alpha.13 after character creation. Begin a fresh New Game with `0.6.0-alpha.3` enabled so the corrected scenery and one-time randomized kits are present. Real custom-character staging saves from earlier stable builds at levels 3, 5, 8, 10, or 12 can resume at their current tier; mixed-level split-screen parties receive missing XP repair.
 
 ## Start a clean Adventure
 
@@ -41,12 +40,12 @@ Do not continue a save containing four naked, classless, immobile characters at 
 2. Create one character for solo, join the ordinary online lobby before finalizing characters for co-op, or connect the second controller before completing split-screen character creation.
 3. Finish the supported BG3 system character creator normally. This system scene is expected; it is not a campaign location. Do not use Honour Mode for this alpha.
 4. Confirm the finished custom party transfers into `AA_Arena_Main`, not a Nautiloid or Act 1 campaign location. A naked character-creation dummy must not remain active.
-5. Make a named manual save such as `AA 0.4.0-alpha.2 BEFORE WAVE 1`.
+5. Make a named manual save such as `AA 0.6.0-alpha.3 BEFORE WAVE 1`.
 6. Confirm Astral Arena automatically awards the vanilla level-3 XP threshold and displays a notification. No console command is required.
 7. Complete every ordinary BG3 level-up through level 3. In co-op or split-screen, both players should receive XP and complete their own choices.
 8. Confirm each player-created avatar receives 300 gold once. The automatic Withers menu should offer Eldra the Fighter, Zenith the Cleric, then additional classes for 100 gold each. Hire up to the four-person cap or decline through the list; followers must arrive at party level and remain controllable. There should be no spawned Withers NPC or interactive book—the static Jergal court is intentional in this crash-hotfix build.
 9. Confirm every inventory receives six randomized level-3 supply rolls, two Scrolls of Revivify, and eleven separately rolled magic items: one from each of three weapon pools, three armour-weight pools, and the helmet, gloves, boots, amulet, and ring pools. Party inventories should not be cloned. Equip at leisure; no enemy should exist yet.
-10. Choose Yes on the recurring ready prompt. Confirm wave 1/2 spawns only then, with at most two Astral Initiates 45–49 metres from the player origin.
+10. Use **Ready for Battle** on a party member's hotbar. Confirm the box shows readable text. Leave it unanswered and open preparation menus; no second box should appear. Choose No, wait at least two minutes and verify no automatic box interrupts the menus. Use Ready for Battle again and choose Yes. Wave 1/2 should spawn only then, with at most two Astral Initiates 45–49 metres from the player origin.
 
 If automatic onboarding pauses, `!aa_ai_status` and `!aa_ai_doctor` remain available as diagnostics. `!aa_ai_bootstrap`, `!aa_ai_start`, and `!aa_ai_continue` are recovery commands, not normal play steps.
 
@@ -70,7 +69,7 @@ For each bout:
 6. After every non-final wave, confirm cleared enemies disappear and an unlimited ready intermission begins. Living allies should regain full health, spell slots, class resources, and cooldowns. Dead allies must remain dead until Revivified. No loot or XP is granted until the final wave, and the next wave must wait for the host's confirmation.
 7. After the final wave, confirm temporary enemies disappear and every player—including dead players—is automatically resurrected, returned to staging, and given long-rest resources.
 8. Check every party inventory. Each player should receive four level-scaled loot rolls, and the six rare candidates should be distributed round-robin across the party.
-9. For bouts 1–4, complete native level-ups to the next target; the next bout starts automatically when every player is ready. The fifth victory completes the run.
+9. For bouts 1–4, complete native level-ups to the next target; setup prepares the next bout and grants Ready for Battle. Combat waits for the action and confirmation. The fifth victory completes the run.
 
 After a defeat or draw in any wave, confirm that:
 
@@ -84,11 +83,12 @@ If BG3's native game-over screen appears instead, report it immediately; that is
 
 ## Save/load checks
 
-1. Save during a wave's intermission with one ally dead, reload, and confirm the notice that the battle was reset, the ally is alive, stale enemies are gone, and the wave-1 ready prompt returns.
+1. Save during a wave's intermission with one ally dead, reload, and confirm the notice that the battle was reset, the ally is alive, stale enemies are gone, and Ready for Battle can open the wave-1 confirmation.
 2. Save in staging after a victory, reload, and confirm no second armory is delivered.
 3. Save after an elimination, reload, and confirm the run stays over.
+4. During a controlled delivery interruption, reload and verify the same saved plan resumes without a second armory or a replay of the earned victory. Check stack quantities, all recipients, remaining loot and the next-level XP target. See [recovery limits](REWARD_DELIVERY.md).
 
-After the fourth reward, finish leveling to 12. The four-wave championship starts automatically. After the fifth reward, confirm every player sees the final-wave, arena-eruption, and championship-spoils announcements.
+After the fourth reward, finish leveling to 12 and use Ready for Battle for the four-wave championship. After the fifth reward, confirm every player sees the final-wave, arena-eruption, and championship-spoils announcements.
 
 ## Mode-specific checks
 

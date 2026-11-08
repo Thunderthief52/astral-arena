@@ -369,10 +369,6 @@ function Adapter.schedule(delayMilliseconds, callback)
     Ext.Timer.WaitFor(delayMilliseconds, callback)
 end
 
-function Adapter.schedulePromptRetry(delayMilliseconds, callback)
-    Ext.Timer.WaitFor(delayMilliseconds, callback)
-end
-
 function Adapter.notify(guid, message)
     safely(function()
         Osi.ShowNotification(guid, message)
@@ -393,28 +389,50 @@ function Adapter.menuOwner(members)
     return members and members[1] and members[1].guid or nil
 end
 
+local menuResponseKeys = {}
+local menuResponseOrder = {}
+
+local function menuText(messageKey, message)
+    if type(message) == "string" and message ~= "" then return message end
+    local text = safely(function() return Ext.Loca.GetTranslatedString(messageKey) end)
+    if type(text) ~= "string" or text == "" or text == messageKey then
+        error("arena prompt has no readable text for " .. tostring(messageKey), 3)
+    end
+    return text
+end
+
+function Adapter.resolveMessageKey(message)
+    return menuResponseKeys[message] or message
+end
+
 function Adapter.openYesNo(guid, messageKey, message)
     if not guid or guid == "" then
         error("arena menu requires a player character", 2)
     end
-    if type(message) == "string" and Ext.Loca and Ext.Loca.UpdateTranslatedString then
-        safely(function()
-            Ext.Loca.UpdateTranslatedString(messageKey, message)
-        end)
+    -- This Osiris call accepts a message string. A localization handle alone
+    -- can be displayed literally; server-only overrides do not repair clients.
+    local text = menuText(messageKey, message)
+    if not menuResponseKeys[text] then
+        table.insert(menuResponseOrder, text)
+        if #menuResponseOrder > 64 then
+            menuResponseKeys[table.remove(menuResponseOrder, 1)] = nil
+        end
     end
-    Osi.OpenMessageBoxYesNo(guid, messageKey)
+    menuResponseKeys[text] = messageKey
+    Osi.OpenMessageBoxYesNo(guid, text)
 end
 
 function Adapter.openMessage(guid, messageKey, message)
     if not guid or guid == "" then
         error("arena message requires a player character", 2)
     end
-    if Ext.Loca and Ext.Loca.UpdateTranslatedString then
-        safely(function()
-            Ext.Loca.UpdateTranslatedString(messageKey, message)
-        end)
+    Osi.OpenMessageBox(guid, menuText(messageKey, message))
+end
+
+function Adapter.grantReadyAction(members)
+    for _, member in ipairs(members) do
+        Osi.AddSpell(member.guid, "Shout_AA_Ready", 0, 1)
     end
-    Osi.OpenMessageBox(guid, messageKey)
 end
 
 function Adapter.getGold(guid)
@@ -603,7 +621,7 @@ local function shuffledCopy(values)
     return shuffled
 end
 
-function Adapter.deliverPreparationBundle(members, level, catalog)
+function Adapter.planPreparationBundle(members, level)
     if type(members) ~= "table" or not members[1] then
         error("arena preparation supplies require a player party", 2)
     end
@@ -612,22 +630,19 @@ function Adapter.deliverPreparationBundle(members, level, catalog)
         error("unsupported preparation level: " .. tostring(level), 2)
     end
 
-    local delivered = { treasureRolls = 0, armoryItems = 0, revivifyScrolls = 0 }
+    local operations = {}
+    local function item(templateId, member, amount, bucket)
+        local valid, reason = Adapter.validateItemTemplate(templateId)
+        if not valid then error("invalid preparation item: " .. tostring(reason)) end
+        table.insert(operations, {kind="item", templateId=templateId, recipientGuid=member.guid, amount=amount, bucket=bucket})
+    end
     for _, member in ipairs(members) do
         -- Six level-scaled rolls give a fresh or reconstructed party weapons,
         -- armor, consumables, scrolls, and utility options before its first bout.
         for _ = 1, 6 do
-            Osi.GenerateTreasure(member.guid, "RewardMedium", level, member.guid)
-            delivered.treasureRolls = delivered.treasureRolls + 1
+            table.insert(operations, {kind="treasure", treasureTableId="RewardMedium", level=level, recipientGuid=member.guid, bucket="treasureRolls"})
         end
-        if Adapter.validateItemTemplate(REVIVIFY_SCROLL_TEMPLATE) then
-            local ok = pcall(function()
-                Osi.TemplateAddTo(REVIVIFY_SCROLL_TEMPLATE, member.guid, 2, 1)
-            end)
-            if ok then
-                delivered.revivifyScrolls = delivered.revivifyScrolls + 2
-            end
-        end
+        item(REVIVIFY_SCROLL_TEMPLATE, member, 2, "revivifyScrolls")
     end
 
     -- Roll one item per equipment slot for every avatar. Each slot uses its own
@@ -650,27 +665,20 @@ function Adapter.deliverPreparationBundle(members, level, catalog)
                 bag = shuffledCopy(pools[slot])
                 bagIndex = 1
             end
-            local item = bag[bagIndex]
+            local selected = bag[bagIndex]
             bagIndex = bagIndex + 1
-            if Adapter.validateItemTemplate(item.templateId) then
-                local ok = pcall(function()
-                    Osi.TemplateAddTo(item.templateId, member.guid, 1, 1)
-                end)
-                if ok then
-                    delivered.armoryItems = delivered.armoryItems + 1
-                end
-            end
+            item(selected.templateId, member, 1, "armoryItems")
         end
     end
-    return delivered
+    return operations
 end
 
-function Adapter.deliverVictoryBundle(offer, members)
+function Adapter.planVictoryBundle(offer, members)
     if type(members) ~= "table" or not members[1] then
         error("victory loot requires a player party", 2)
     end
 
-    local delivered = { treasureRolls = 0, rareItems = 0 }
+    local operations = {}
     local automatic = offer.automatic or {}
     local treasureTableId = automatic.treasureTableId
     if treasureTableId and treasureTableId ~= "" then
@@ -678,12 +686,7 @@ function Adapter.deliverVictoryBundle(offer, members)
         -- and delivering per avatar avoids split-screen inventory ownership bugs.
         for _, member in ipairs(members) do
             for _ = 1, math.max(4, tonumber(automatic.rolls) or 0) do
-                local ok = pcall(function()
-                    Osi.GenerateTreasure(member.guid, treasureTableId, offer.level, member.guid)
-                end)
-                if ok then
-                    delivered.treasureRolls = delivered.treasureRolls + 1
-                end
+                table.insert(operations, {kind="treasure", treasureTableId=treasureTableId, level=offer.level, recipientGuid=member.guid, bucket="treasureRolls"})
             end
         end
     end
@@ -693,17 +696,36 @@ function Adapter.deliverVictoryBundle(offer, members)
     -- so players can compare and trade the candidates without blocking the run.
     for index, choice in ipairs(offer.choices or {}) do
         local recipient = members[((index - 1) % #members) + 1]
-        local valid = Adapter.validateItemTemplate(choice.templateId)
-        if valid then
-            local ok = pcall(function()
-                Osi.TemplateAddTo(choice.templateId, recipient.guid, 1, 1)
-            end)
-            if ok then
-                delivered.rareItems = delivered.rareItems + 1
-            end
-        end
+        local valid, reason = Adapter.validateItemTemplate(choice.templateId)
+        if not valid then error("invalid victory item: " .. tostring(reason)) end
+        table.insert(operations, {kind="item", templateId=choice.templateId, recipientGuid=recipient.guid, amount=1, bucket="rareItems"})
+    end
+    return operations
+end
+
+function Adapter.applyRewardOperation(operation, amount)
+    if operation.kind == "treasure" then
+        Osi.GenerateTreasure(operation.recipientGuid, operation.treasureTableId, operation.level, operation.recipientGuid)
+    else
+        Osi.TemplateAddTo(operation.templateId, operation.recipientGuid, amount or operation.amount, 1)
+    end
+end
+
+local function deliverPlan(operations)
+    local delivered = { treasureRolls=0, armoryItems=0, revivifyScrolls=0, rareItems=0 }
+    for _, operation in ipairs(operations) do
+        Adapter.applyRewardOperation(operation)
+        delivered[operation.bucket] = delivered[operation.bucket] + (operation.amount or 1)
     end
     return delivered
+end
+
+function Adapter.deliverPreparationBundle(members, level)
+    return deliverPlan(Adapter.planPreparationBundle(members, level))
+end
+
+function Adapter.deliverVictoryBundle(offer, members)
+    return deliverPlan(Adapter.planVictoryBundle(offer, members))
 end
 
 function Adapter.deliverItem(templateId, recipientGuid)
@@ -786,7 +808,39 @@ local STAT_FIELDS = {
 
 local function bareUuid(guid)
     local uuid = tostring(guid or ""):match("(%x%x%x%x%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%x%x%x%x%x%x%x%x)$")
-    return uuid or guid
+    return uuid and uuid:lower() or guid
+end
+
+function Adapter.rewardInventorySnapshot(guid)
+    local snapshot, visited = {}, {}
+    local function visit(ownerGuid, required)
+        if visited[ownerGuid] then return end
+        visited[ownerGuid] = true
+        local entity = Ext.Entity.Get(ownerGuid)
+        local owner = entity and entity.InventoryOwner
+        if not owner then
+            if required then error("reward recipient inventory is unavailable: " .. tostring(ownerGuid)) end
+            return
+        end
+        for _, inventory in pairs(owner.Inventories or {}) do
+            local container = inventory.InventoryContainer
+            for _, entry in pairs(container and container.Items or {}) do
+                local item = entry.Item
+                local itemGuid = item and item.Uuid and item.Uuid.EntityUuid
+                if not itemGuid then error("reward inventory contains an unresolved item") end
+                itemGuid = tostring(itemGuid)
+                local templateId = Osi.GetTemplate(itemGuid)
+                local amount = Osi.GetStackAmount(itemGuid)
+                if not templateId or type(amount) ~= "number" then
+                    error("could not inspect reward inventory item " .. itemGuid)
+                end
+                snapshot[bareUuid(itemGuid)] = {templateId=bareUuid(templateId), amount=amount}
+                visit(itemGuid, false)
+            end
+        end
+    end
+    visit(guid, true)
+    return snapshot
 end
 
 local function flatten(value)

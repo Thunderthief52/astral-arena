@@ -254,7 +254,7 @@ H.test("AI victory restores the party, delivers loot, and advances without a rew
     H.equal(adapter.experienceTargets[1], 8)
     H.equal(subject.run.phase, "awaiting_level_up")
     H.equal(subject.menu, nil)
-    H.equal(#adapter.menus, 1)
+    H.equal(#adapter.menus, 0)
 end)
 
 H.test("AI fixture waves rotate roles while preserving party-size scaling", function()
@@ -336,18 +336,23 @@ H.test("a dead teammate stays dead during intermission but can be resurrected be
     H.truthy(adapter.alive["player-a"])
 end)
 
-H.test("declining a wave prompt never forces combat and offers it again after one minute", function()
+H.test("ready prompts only open on request and never arm timed menu interruptions", function()
     local adapter = fakeAdapter()
     local subject = arena(adapter)
     subject:start()
     H.equal(subject.active.match, nil)
     H.equal(adapter.spawnCalls, 0)
     H.equal(subject.menu.kind, "wave_start")
+    H.equal(#adapter.menus,0)
+    H.truthy(subject:requestReadyMenu("player-a"))
+    H.equal(subject:requestReadyMenu("player-b"),false)
+    H.equal(#adapter.menus,1,"an unanswered prompt must not be opened twice")
     subject:handleMenuResponse("player-a", subject.menu.messageKey, false)
     H.equal(subject.active.match, nil)
     H.equal(adapter.spawnCalls, 0)
-    H.equal(#adapter.promptQueue, 1)
-    table.remove(adapter.promptQueue, 1)()
+    H.equal(#adapter.promptQueue, 0)
+    H.equal(subject:requestReadyMenu("stranger"),false)
+    H.truthy(subject:requestReadyMenu("player-a"))
     H.equal(#adapter.menus, 2)
     H.equal(subject.active.match, nil)
     H.equal(adapter.spawnCalls, 0)
@@ -833,4 +838,86 @@ H.test("the console ready command answers an open wave prompt", function()
     subject:confirmReadyPrompt()
     H.equal(adapter.spawnCalls, 1)
     H.raises(function() subject:confirmReadyPrompt() end, "no wave ready prompt")
+end)
+
+local function journalAdapter(adapter, failTemplate)
+    local inventory, count = {}, {}
+    function adapter.rewardInventorySnapshot(guid)
+        local result={}
+        for key,value in pairs(inventory[guid] or {}) do result[key]={templateId=value.templateId,amount=value.amount} end
+        return result
+    end
+    function adapter.applyRewardOperation(op,amount)
+        if op.templateId==failTemplate() then error("injected delivery failure") end
+        inventory[op.recipientGuid]=inventory[op.recipientGuid] or {}
+        count[op.templateId]=(count[op.templateId] or 0)+amount
+        inventory[op.recipientGuid][op.templateId]={templateId=op.templateId,amount=count[op.templateId]}
+    end
+    return count
+end
+
+H.test("an interrupted armory resumes its saved plan instead of granting a new bundle", function()
+    local adapter, store = fakeAdapter(), sharedStore()
+    local failing="second"
+    local counts=journalAdapter(adapter,function() return failing end)
+    function adapter.planPreparationBundle()
+        return {
+            {kind="item",templateId="first",recipientGuid="player-a",amount=1,bucket="armoryItems"},
+            {kind="item",templateId="second",recipientGuid="player-a",amount=1,bucket="armoryItems"},
+        }
+    end
+    local subject=arena(adapter,nil,store)
+    subject:start()
+    H.equal(subject.active,nil)
+    H.equal(store.peek().preparationDelivered,false)
+    H.equal(counts.first,1)
+    H.raises(function() arena(adapter,nil,store):start() end,"saved loot delivery")
+    failing=nil
+    local resumed=arena(adapter,nil,store)
+    for _=1,8 do resumed:autoAdvance() end
+    H.truthy(store.peek().preparationDelivered)
+    H.equal(store.peek().pendingDelivery,nil)
+    H.equal(counts.first,1)
+    H.equal(counts.second,1)
+    H.equal(adapter.preparationCalls,0)
+    H.truthy(resumed.active)
+end)
+
+H.test("victory delivery survives reload and retains the XP target after an award error", function()
+    local adapter, store = fakeAdapter(), sharedStore()
+    local failing="second"
+    local counts=journalAdapter(adapter,function() return failing end)
+    function adapter.planVictoryBundle()
+        return {
+            {kind="item",templateId="first",recipientGuid="player-a",amount=1,bucket="rareItems"},
+            {kind="item",templateId="second",recipientGuid="player-a",amount=1,bucket="rareItems"},
+        }
+    end
+    local subject=arena(adapter,nil,store)
+    subject:start({countdownSeconds=0})
+    clearBout(subject,adapter)
+    H.equal(#store.peek().victories,1)
+    H.equal(store.peek().combat,nil)
+    H.truthy(store.peek().pendingDelivery)
+    H.equal(#adapter.experienceTargets,0)
+    failing=nil
+    local award=adapter.awardPartyToLevel
+    local failXP=true
+    function adapter.awardPartyToLevel(...)
+        if failXP then failXP=false; error("interrupted before XP") end
+        return award(...)
+    end
+    local resumed=arena(adapter,nil,store)
+    for _=1,8 do pcall(function() resumed:autoAdvance() end) end
+    H.equal(store.peek().pendingDelivery,nil)
+    H.equal(store.peek().progressionTarget,8)
+    H.equal(counts.first,1)
+    H.equal(counts.second,1)
+    H.equal(#store.peek().victories,1)
+    H.equal(adapter.spawnCalls,2,"a won fight must not be replayed during payout recovery")
+    adapter.partyLevel=8
+    resumed:autoAdvance()
+    H.equal(store.peek().progressionTarget,nil)
+    H.truthy(resumed.active)
+    H.equal(resumed.run.level,8)
 end)

@@ -245,10 +245,16 @@ function Controller.Register()
 
     Ext.Osiris.RegisterListener("MessageBoxYesNoClosed", 3, "after", function(character, messageKey, result)
         safely(function()
+            messageKey = Bg3Adapter.resolveMessageKey(messageKey)
             if not campService:handleMenuResponse(character, messageKey, result) then
                 soloArena:handleMenuResponse(character, messageKey, result)
             end
         end)
+    end)
+
+    Ext.Osiris.RegisterListener("UsingSpell", 5, "after", function(character, spell)
+        if spell ~= "Shout_AA_Ready" then return end
+        safely(function() soloArena:requestReadyMenu(character) end)
     end)
 
     Ext.Osiris.RegisterListener("StatusApplied", 4, "after", function(object, status)

@@ -25,6 +25,7 @@ local world = {
     nextId = 0,
     region = "AA_Arena_Main",
     host = nil,
+    items = {},
 }
 
 local function newCharacter(guid, level, isAvatar)
@@ -168,6 +169,15 @@ local function applyLevelUps()
     end
 end
 
+local function addItem(template, guid, amount)
+    world.nextId=world.nextId+1
+    local id="reward_item_" .. world.nextId
+    world.items[id]={templateId=template,amount=amount or 1}
+    local owner=assert(world.characters[guid])
+    owner.inventory=owner.inventory or {}
+    table.insert(owner.inventory,id)
+end
+
 Osi = setmetatable({
     DB_PartyMembers = { Get = function() return members() end },
     GetActiveModStartupLevel = function() return "AA_Arena_Main" end,
@@ -182,6 +192,15 @@ Osi = setmetatable({
     GetPosition = function(guid) local p = world.characters[guid].position; return p[1], p[2], p[3] end,
     TeleportToPosition = function(guid, x, y, z) world.characters[guid].position = { x, y, z } end,
     GetHostCharacter = function() return world.host end,
+    TemplateAddTo = addItem,
+    AddSpell = function(guid,spell)
+        local character=assert(world.characters[guid])
+        character.spells=character.spells or {}
+        character.spells[spell]=true
+    end,
+    GenerateTreasure = function(guid) addItem("treasure-template",guid,1) end,
+    GetTemplate = function(guid) return world.items[guid] and world.items[guid].templateId or "legacy-template" end,
+    GetStackAmount = function(guid) return world.items[guid] and world.items[guid].amount or 1 end,
     OpenMessageBoxYesNo = function(guid, key) table.insert(messageBoxes, { kind = "yesno", guid = guid, key = key }) end,
     OpenMessageBox = function(guid, key) table.insert(messageBoxes, { kind = "ok", guid = guid, key = key }) end,
     GetGold = function(guid) return world.characters[guid].gold or 0 end,
@@ -265,11 +284,14 @@ local function answerMenus(answer, onlyKey)
     local index = 1
     while index <= #messageBoxes do
         local box = messageBoxes[index]
-        if box.kind == "yesno" and (not onlyKey or box.key == onlyKey) then
+        -- The real adapter must translate native plaintext responses to stable keys.
+        if box.kind == "yesno" and (not onlyKey or box.key == onlyKey
+            or box.key:find((onlyKey == "h93ba8d19ef074e7eb7c59686bbc9fbb5") and "Eldra Luthrinn" or "WITHERS' LEDGER",1,true)) then
             table.remove(messageBoxes, index)
             -- BG3 reports the clicking player's selected character, which is often
             -- not the character the box was opened for.
-            local responder = box.key == "h4b7ad31ee2074bfab4a21407db48a032" and world.party[#world.party] or box.guid
+            local responder = box.key:find("ARENA READY",1,true) or box.key:find("CLEARED",1,true)
+            responder = responder and world.party[#world.party] or box.guid
             fire("MessageBoxYesNoClosed", responder, box.key, answer)
             handled = handled + 1
         else
@@ -349,11 +371,15 @@ local fighterGuid = world.party[3]
 runTimers(3000)
 expect(#enemies() == 0, "no enemy may exist before the ready prompt")
 expect(logContains("Prepared AI bout 1/5 at L3"), "bout 1 should be prepared at level 3")
+for _,guid in ipairs(world.party) do
+    expect(world.characters[guid].spells and world.characters[guid].spells.Shout_AA_Ready,"every party member must have the ready action")
+end
 
 local function fightBattle(expectedLevel, loseOnWave)
     local waves = 0
     for _ = 1, 8 do
         runTimers(1000)
+        fire("UsingSpell",world.host,"Shout_AA_Ready","Shout","",0)
         answerMenus(true)
         runTimers(500)
         local foes = enemies()
@@ -401,6 +427,7 @@ expect(armoryLines == 1, "armory must be delivered exactly once")
 
 -- Save in the middle of championship wave 1, then "load" it.
 runTimers(1000)
+fire("UsingSpell",world.host,"Shout_AA_Ready","Shout","",0)
 answerMenus(true)
 runTimers(500)
 expect(#enemies() > 0, "championship wave 1 should spawn")

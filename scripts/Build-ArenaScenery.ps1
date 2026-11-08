@@ -224,6 +224,10 @@ Write-MergedResource $sceneryOutputPath {
         Add-Attribute $writer 'WalkOn' 'bool' $(if ($walkOn) { 'True' } else { 'False' })
         Add-Attribute $writer 'WalkThrough' 'bool' $(if ($walkThrough) { 'True' } else { 'False' })
         Add-Attribute $writer 'IsDecorative' 'bool' $(if ($decorative) { 'True' } else { 'False' })
+        Add-Attribute $writer 'Fadeable' 'bool' 'True'
+        if ($decorative -or ($object.tactical -ne $true -and $walkOn -ne $true)) {
+            Add-Attribute $writer 'CollideWithCamera' 'bool' 'False'
+        }
         Add-Attribute $writer '_OriginalFileVersion_' 'int64' '144115207403209026'
         $writer.WriteStartElement('children')
         Write-Transform $writer $object.position (Get-YawQuaternion ([double]$object.yaw)) ([double]$object.scale)
@@ -287,10 +291,17 @@ ConvertTo-Json -InputObject $current | Set-Content -LiteralPath $indexPath -Enco
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $levelMetaOutput -PathType Leaf)) {
     throw "Divine failed to build arena level metadata."
 }
+$MiniMapSource = Join-Path $RepoRoot 'toolkit\levels\AA_Arena_Main.minimap.lsx'
+$MiniMapOutput = Join-Path $levelRoot 'WorldMap\MiniMap.lsf'
+New-Item -ItemType Directory -Force -Path (Split-Path -Parent $MiniMapOutput) | Out-Null
+& $DivinePath -g bg3 -a convert-resource -s $MiniMapSource -d $MiniMapOutput -i lsx -o lsf | Out-Null
+if ($LASTEXITCODE -ne 0) { throw 'Divine failed to compile the native minimap metadata.' }
 $Receipt = @{
     manifestSha256 = Get-ArenaManifestHash -Path $manifestPath
     scenerySha256 = (Get-FileHash -LiteralPath $sceneryOutputPath -Algorithm SHA256).Hash.ToLowerInvariant()
     lightsSha256 = (Get-FileHash -LiteralPath $lightsOutputPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    minimapSourceSha256 = Get-ArenaManifestHash -Path $MiniMapSource
+    minimapSha256 = (Get-FileHash -LiteralPath $MiniMapOutput -Algorithm SHA256).Hash.ToLowerInvariant()
 }
 $Receipt | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $RepoRoot 'toolkit\scenery\AA_Arena_Main.build.json') -Encoding utf8
 Write-Host "Built $($manifest.objects.Count) scenery object(s) and $($manifest.lights.Count) light(s) for $($manifest.levelName)."

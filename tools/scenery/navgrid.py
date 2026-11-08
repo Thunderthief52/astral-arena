@@ -97,9 +97,11 @@ def build_stale_reason(root):
         "manifestSha256": os.path.join(root, "toolkit", "scenery", "AA_Arena_Main.scenery.json"),
         "scenerySha256": os.path.join(level_dir(root), "Scenery", "_merged.lsf"),
         "lightsSha256": os.path.join(level_dir(root), "Lights", "_merged.lsf"),
+        "minimapSourceSha256": os.path.join(root, "toolkit", "levels", "AA_Arena_Main.minimap.lsx"),
+        "minimapSha256": os.path.join(level_dir(root), "WorldMap", "MiniMap.lsf"),
     }
     for key, path in expected.items():
-        digest = text_sha if key == "manifestSha256" else file_sha
+        digest = text_sha if key in ("manifestSha256", "minimapSourceSha256") else file_sha
         if not os.path.isfile(path) or receipt.get(key) != digest(path):
             return f"scenery build receipt mismatch: {key}; rebuild merged scenery resources"
     return None

@@ -45,13 +45,17 @@ local members = {
 H.test("a packaged menu opens without a runtime localization override", function()
     local previousExt, previousOsi = _G.Ext, _G.Osi
     local opened
-    _G.Ext = { Loca = { UpdateTranslatedString = function() error("must use packaged text") end } }
+    _G.Ext = { Loca = {
+        GetTranslatedString = function() return "Packaged readable text" end,
+        UpdateTranslatedString = function() error("must use packaged text") end,
+    } }
     _G.Osi = { OpenMessageBoxYesNo = function(guid, key) opened = { guid, key } end }
     local ok, err = pcall(Adapter.openYesNo, "player-a", "hpackaged")
     _G.Ext, _G.Osi = previousExt, previousOsi
     H.truthy(ok, err)
     H.equal(opened[1], "player-a")
-    H.equal(opened[2], "hpackaged")
+    H.equal(opened[2], "Packaged readable text")
+    H.equal(Adapter.resolveMessageKey(opened[2]), "hpackaged")
 end)
 
 H.test("party XP award reaches independently owned split-screen avatars", function()
@@ -128,7 +132,7 @@ H.test("arena menu targets the host avatar when it is in the party", function()
     H.equal(owner, "player-b")
 end)
 
-H.test("arena menu opens a native localized yes-no prompt", function()
+H.test("arena menu sends readable text and maps the native response back to its key", function()
     local previousExt = _G.Ext
     local previousOsi = _G.Osi
     local updated
@@ -150,10 +154,51 @@ H.test("arena menu opens a native localized yes-no prompt", function()
     Adapter.openYesNo("player-a", "hmenu", "Retry?")
     _G.Ext = previousExt
     _G.Osi = previousOsi
-    H.equal(updated[1], "hmenu")
-    H.equal(updated[2], "Retry?")
+    H.equal(updated, nil)
     H.equal(opened[1], "player-a")
-    H.equal(opened[2], "hmenu")
+    H.equal(opened[2], "Retry?")
+    H.equal(Adapter.resolveMessageKey("Retry?"), "hmenu")
+    H.equal(Adapter.resolveMessageKey("hmenu"), "hmenu")
+end)
+
+H.test("unresolved localization handles never appear as prompt text", function()
+    local previousExt, previousOsi = _G.Ext, _G.Osi
+    local opened=false
+    _G.Ext={Loca={GetTranslatedString=function(handle) return handle end}}
+    _G.Osi={OpenMessageBoxYesNo=function() opened=true end}
+    local ok=pcall(Adapter.openYesNo,"player-a","hunresolved")
+    _G.Ext, _G.Osi=previousExt, previousOsi
+    H.equal(ok,false)
+    H.equal(opened,false)
+end)
+
+H.test("the ready action is granted to each party member", function()
+    local previousOsi=_G.Osi
+    local grants={}
+    _G.Osi={AddSpell=function(guid,spell) table.insert(grants,guid .. ":" .. spell) end}
+    Adapter.grantReadyAction(members)
+    _G.Osi=previousOsi
+    H.equal(grants[1],"player-a:Shout_AA_Ready")
+    H.equal(grants[2],"player-b:Shout_AA_Ready")
+end)
+
+H.test("reward snapshots include nested bags, stack amounts and normalized template UUIDs", function()
+    local previousExt,previousOsi=_G.Ext,_G.Osi
+    local template="AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE"
+    local function owner(item)
+        return {InventoryOwner={Inventories={{InventoryContainer={Items={{Item={Uuid={EntityUuid=item}}}}}}}}}
+    end
+    _G.Ext={Entity={Get=function(guid)
+        if guid=="player-a" then return owner("bag") end
+        if guid=="bag" then return owner("scroll") end
+    end}}
+    _G.Osi={GetTemplate=function(item) return item=="scroll" and "OBJ_Scroll_" .. template or "bag-template" end,
+        GetStackAmount=function(item) return item=="scroll" and 7 or 1 end}
+    local result=Adapter.rewardInventorySnapshot("player-a")
+    _G.Ext,_G.Osi=previousExt,previousOsi
+    H.equal(result.scroll.templateId,template:lower())
+    H.equal(result.scroll.amount,7)
+    H.equal(result.bag.amount,1)
 end)
 
 H.test("arena downing preserves native death saves without blocking lethal attacks", function()

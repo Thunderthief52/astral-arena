@@ -5,6 +5,7 @@ local ArenaBootstrap = Ext.Require("AstralArena/Core/ArenaBootstrap.lua")
 local Constants = Ext.Require("AstralArena/Shared/Constants.lua")
 local PreparationLoadout = Ext.Require("AstralArena/Shared/PreparationLoadout.lua")
 local RunRecord = Ext.Require("AstralArena/Core/RunRecord.lua")
+local RewardDelivery = Ext.Require("AstralArena/Core/RewardDelivery.lua")
 
 local SoloArena = {}
 SoloArena.__index = SoloArena
@@ -93,6 +94,61 @@ function SoloArena:_saveRecord(record)
     self.runStore.save(record)
 end
 
+function SoloArena:_resumePendingDelivery(record)
+    local pending = record.pendingDelivery
+    local ok, complete, reason = pcall(RewardDelivery.process, pending, self.adapter, function()
+        self:_saveRecord(record)
+    end)
+    if not ok then reason, complete = complete, false end
+    if not complete then
+        if not reason and not self.deliveryNotice then
+            self.deliveryNotice = "waiting"
+            self.output("Finishing saved arena loot delivery.")
+            for _, member in ipairs(pending.members) do
+                self.adapter.notify(member.guid, "Your arena loot is being delivered. Wait for completion before moving or using the new items.")
+            end
+        end
+        if reason and self.deliveryNotice ~= tostring(reason) then
+            self.deliveryNotice = tostring(reason)
+            self.output("Reward delivery paused safely: " .. tostring(reason))
+            for _, member in ipairs(pending.members) do
+                self.adapter.notify(member.guid, "Arena loot delivery is paused. Use Ready for Battle to retry; the saved plan keeps completed items.")
+            end
+        end
+        if self.adapter.grantReadyAction and self.deliveryReadyGranted ~= pending.id then
+            self.adapter.grantReadyAction(pending.members)
+            self.deliveryReadyGranted = pending.id
+        end
+        return false
+    end
+    self.deliveryNotice = nil
+    record.pendingDelivery = nil
+    if pending.kind == "preparation" then
+        RunRecord.markPreparationDelivered(record)
+        self.preparationBundleDelivered = true
+    else
+        if pending.final then
+            RunRecord.crown(record, pending.details)
+        else
+            record.progressionTarget = pending.nextLevel
+        end
+        self.run, self.menu, self.bootstrapState = nil, nil, nil
+    end
+    self:_saveRecord(record)
+    if pending.kind == "victory" then
+        if pending.final then
+            self:_celebrateChampions(pending.members, pending.delivered)
+        else
+            self.adapter.awardPartyToLevel(pending.members, pending.nextLevel)
+            self.output(string.format("AI arena victory at L%d. Saved loot delivered; finish native level-ups to L%d.", pending.details.level, pending.nextLevel))
+            for _, member in ipairs(pending.members) do
+                self.adapter.notify(member.guid, "Victory! Loot delivered. Finish leveling to " .. pending.nextLevel .. "; use Ready for Battle for the next fight.")
+            end
+        end
+    end
+    return true, pending.delivered
+end
+
 local function enemyFactionList(group)
     local values = {}
     local seen = {}
@@ -172,6 +228,7 @@ function SoloArena:_showMenu()
     if not menu then
         return false
     end
+    if menu.visible then return true end
 
     local key
     local message
@@ -179,12 +236,12 @@ function SoloArena:_showMenu()
         key = Constants.MenuMessages.waveStart
         if menu.isInitial then
             message = string.format(
-                "ARENA READY — Begin wave 1/%d now? Choose Yes only when every player has finished equipping and positioning. Choose No for more preparation time; this prompt returns in one minute.",
+                "ARENA READY — Begin wave 1/%d now? Choose Yes only when every player has finished equipping and positioning. Choose No for more preparation time, then use Ready for Battle on your hotbar when ready.",
                 self.active and self.active.waveCount or 1
             )
         else
             message = string.format(
-                "WAVE %d CLEARED — Begin wave %d/%d now? Living allies have full health, spell slots, and class resources. Dead allies still require Revivify. Choose No for more preparation time; this prompt returns in one minute.",
+                "WAVE %d CLEARED — Begin wave %d/%d now? Living allies have full health, spell slots, and class resources. Dead allies still require Revivify. Choose No for more preparation time, then use Ready for Battle on your hotbar.",
                 menu.clearedWave or 1,
                 menu.nextWave or 2,
                 self.active and self.active.waveCount or 2
@@ -216,6 +273,7 @@ function SoloArena:_showMenu()
 
     menu.messageKey = key
     self.adapter.openYesNo(menu.ownerGuid, key, message)
+    menu.visible = true
     return true
 end
 
@@ -241,6 +299,7 @@ function SoloArena:handleMenuResponse(characterGuid, messageKey, result)
     if not menu or messageKey ~= menu.messageKey or not isPartyResponder(self.adapter, menu, characterGuid) then
         return false
     end
+    menu.visible = false
 
     local accepted = menuResultIsYes(result)
     if menu.kind == "wave_start" then
@@ -260,13 +319,11 @@ function SoloArena:handleMenuResponse(characterGuid, messageKey, result)
             end
         else
             menu.dismissed = true
-            local message = "Arena paused safely. Prepare for as long as you need; the ready prompt will return in one minute."
+            local message = "Arena paused safely. Use Ready for Battle on your hotbar when the party is ready."
             self.output(message)
             for _, member in ipairs(active.teams.left.members) do
                 self.adapter.notify(member.guid, message)
             end
-            -- The recurring prompt retry armed when this menu opened will
-            -- redisplay it without spawning or forcing a wave.
         end
         return true
     end
@@ -308,6 +365,32 @@ function SoloArena:confirmReadyPrompt()
     return self:handleMenuResponse(menu.ownerGuid, menu.messageKey, true)
 end
 
+function SoloArena:requestReadyMenu(characterGuid)
+    local record = self:_record()
+    if record.pendingDelivery then
+        local permitted = false
+        for _, member in ipairs(self.adapter.partyMembers()) do
+            if member.guid == characterGuid then permitted = true end
+        end
+        if not permitted then return false end
+        if not RewardDelivery.retry(record.pendingDelivery) then
+            self.adapter.notify(characterGuid, "The saved loot plan is still being delivered. Please wait for completion.")
+            return false
+        end
+        self:_saveRecord(record)
+        return self:_resumePendingDelivery(record)
+    end
+    local menu = self.menu
+    if not menu or menu.kind ~= "wave_start" then
+        self.adapter.notify(characterGuid, "No arena wave is waiting for confirmation.")
+        return false
+    end
+    if not isPartyResponder(self.adapter, menu, characterGuid) then return false end
+    if menu.visible then return false end
+    menu.dismissed = nil
+    return self:_showMenu()
+end
+
 function SoloArena:_openWaveStartMenu(members, options)
     options = options or {}
     self.menu = {
@@ -316,31 +399,19 @@ function SoloArena:_openWaveStartMenu(members, options)
         isInitial = options.isInitial == true,
         clearedWave = options.clearedWave,
         nextWave = options.nextWave,
+        messageKey = Constants.MenuMessages.waveStart,
     }
-    local shown = self:_showMenu()
-    local menu = self.menu
-    local generation = self.active and self.active.generation
-    local scheduleRetry = self.adapter.schedulePromptRetry or self.adapter.schedule
-    local function armRetry()
-        if not menu or menu.retryArmed then
-            return
-        end
-        menu.retryArmed = true
-        scheduleRetry(60000, function()
-            menu.retryArmed = nil
-            if self.active and self.active.generation == generation and self.menu == menu then
-                menu.dismissed = nil
-                self:_showMenu()
-                armRetry()
-            end
-        end)
+    if self.adapter.grantReadyAction then self.adapter.grantReadyAction(members) end
+    for _, member in ipairs(members) do
+        self.adapter.notify(member.guid, "Arena wave ready. Use Ready for Battle on your hotbar to review and confirm the fight.")
     end
-    armRetry()
-    return shown
+    return true
 end
 
 function SoloArena:_requireOpenRun()
     local record = self:_record()
+    if record.pendingDelivery then error("saved loot delivery is pending; use Ready for Battle to retry",3) end
+    if record.progressionTarget then error("finish the saved victory's native level-ups before starting another bout",3) end
     if RunRecord.isOver(record) then
         error(RunRecord.summary(record) .. " Start a New Game with Astral Arena Adventure for a fresh run.", 3)
     end
@@ -368,11 +439,11 @@ function SoloArena:bootstrapParty()
     self.adapter.awardPartyToLevel(party.members, targetLevel)
     ArenaBootstrap.markExperienceAwarded(state)
     self.output(string.format(
-        "Arena bootstrap awarded the level-3 XP threshold to %d character(s). Complete every native level-up; the initiation ready prompt will appear automatically.",
+        "Arena bootstrap awarded the level-3 XP threshold to %d character(s). Complete every native level-up, equip, then use Ready for Battle on your hotbar.",
         #party.members
     ))
     for _, member in ipairs(party.members) do
-        self.adapter.notify(member.guid, "Astral Arena: finish leveling to 3. The initiation ready prompt will appear automatically.")
+        self.adapter.notify(member.guid, "Astral Arena: finish leveling to 3, then use Ready for Battle on your hotbar.")
     end
     return state
 end
@@ -622,16 +693,26 @@ function SoloArena:_startBout(party, options)
     if not record.preparationDelivered and not self.preparationBundleDelivered
         and self.adapter.deliverPreparationBundle
     then
-        -- Mark first: a crash halfway through delivery must never allow a
-        -- reload to hand out a second full armory.
-        self.preparationBundleDelivered = true
-        RunRecord.markPreparationDelivered(record)
-        self:_saveRecord(record)
-        preparation = self.adapter.deliverPreparationBundle(
-            party.members,
-            self.run.level,
-            self.rewardCatalog
-        ) or preparation
+        if self.adapter.planPreparationBundle and self.adapter.rewardInventorySnapshot then
+            record.pendingDelivery = {
+                id="preparation", kind="preparation", members=party.members,
+                operations=self.adapter.planPreparationBundle(party.members, self.run.level),
+            }
+            self:_saveRecord(record)
+            local complete, delivered = self:_resumePendingDelivery(record)
+            if not complete then
+                self.run.phase, self.run.opponent = "seeking_opponent", nil
+                self.restartCooldown = 0
+                return nil
+            end
+            preparation = delivered
+        else
+            -- Legacy/test adapters without inventory reconciliation.
+            preparation = self.adapter.deliverPreparationBundle(party.members, self.run.level, self.rewardCatalog) or preparation
+            self.preparationBundleDelivered = true
+            RunRecord.markPreparationDelivered(record)
+            self:_saveRecord(record)
+        end
         local supplyMessage = string.format(
             "Arena armory rolled: %d randomized personal gear pieces, %d level-%d supply rolls, and %d Scrolls of Revivify. Every character has weapon and armour choices plus a helmet, gloves, boots, amulet, and ring. Equip before confirming combat.",
             preparation.armoryItems or 0,
@@ -738,7 +819,7 @@ function SoloArena:_startBout(party, options)
     ))
     if self.active.countdownRemaining == nil then
         self:_openWaveStartMenu(party.members, { isInitial = true, nextWave = 1 })
-        local readyMessage = "Astral Arena is ready. Equip and position the whole party, then choose Yes on the ready prompt to begin wave 1."
+        local readyMessage = "Astral Arena is ready. Equip and position the whole party, then use Ready for Battle on your hotbar and confirm wave 1."
         for _, member in ipairs(party.members) do
             self.adapter.notify(member.guid, readyMessage)
         end
@@ -1100,6 +1181,22 @@ function SoloArena:_finish(resultSide)
             recentOfferItemIds = self.recentOfferItemIds,
             treasureTableId = "RewardMedium",
         })
+        if self.adapter.planVictoryBundle and self.adapter.rewardInventorySnapshot then
+            local record = self:_record()
+            local nextLevel = self.run.levels[self.run.battleIndex + 1]
+            local details = {level=level, battleIndex=battleIndex, battleCount=battleCount, opponent=opponentLabel, waves=active.waveCount}
+            -- Commit the win and exact randomly selected plan together before
+            -- creating loot. A reload resumes delivery instead of replaying it.
+            record.pendingDelivery = {
+                id="victory-L" .. level, kind="victory", members=self.rewardRecipients.members,
+                operations=self.adapter.planVictoryBundle(offer, self.rewardRecipients.members),
+                details=details, nextLevel=nextLevel, final=nextLevel == nil,
+            }
+            RunRecord.recordVictory(record, details)
+            self:_saveRecord(record)
+            self:_resumePendingDelivery(record)
+            return nil
+        end
         local delivered = self.adapter.deliverVictoryBundle(offer, self.rewardRecipients.members)
         SoloRun.markAutomaticDelivered(self.run)
         local selected, targetLevel = SoloRun.claimReward(self.run, offer.choices[1].id)
@@ -1232,6 +1329,9 @@ function SoloArena:_celebrateChampions(members, delivered)
 end
 
 function SoloArena:pick(choiceIndex, recipientIndex)
+    if self:_record().pendingDelivery then
+        error("the saved reward plan is already being delivered; use Ready for Battle to retry it",2)
+    end
     if not self.run or self.run.phase ~= "awaiting_reward" then
         error("there is no open AI arena reward", 2)
     end
@@ -1265,7 +1365,7 @@ function SoloArena:pick(choiceIndex, recipientIndex)
     end
     self.adapter.awardPartyToLevel(self.rewardRecipients.members, targetLevel)
     self.output(string.format(
-        "%s received %s and the automatic bundle. Complete native level-ups to L%d; the next bout's ready prompt will appear automatically.",
+        "%s received %s and the automatic bundle. Complete native level-ups to L%d, then use Ready for Battle on your hotbar.",
         recipient.name or recipient.guid,
         selected.displayName,
         targetLevel
@@ -1363,6 +1463,22 @@ function SoloArena:autoAdvance()
     end
 
     local record = self:_record()
+    if record.pendingDelivery then
+        self:_resumePendingDelivery(record)
+        return "delivery"
+    end
+    if record.progressionTarget then
+        local members = self.adapter.partyMembers()
+        if not members[1] or (self.adapter.isPartyInArena and not self.adapter.isPartyInArena(members)) then return "outside" end
+        local ready = true
+        for _, member in ipairs(members) do if member.level < record.progressionTarget then ready = false end end
+        if not ready then
+            self.adapter.awardPartyToLevel(members, record.progressionTarget)
+            return "level_up"
+        end
+        record.progressionTarget = nil
+        self:_saveRecord(record)
+    end
     if RunRecord.isOver(record) then
         self:_showEndingNotice(record)
         return "completed"
@@ -1465,7 +1581,7 @@ function SoloArena:abort(reason)
     -- An abort is a recovery tool, not a defeat. Re-offer the same battle
     -- after a short pause; enemies still wait for the ready prompt.
     self.restartCooldown = 10
-    self.output("AI arena match aborted; player party restored and temporary enemies deleted. The same battle's ready prompt returns in about ten seconds.")
+    self.output("AI arena match aborted; player party restored and temporary enemies deleted. The same battle will wait for Ready for Battle after setup.")
 end
 
 -- Developer escape hatch for a false elimination caused by an engine bug.
@@ -1496,7 +1612,7 @@ function SoloArena:reset()
     self.repairNoticeTarget = nil
     self.menu = nil
     self.preparationBundleDelivered = false
-    self.output("AI arena session state reset. Awarded XP and items are not removed; reload the pre-test save for a clean reset.")
+    self.output("AI arena session state reset. Saved delivery plans, awarded XP and items are retained; reload the pre-test save for a clean reset.")
 end
 
 function SoloArena:status()

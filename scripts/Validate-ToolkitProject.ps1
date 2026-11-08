@@ -18,6 +18,7 @@ $Required = @(
     $MetaPath,
     (Join-Path $ModuleRoot "Levels\AA_Arena_Main\meta.lsf"),
     (Join-Path $ModuleRoot "Levels\AA_Arena_Main\Ai\aigrid.data"),
+    (Join-Path $ModuleRoot "Levels\AA_Arena_Main\WorldMap\MiniMap.lsf"),
     (Join-Path $ModuleRoot "Levels\AA_Arena_Main\Terrains\bcc2dd2c-a07d-4bda-a199-3f95933efee0.lsf"),
     (Join-Path $EditorRoot "Levels\AA_Arena_Main\EditorMetaData.lsx"),
     (Join-Path $ProjectRoot "meta.lsx"),
@@ -46,7 +47,7 @@ if ($Values.Type -ne "Adventure") { throw "Module type must be Adventure." }
 if ($Values.StartupLevelName -ne "AA_Arena_Main") { throw "Startup level is not AA_Arena_Main." }
 if ($Values.CharacterCreationLevelName -ne "") { throw "Character creation must inherit BG3's system character creator." }
 if ($Values.NumPlayers -ne "4") { throw "Adventure must support four players." }
-if ($Values.Version64 -ne "36028797018963993") { throw "Adventure module version is not 0.6.0-alpha.2 build 25." }
+if ($Values.Version64 -ne "36028797018963994") { throw "Adventure module version is not 0.6.0-alpha.3 build 26." }
 if ((Get-Content -LiteralPath $MetaPath -Raw) -match 'WLD_|BGO_|CRE_|END_|TUT_') {
     throw "Adventure metadata references a vanilla campaign level."
 }
@@ -241,6 +242,23 @@ foreach ($RelativePath in $GeneratedSceneryIndex) {
 
 . (Join-Path $PSScriptRoot 'lib\ArenaNavigation.ps1')
 Assert-ArenaNavigation -RepositoryRoot $RepositoryRoot
+
+[xml]$MiniMap = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'toolkit\levels\AA_Arena_Main.minimap.lsx') -Raw
+$Map = @{}
+foreach ($Attribute in $MiniMap.save.region.node.attribute) { $Map[$Attribute.id] = [double]$Attribute.value }
+$Ground = $SceneryManifest.walkableGround
+if ($Map.Width -lt 1024 -or $Map.Height -lt 1024 -or $Map.WorldWidth -le 0 -or $Map.WorldHeight -le 0) {
+    throw 'Minimap dimensions are invalid.'
+}
+if ($Map.WorldX -gt $Ground.minimum[0] -or $Map.WorldZ -gt $Ground.minimum[1] -or
+    ($Map.WorldX + $Map.WorldWidth) -lt $Ground.maximum[0] -or ($Map.WorldZ + $Map.WorldHeight) -lt $Ground.maximum[1]) {
+    throw 'Minimap bounds do not cover the playable ground.'
+}
+foreach ($Object in $SceneryManifest.objects) {
+    if ($Object.id -like 'cavern-*' -and ($Object.scale -gt 0.4 -or $Object.walkThrough -ne $true)) {
+        throw "Oversized or solid background cavern: $($Object.id)"
+    }
+}
 
 Write-Host "Toolkit project validation passed:" -ForegroundColor Green
 Write-Host "  Adventure UUID: $ModuleUuid"

@@ -1,4 +1,28 @@
-# Gauntlet release status — 2026-11-06
+# Gauntlet release status — 2026-11-08
+
+## Current repairs: 0.6.0-alpha.3
+
+The four requested defects have code and asset repairs, with no additional game
+launches. Native message boxes receive readable text and responses are mapped
+back to stable candidate/menu keys. A free Ready for Battle hotbar action opens
+wave confirmation only on player request; the recurring modal timer is removed.
+
+The 14 non-solid cavern/mushroom vistas were reduced, scenery supports camera
+fading and background pieces do not collide with the camera. Native
+`WorldMap/MiniMap.lsf` metadata now covers the full playable ground. Solid cover,
+stairs and their recorded navigation geometry remain unchanged.
+
+AI preparation and victory rewards use a save-backed per-operation journal with
+inventory/stack reconciliation and a persisted XP target. See
+[delivery recovery and limits](REWARD_DELIVERY.md). An obsolete loose 0.3.2
+Toolkit runtime was found; the installer backs up and moves aside this module's
+loose Mods/Public folders so they cannot shadow the PAK. Toolkit authoring can
+restore them through project sync.
+
+160 Lua tests, eight navigation/build tests, the real-bootstrap engine simulation,
+installer fixture checks and geometry validation pass. These do not replace
+real-game checks of the ledger, hotbar action, map rendering, camera fading and
+save/load delivery recovery.
 
 ## Recovery and candidate
 
@@ -8,7 +32,7 @@ The surviving `C:\Users\atper\Documents\AstralArena\astral-arena.bundle` ends at
 other workspace copies and their unfinished changes.
 
 0.5.1-alpha.1 added packaged Withers prompts, but real-game testing still showed
-raw handles. The new 0.6.0-alpha.2 candidate includes all 25 tactical pieces among
+raw handles. The 0.6.0-alpha.2 terrain candidate included all 25 tactical pieces among
 114 scenery objects. Full Generate and AI Grid Save were executed in Toolkit
 4.1.1.6931813 on November 4 and repeated on November 5 after landing adjustments.
 The current grid has 147,620 cells and its saved file is 4,346 bytes.
@@ -19,8 +43,10 @@ The scenery fingerprint and actual grid checksum are recorded in
 The Toolkit reported that scenery `Flag` must be int32, contradicting the older
 uint8 assumption. Editor objects were corrected and reloaded before generating
 navigation; both builders now use int32. Stonework, grass, banners and stairs
-render in game. Brown ground, a black minimap and camera-obscuring oversized
-backdrops remain visual defects. See [the terrain observations](PLAYTEST_2026-11-05.md).
+rendered in game on November 5. That test showed brown ground, a black minimap
+and camera-obscuring oversized backdrops. Alpha.3 addresses the map metadata and
+backdrops; their visual result still needs a fresh-save check. See
+[the terrain observations](PLAYTEST_2026-11-05.md).
 
 On November 6 the user asked to continue coding and stop further playtests.
 The game and Toolkit are closed and the normal PAK replaced the temporary probe.
@@ -52,10 +78,9 @@ Keep the prior PAK backup for rollback.
 
 ## Remaining implementation
 
-Crash-safe reward delivery still needs a delivery journal and recovery design
-that accounts for the gap between item creation and persistent acknowledgement.
-The existing one-time flag prevents duplicates but can lose undelivered items
-after interruption. Do not claim exactly-once delivery yet.
+The delivery journal is implemented for AI armory and victory bundles. Engine
+verification of inventory settlement and crash/save timing remains required;
+do not claim exactly-once delivery under every possible engine failure.
 
 Defer the additional nine sites and graphical reward picker. Merge into main
 only after engine checks pass. Keep cover/high ground as a separate candidate

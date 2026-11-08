@@ -128,6 +128,9 @@ def scenery_objects(manifest):
             w.attr("WalkOn", "bool", "True" if walk_on else "False")
             w.attr("WalkThrough", "bool", "True" if walk_through else "False")
             w.attr("IsDecorative", "bool", "True" if decorative else "False")
+            w.attr("Fadeable", "bool", "True")
+            if decorative or (not obj.get("tactical") and not walk_on):
+                w.attr("CollideWithCamera", "bool", "False")
             w.attr("_OriginalFileVersion_", "int64", "144115207403209026")
             w.children()
             transform(w, obj["position"], yaw_quaternion(obj.get("yaw", 0)), obj.get("scale", 1.0))
@@ -199,10 +202,16 @@ def main():
     if args.per_object:
         write_per_object(manifest, args.per_object, args.conv)
     if not args.lsx_only:
+        minimap_out = os.path.join(level_root, "WorldMap", "MiniMap.lsf")
+        os.makedirs(os.path.dirname(minimap_out), exist_ok=True)
+        subprocess.run(["dotnet", args.conv,
+                        os.path.join(root, "toolkit", "levels", "AA_Arena_Main.minimap.lsx"), minimap_out], check=True)
         receipt = {
             "manifestSha256": navgrid.text_sha(os.path.join(root, "toolkit", "scenery", "AA_Arena_Main.scenery.json")),
             "scenerySha256": navgrid.file_sha(os.path.join(level_root, "Scenery", "_merged.lsf")),
             "lightsSha256": navgrid.file_sha(os.path.join(level_root, "Lights", "_merged.lsf")),
+            "minimapSourceSha256": navgrid.text_sha(os.path.join(root, "toolkit", "levels", "AA_Arena_Main.minimap.lsx")),
+            "minimapSha256": navgrid.file_sha(minimap_out),
         }
         with open(os.path.join(root, "toolkit", "scenery", "AA_Arena_Main.build.json"), "w", encoding="utf-8") as handle:
             json.dump(receipt, handle, indent=2)
